@@ -10,8 +10,11 @@ import SwiftUI
 @main
 struct GitSwitcherApp: App {
     var body: some Scene {
-        WindowGroup {
+        MenuBarExtra {
             ContentView()
+        } label: {
+            Image(systemName: "arrow.triangle.branch")
         }
+        .menuBarExtraStyle(.window)
     }
 }
