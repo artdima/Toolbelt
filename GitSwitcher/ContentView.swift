@@ -72,6 +72,9 @@ struct ContentView: View {
         }
         .padding(28)
         .frame(width: 380)
+        .background(.black.opacity(0.85))
+        .background(Material.ultraThinMaterial)
+        .colorScheme(.dark)
         .onAppear {
             detectCurrentProfile()
         }
