@@ -62,6 +62,21 @@ struct ContentView: View {
                 }
             }
 
+            Button(action: restartFork) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.caption)
+                    Text("Перезапустить Fork")
+                        .font(.subheadline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.07))
+                .foregroundStyle(.secondary)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
+
             if !statusMessage.isEmpty {
                 Text(statusMessage)
                     .font(.footnote)
@@ -77,6 +92,22 @@ struct ContentView: View {
         .colorScheme(.dark)
         .onAppear {
             detectCurrentProfile()
+        }
+    }
+
+    private func restartFork() {
+        let isRunning = NSWorkspace.shared.runningApplications
+            .contains(where: { $0.bundleIdentifier == "com.DanPristupov.Fork" })
+
+        if isRunning {
+            shell("pkill", "-x", "Fork")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Fork.app"))
+                withAnimation { statusMessage = "↺ Fork перезапущен" }
+            }
+        } else {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Fork.app"))
+            withAnimation { statusMessage = "↺ Fork запущен" }
         }
     }
 
