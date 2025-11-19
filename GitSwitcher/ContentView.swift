@@ -77,6 +77,21 @@ struct ContentView: View {
             }
             .buttonStyle(.plain)
 
+            Button(action: deleteDerivedData) {
+                HStack(spacing: 8) {
+                    Image(systemName: "trash")
+                        .font(.caption)
+                    Text("Удалить Derived Data")
+                        .font(.subheadline)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(Color.red.opacity(0.18))
+                .foregroundStyle(.red)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .buttonStyle(.plain)
+
             if !statusMessage.isEmpty {
                 Text(statusMessage)
                     .font(.footnote)
@@ -108,6 +123,22 @@ struct ContentView: View {
         } else {
             NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Fork.app"))
             withAnimation { statusMessage = "↺ Fork запущен" }
+        }
+    }
+
+    private func deleteDerivedData() {
+        let derivedDataURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Developer/Xcode/DerivedData", isDirectory: true)
+
+        do {
+            if FileManager.default.fileExists(atPath: derivedDataURL.path) {
+                try FileManager.default.removeItem(at: derivedDataURL)
+                withAnimation { statusMessage = "✓ Derived Data удалена" }
+            } else {
+                withAnimation { statusMessage = "Derived Data уже отсутствует" }
+            }
+        } catch {
+            withAnimation { statusMessage = "⚠ Не удалось удалить Derived Data: \(error.localizedDescription)" }
         }
     }
 
