@@ -23,91 +23,119 @@ struct ContentView: View {
     ]
 
     var body: some View {
-        VStack(spacing: 24) {
-            HStack(spacing: 2) {
+        VStack(spacing: 18) {
+            HStack(spacing: 8) {
                 Image(systemName: "arrow.triangle.branch")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.78))
                 Text("Git Switcher")
-                    .font(.title2)
+                    .font(.system(size: 15))
                     .fontWeight(.semibold)
+                Spacer()
             }
 
-            HStack(spacing: 16) {
+            HStack(spacing: 10) {
                 ForEach(profiles, id: \.displayName) { profile in
                     Button(action: {
                         applyProfile(profile)
                     }) {
-                        VStack(spacing: 6) {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text(profile.displayName)
-                                .font(.headline)
+                                .font(.system(size: 14, weight: .semibold))
                             Text(profile.email)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(.system(size: 11))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .foregroundStyle(
+                                    activeProfile == profile.displayName
+                                        ? .white.opacity(0.72)
+                                        : .secondary
+                                )
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 14)
                         .background(
                             activeProfile == profile.displayName
-                                ? Color.accentColor
-                                : Color.secondary.opacity(0.12)
+                                ? Color.accentColor.opacity(0.88)
+                                : Color.white.opacity(0.07)
                         )
                         .foregroundStyle(
                             activeProfile == profile.displayName ? .white : .primary
                         )
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        }
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     .buttonStyle(.plain)
                 }
             }
 
-            Button(action: restartFork) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.caption)
-                    Text("Перезапустить Fork")
-                        .font(.subheadline)
+            VStack(spacing: 8) {
+                Button(action: restartFork) {
+                    actionButtonLabel(
+                        title: "Перезапустить Fork",
+                        systemImage: "arrow.counterclockwise",
+                        tint: .secondary,
+                        background: Color.white.opacity(0.07)
+                    )
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color.white.opacity(0.07))
-                .foregroundStyle(.secondary)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-            }
-            .buttonStyle(.plain)
+                .buttonStyle(.plain)
 
-            Button(action: deleteDerivedData) {
-                HStack(spacing: 8) {
-                    Image(systemName: "trash")
-                        .font(.caption)
-                    Text("Удалить Derived Data")
-                        .font(.subheadline)
+                Button(action: deleteDerivedData) {
+                    actionButtonLabel(
+                        title: "Удалить Derived Data",
+                        systemImage: "trash",
+                        tint: .red,
+                        background: Color.red.opacity(0.16)
+                    )
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(Color.red.opacity(0.18))
-                .foregroundStyle(.red)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             if !statusMessage.isEmpty {
                 Text(statusMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.white.opacity(0.62))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .transition(.opacity)
             }
         }
-        .padding(28)
-        .frame(width: 380)
-        .background(.black.opacity(0.85))
-        .background(Material.ultraThinMaterial)
+        .padding(16)
+        .frame(width: 330)
         .colorScheme(.dark)
         .onAppear {
             detectCurrentProfile()
         }
+    }
+
+    private func actionButtonLabel(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        background: Color
+    ) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .semibold))
+            Text(title)
+                .font(.system(size: 13, weight: .medium))
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(background)
+        .foregroundStyle(tint)
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private func restartFork() {
