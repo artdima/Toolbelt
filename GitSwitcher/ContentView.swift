@@ -84,6 +84,16 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
+                Button(action: captureSelectedArea) {
+                    actionButtonLabel(
+                        title: "Снимок выделенной области",
+                        systemImage: "camera.viewfinder",
+                        tint: .secondary,
+                        background: Color.white.opacity(0.07)
+                    )
+                }
+                .buttonStyle(.plain)
+
                 Button(action: deleteDerivedData) {
                     actionButtonLabel(
                         title: "Удалить Derived Data",
@@ -136,6 +146,38 @@ struct ContentView: View {
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func captureSelectedArea() {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH.mm.ss"
+
+        let fileURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Downloads", isDirectory: true)
+            .appendingPathComponent("Снимок экрана \(formatter.string(from: Date())).png")
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        process.arguments = ["-i", fileURL.path]
+
+        process.terminationHandler = { process in
+            DispatchQueue.main.async {
+                withAnimation {
+                    if process.terminationStatus == 0 {
+                        statusMessage = "✓ Снимок сохранён в Downloads"
+                    } else {
+                        statusMessage = "Снимок экрана отменён"
+                    }
+                }
+            }
+        }
+
+        do {
+            try process.run()
+            withAnimation { statusMessage = "Выберите область для снимка экрана" }
+        } catch {
+            withAnimation { statusMessage = "⚠ Не удалось запустить снимок экрана: \(error.localizedDescription)" }
+        }
     }
 
     private func restartFork() {
