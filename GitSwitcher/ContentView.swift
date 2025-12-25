@@ -105,14 +105,33 @@ struct ContentView: View {
                 .buttonStyle(.plain)
             }
 
-            if !statusMessage.isEmpty {
-                Text(statusMessage)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.62))
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .transition(.opacity)
+            HStack(alignment: .bottom, spacing: 10) {
+                if !statusMessage.isEmpty {
+                    Text(statusMessage)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.62))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .transition(.opacity)
+                } else {
+                    Spacer(minLength: 0)
+                }
+
+                Button(action: quitApp) {
+                    Image(systemName: "power")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                        .background(Color.white.opacity(0.07))
+                        .foregroundStyle(.secondary)
+                        .overlay {
+                            Circle()
+                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                        }
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .help("Завершить Git Switcher")
             }
         }
         .padding(16)
@@ -146,6 +165,10 @@ struct ContentView: View {
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func quitApp() {
+        NSApplication.shared.terminate(nil)
     }
 
     private func captureSelectedArea() {
