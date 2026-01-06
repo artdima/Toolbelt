@@ -74,6 +74,16 @@ struct ContentView: View {
             }
 
             VStack(spacing: 8) {
+                Button(action: { LLMChatWindow.show() }) {
+                    actionButtonLabel(
+                        title: "Спросить LLM",
+                        systemImage: "sparkles",
+                        tint: .secondary,
+                        background: Color.white.opacity(0.07)
+                    )
+                }
+                .buttonStyle(.plain)
+
                 Button(action: restartFork) {
                     actionButtonLabel(
                         title: "Перезапустить Fork",
