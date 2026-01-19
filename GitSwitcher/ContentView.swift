@@ -84,6 +84,16 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
+                Button(action: { WeeklyReportWindow.show() }) {
+                    actionButtonLabel(
+                        title: "Получить отчёт за неделю",
+                        systemImage: "chart.bar.doc.horizontal",
+                        tint: .secondary,
+                        background: Color.white.opacity(0.07)
+                    )
+                }
+                .buttonStyle(.plain)
+
                 Button(action: restartFork) {
                     actionButtonLabel(
                         title: "Перезапустить Fork",

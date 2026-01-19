@@ -1,0 +1,493 @@
+//
+//  WeeklyReportView.swift
+//  GitSwitcher
+//
+//  Окно с отчётом по трудозатратам за неделю из Яндекс Трекера.
+//
+
+import SwiftUI
+
+// MARK: - Окно отчёта
+
+enum WeeklyReportWindow {
+    private static var window: NSWindow?
+
+    static func show() {
+        if let window {
+            window.makeKeyAndOrderFront(nil)
+            DockPresence.activate()
+            return
+        }
+
+        DockPresence.retain()
+
+        let hosting = NSHostingController(rootView: WeeklyReportView())
+        let newWindow = NSWindow(contentViewController: hosting)
+        newWindow.title = "Отчёт за неделю"
+        newWindow.setContentSize(NSSize(width: 520, height: 660))
+        newWindow.styleMask = [.titled, .closable, .resizable, .miniaturizable]
+        newWindow.isReleasedWhenClosed = false
+        newWindow.center()
+        window = newWindow
+
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: newWindow,
+            queue: .main
+        ) { _ in
+            window = nil
+            DockPresence.release()
+        }
+
+        newWindow.makeKeyAndOrderFront(nil)
+        DockPresence.activate()
+    }
+}
+
+// MARK: - Агрегаты
+
+private struct DayBucket: Identifiable {
+    let id: Int
+    let date: Date
+    let seconds: TimeInterval
+}
+
+private struct IssueBucket: Identifiable {
+    var id: String { key }
+    let key: String
+    let title: String
+    let seconds: TimeInterval
+}
+
+// MARK: - Вью отчёта
+
+struct WeeklyReportView: View {
+    @State private var weekOffset = 0
+    @State private var entries: [Worklog] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var isSettingsPresented = false
+
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.firstWeekday = 2 // понедельник
+        calendar.timeZone = .current
+        calendar.locale = Locale(identifier: "ru_RU")
+        return calendar
+    }
+
+    private var weekStart: Date {
+        let today = calendar.startOfDay(for: Date())
+        let current = calendar.dateInterval(of: .weekOfYear, for: today)?.start ?? today
+        return calendar.date(byAdding: .weekOfYear, value: weekOffset, to: current) ?? current
+    }
+
+    private var weekEnd: Date {
+        calendar.date(byAdding: .day, value: 7, to: weekStart) ?? weekStart
+    }
+
+    private var totalSeconds: TimeInterval {
+        entries.reduce(0) { $0 + $1.seconds }
+    }
+
+    private var days: [DayBucket] {
+        (0..<7).map { offset in
+            let date = calendar.date(byAdding: .day, value: offset, to: weekStart) ?? weekStart
+            let next = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+            let seconds = entries
+                .filter { $0.start >= date && $0.start < next }
+                .reduce(0) { $0 + $1.seconds }
+            return DayBucket(id: offset, date: date, seconds: seconds)
+        }
+    }
+
+    private var issues: [IssueBucket] {
+        var order: [String] = []
+        var titles: [String: String] = [:]
+        var totals: [String: TimeInterval] = [:]
+
+        for entry in entries {
+            if totals[entry.issueKey] == nil {
+                order.append(entry.issueKey)
+                titles[entry.issueKey] = entry.issueTitle
+            }
+            totals[entry.issueKey, default: 0] += entry.seconds
+        }
+
+        return order
+            .map { IssueBucket(key: $0, title: titles[$0] ?? $0, seconds: totals[$0] ?? 0) }
+            .sorted { $0.seconds > $1.seconds }
+    }
+
+    // MARK: Тело
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            Divider()
+
+            if let errorMessage {
+                banner(errorMessage)
+            }
+
+            if !TrackerCredentials.isConfigured {
+                setupPrompt
+            } else if isLoading && entries.isEmpty {
+                VStack(spacing: 10) {
+                    ProgressView().controlSize(.small)
+                    Text("Загружаем записи из Трекера…")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if entries.isEmpty {
+                VStack(spacing: 6) {
+                    Image(systemName: "clock.badge.questionmark")
+                        .font(.system(size: 26))
+                        .foregroundStyle(.tertiary)
+                    Text("За эту неделю записей нет")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        totalCard
+                        daysSection
+                        issuesSection
+                    }
+                    .padding(16)
+                }
+            }
+        }
+        .frame(minWidth: 460, minHeight: 480)
+        .sheet(isPresented: $isSettingsPresented) {
+            TrackerSettingsView {
+                Task { await load() }
+            }
+        }
+        .task(id: weekOffset) {
+            await load()
+        }
+    }
+
+    // MARK: Шапка
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            Button {
+                weekOffset -= 1
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .help("Предыдущая неделя")
+
+            Button {
+                weekOffset += 1
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .disabled(weekOffset >= 0)
+            .help("Следующая неделя")
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(weekRangeTitle)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(weekOffset == 0 ? "Текущая неделя" : relativeWeekTitle)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.leading, 4)
+
+            Spacer()
+
+            if isLoading {
+                ProgressView().controlSize(.small)
+            }
+
+            Button {
+                Task { await load() }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .disabled(isLoading)
+            .help("Обновить")
+
+            Button {
+                isSettingsPresented = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 12, weight: .semibold))
+            }
+            .buttonStyle(.plain)
+            .help("Настройки доступа к Трекеру")
+        }
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+    }
+
+    private func banner(_ text: String) -> some View {
+        Text("⚠ \(text)")
+            .font(.system(size: 11))
+            .foregroundStyle(.red)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color.red.opacity(0.1))
+    }
+
+    private var setupPrompt: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "key")
+                .font(.system(size: 26))
+                .foregroundStyle(.tertiary)
+            Text("Укажите OAuth-токен и идентификатор организации,\nчтобы получить отчёт из Яндекс Трекера")
+                .font(.system(size: 12))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            Button("Открыть настройки") { isSettingsPresented = true }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(24)
+    }
+
+    // MARK: Секции
+
+    private var totalCard: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Всего за неделю")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Text(TrackerAPI.formatDuration(totalSeconds))
+                    .font(.system(size: 24, weight: .semibold))
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(entries.count) \(pluralize(entries.count, "запись", "записи", "записей"))")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Text("\(issues.count) \(pluralize(issues.count, "задача", "задачи", "задач"))")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(Color.primary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    private var daysSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("По дням")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            let maxSeconds = max(days.map(\.seconds).max() ?? 0, 1)
+
+            VStack(spacing: 6) {
+                ForEach(days) { day in
+                    HStack(spacing: 10) {
+                        Text(dayTitle(day.date))
+                            .font(.system(size: 12, weight: isToday(day.date) ? .semibold : .regular))
+                            .frame(width: 92, alignment: .leading)
+
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(Color.primary.opacity(0.06))
+                                .frame(height: 8)
+                            Capsule()
+                                .fill(day.seconds > 0 ? Color.accentColor : Color.clear)
+                                .frame(width: barWidth(day.seconds, max: maxSeconds), height: 8)
+                        }
+                        .frame(maxWidth: .infinity)
+
+                        Text(day.seconds > 0 ? TrackerAPI.formatDuration(day.seconds) : "—")
+                            .font(.system(size: 12))
+                            .foregroundStyle(day.seconds > 0 ? .primary : .tertiary)
+                            .frame(width: 76, alignment: .trailing)
+                    }
+                }
+            }
+        }
+    }
+
+    private var issuesSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("По задачам")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(.secondary)
+
+            VStack(spacing: 0) {
+                ForEach(Array(issues.enumerated()), id: \.element.id) { index, issue in
+                    if index > 0 { Divider() }
+                    HStack(alignment: .top, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(issue.key)
+                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                                .foregroundStyle(Color.accentColor)
+                            Text(issue.title)
+                                .font(.system(size: 12))
+                                .lineLimit(2)
+                                .textSelection(.enabled)
+                        }
+                        Spacer(minLength: 12)
+                        Text(TrackerAPI.formatDuration(issue.seconds))
+                            .font(.system(size: 12, weight: .medium))
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                }
+            }
+            .background(Color.primary.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+    }
+
+    // MARK: Вспомогательное
+
+    private func barWidth(_ seconds: TimeInterval, max maxSeconds: TimeInterval) -> CGFloat {
+        guard seconds > 0 else { return 0 }
+        let ratio = seconds / maxSeconds
+        return Swift.max(6, CGFloat(ratio) * 200)
+    }
+
+    private func isToday(_ date: Date) -> Bool {
+        calendar.isDateInToday(date)
+    }
+
+    private func dayTitle(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.dateFormat = "EE, d MMM"
+        let text = formatter.string(from: date)
+        return text.prefix(1).uppercased() + text.dropFirst()
+    }
+
+    private var weekRangeTitle: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.dateFormat = "d MMMM"
+        let last = calendar.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
+        return "\(formatter.string(from: weekStart)) — \(formatter.string(from: last))"
+    }
+
+    private var relativeWeekTitle: String {
+        let weeks = abs(weekOffset)
+        if weekOffset == -1 { return "Прошлая неделя" }
+        if weekOffset < 0 { return "\(weeks) \(pluralize(weeks, "неделя", "недели", "недель")) назад" }
+        return "Через \(weeks) \(pluralize(weeks, "неделю", "недели", "недель"))"
+    }
+
+    private func pluralize(_ count: Int, _ one: String, _ few: String, _ many: String) -> String {
+        let mod100 = count % 100
+        let mod10 = count % 10
+        if mod100 >= 11 && mod100 <= 14 { return many }
+        if mod10 == 1 { return one }
+        if mod10 >= 2 && mod10 <= 4 { return few }
+        return many
+    }
+
+    // MARK: Загрузка
+
+    private func load() async {
+        guard TrackerCredentials.isConfigured else {
+            entries = []
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            entries = try await TrackerAPI.fetchWorklog(from: weekStart, to: weekEnd)
+        } catch {
+            entries = []
+            errorMessage = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Настройки доступа
+
+struct TrackerSettingsView: View {
+    var onSave: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var token: String = TrackerCredentials.token
+    @State private var orgId: String = TrackerCredentials.orgId
+    @State private var orgKind: TrackerOrgKind = TrackerCredentials.orgKind
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Доступ к Яндекс Трекеру")
+                .font(.system(size: 14, weight: .semibold))
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("OAuth-токен")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                SecureField("y0_Ag…", text: $token)
+                    .textFieldStyle(.roundedBorder)
+                Text("Хранится в Keychain. Получить: oauth.yandex.ru")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Идентификатор организации")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                TextField("123456", text: $orgId)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Тип организации")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                Picker("", selection: $orgKind) {
+                    ForEach(TrackerOrgKind.allCases) { kind in
+                        Text(kind.title).tag(kind)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                Text("Заголовок запроса: \(orgKind.headerName)")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.tertiary)
+            }
+
+            HStack {
+                Spacer()
+                Button("Отмена") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+                Button("Сохранить") {
+                    TrackerCredentials.token = token
+                    TrackerCredentials.orgId = orgId.trimmingCharacters(in: .whitespacesAndNewlines)
+                    TrackerCredentials.orgKind = orgKind
+                    dismiss()
+                    onSave()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+            .padding(.top, 4)
+        }
+        .padding(18)
+        .frame(width: 380)
+    }
+}
+
+#Preview {
+    WeeklyReportView()
+}

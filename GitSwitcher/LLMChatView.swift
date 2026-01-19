@@ -21,9 +21,11 @@ enum LLMChatWindow {
     static func show() {
         if let window {
             window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
+            DockPresence.activate()
             return
         }
+
+        DockPresence.retain()
 
         let hosting = NSHostingController(rootView: LLMChatView())
         let newWindow = NSWindow(contentViewController: hosting)
@@ -40,10 +42,11 @@ enum LLMChatWindow {
             queue: .main
         ) { _ in
             window = nil
+            DockPresence.release()
         }
 
         newWindow.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        DockPresence.activate()
     }
 }
 
