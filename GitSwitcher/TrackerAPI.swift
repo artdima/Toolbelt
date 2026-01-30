@@ -129,6 +129,42 @@ private struct WorklogDTO: Decodable {
     let duration: String
 }
 
+private struct IssueDTO: Decodable {
+    struct Ref: Decodable {
+        let key: String?
+        let display: String?
+    }
+
+    let key: String
+    let summary: String
+    let status: Ref?
+    let priority: Ref?
+    let queue: Ref?
+    let updatedAt: String?
+    let deadline: String?
+}
+
+/// Задача для доски.
+struct Issue: Identifiable, Hashable {
+    var id: String { key }
+    let key: String
+    let summary: String
+    let statusKey: String
+    let statusName: String
+    let priorityKey: String
+    let priorityName: String
+    let queueName: String
+    let updatedAt: Date?
+    let deadline: Date?
+
+    var url: URL? { URL(string: "https://tracker.yandex.ru/\(key)") }
+
+    var isOverdue: Bool {
+        guard let deadline else { return false }
+        return deadline < Calendar.current.startOfDay(for: Date())
+    }
+}
+
 /// Разобранная запись о затраченном времени.
 struct Worklog: Identifiable, Hashable {
     let id: Int
@@ -281,6 +317,47 @@ enum TrackerAPI {
         return entries.sorted { $0.start < $1.start }
     }
 
+    // MARK: Задачи
+
+    /// Задачи, где текущий пользователь — исполнитель.
+    /// - Parameter includeResolved: включать ли решённые и закрытые.
+    static func fetchMyIssues(includeResolved: Bool) async throws -> [Issue] {
+        var parts = ["Assignee: me()"]
+        if !includeResolved {
+            parts.append("Resolution: empty()")
+        }
+        parts.append("\"Sort by\": Updated DESC")
+
+        let payload: [String: Any] = ["query": parts.joined(separator: " ")]
+        let body = try JSONSerialization.data(withJSONObject: payload)
+        let request = try makeRequest(path: "/issues/_search?perPage=200", method: "POST", body: body)
+        let data = try await perform(request)
+
+        let raw: [IssueDTO]
+        do {
+            raw = try JSONDecoder().decode([IssueDTO].self, from: data)
+        } catch {
+            log("✗ Ошибка разбора задач: \(error)")
+            throw TrackerError(message: "Не удалось разобрать список задач: \(error.localizedDescription)")
+        }
+
+        log("Задач получено: \(raw.count)")
+
+        return raw.map { dto in
+            Issue(
+                key: dto.key,
+                summary: dto.summary,
+                statusKey: dto.status?.key ?? "unknown",
+                statusName: dto.status?.display ?? "Без статуса",
+                priorityKey: dto.priority?.key ?? "normal",
+                priorityName: dto.priority?.display ?? "",
+                queueName: dto.queue?.display ?? dto.queue?.key ?? "",
+                updatedAt: dto.updatedAt.flatMap(parseDate),
+                deadline: dto.deadline.flatMap(parseDate)
+            )
+        }
+    }
+
     // MARK: Даты
 
     private static let apiDateFormatter: DateFormatter = {
@@ -297,8 +374,18 @@ enum TrackerAPI {
         return formatter
     }()
 
+    /// Дедлайн приходит без времени, остальные поля — с зоной и миллисекундами.
+    private static let apiDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
     static func parseDate(_ string: String) -> Date? {
-        apiDateFormatter.date(from: string) ?? apiDateFormatterNoMillis.date(from: string)
+        apiDateFormatter.date(from: string)
+            ?? apiDateFormatterNoMillis.date(from: string)
+            ?? apiDayFormatter.date(from: string)
     }
 
     // MARK: Длительность

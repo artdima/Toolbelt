@@ -94,6 +94,16 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
+                Button(action: { IssuesBoardWindow.show() }) {
+                    actionButtonLabel(
+                        title: "Мои задачи",
+                        systemImage: "square.grid.3x2",
+                        tint: .secondary,
+                        background: Color.white.opacity(0.07)
+                    )
+                }
+                .buttonStyle(.plain)
+
                 Button(action: restartFork) {
                     actionButtonLabel(
                         title: "Перезапустить Fork",
