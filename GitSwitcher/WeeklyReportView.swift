@@ -57,6 +57,8 @@ private struct IssueBucket: Identifiable {
     let key: String
     let title: String
     let seconds: TimeInterval
+    /// Исходные записи worklog по задаче — раскрываются по «+».
+    let entries: [Worklog]
 }
 
 // MARK: - Вью отчёта
@@ -67,6 +69,8 @@ struct WeeklyReportView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var isSettingsPresented = false
+    /// Ключи задач, у которых раскрыта детализация по записям.
+    @State private var expandedIssues: Set<String> = []
 
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -105,6 +109,7 @@ struct WeeklyReportView: View {
         var order: [String] = []
         var titles: [String: String] = [:]
         var totals: [String: TimeInterval] = [:]
+        var grouped: [String: [Worklog]] = [:]
 
         for entry in entries {
             if totals[entry.issueKey] == nil {
@@ -112,10 +117,18 @@ struct WeeklyReportView: View {
                 titles[entry.issueKey] = entry.issueTitle
             }
             totals[entry.issueKey, default: 0] += entry.seconds
+            grouped[entry.issueKey, default: []].append(entry)
         }
 
         return order
-            .map { IssueBucket(key: $0, title: titles[$0] ?? $0, seconds: totals[$0] ?? 0) }
+            .map { key in
+                IssueBucket(
+                    key: key,
+                    title: titles[key] ?? key,
+                    seconds: totals[key] ?? 0,
+                    entries: (grouped[key] ?? []).sorted { $0.start < $1.start }
+                )
+            }
             .sorted { $0.seconds > $1.seconds }
     }
 
@@ -168,6 +181,8 @@ struct WeeklyReportView: View {
             }
         }
         .task(id: weekOffset) {
+            // При смене недели детализация схлопывается; ручное обновление её сохраняет.
+            expandedIssues.removeAll()
             await load()
         }
     }
@@ -323,34 +338,142 @@ struct WeeklyReportView: View {
 
     private var issuesSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("По задачам")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                Text("По задачам")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                if !issues.isEmpty {
+                    Button(expandAllTitle) {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            if expandedIssues.isEmpty {
+                                expandedIssues = Set(issues.map(\.key))
+                            } else {
+                                expandedIssues.removeAll()
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                }
+            }
 
             VStack(spacing: 0) {
                 ForEach(Array(issues.enumerated()), id: \.element.id) { index, issue in
                     if index > 0 { Divider() }
-                    HStack(alignment: .top, spacing: 10) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(issue.key)
-                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(Color.accentColor)
-                            Text(issue.title)
-                                .font(.system(size: 12))
-                                .lineLimit(2)
-                                .textSelection(.enabled)
-                        }
-                        Spacer(minLength: 12)
-                        Text(TrackerAPI.formatDuration(issue.seconds))
-                            .font(.system(size: 12, weight: .medium))
-                    }
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
+                    issueRow(issue)
                 }
             }
             .background(Color.primary.opacity(0.04))
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
+    }
+
+    private var expandAllTitle: String {
+        expandedIssues.isEmpty ? "Раскрыть все" : "Свернуть все"
+    }
+
+    private var detailsShowHint: String { "Показать детализацию" }
+    private var detailsHideHint: String { "Свернуть детализацию" }
+
+    @ViewBuilder
+    private func issueRow(_ issue: IssueBucket) -> some View {
+        let isExpanded = expandedIssues.contains(issue.key)
+
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 8) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        if isExpanded {
+                            expandedIssues.remove(issue.key)
+                        } else {
+                            expandedIssues.insert(issue.key)
+                        }
+                    }
+                } label: {
+                    Image(systemName: isExpanded ? "minus" : "plus")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16, height: 16)
+                        .background(Color.primary.opacity(0.07))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(isExpanded ? detailsHideHint : detailsShowHint)
+                .padding(.top, 1)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(issue.key)
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(Color.accentColor)
+                    Text(issue.title)
+                        .font(.system(size: 12))
+                        .lineLimit(2)
+                        .textSelection(.enabled)
+                }
+
+                Spacer(minLength: 12)
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(TrackerAPI.formatDuration(issue.seconds))
+                        .font(.system(size: 12, weight: .medium))
+                    Text("\(issue.entries.count) \(pluralize(issue.entries.count, "запись", "записи", "записей"))")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+
+            if isExpanded {
+                issueDetails(issue)
+            }
+        }
+    }
+
+    private func issueDetails(_ issue: IssueBucket) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(issue.entries.enumerated()), id: \.element.id) { index, entry in
+                if index > 0 {
+                    Divider().padding(.leading, 12)
+                }
+                HStack(alignment: .top, spacing: 10) {
+                    Text(entryDateTitle(entry.start))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 108, alignment: .leading)
+
+                    if let comment = entry.comment, !comment.isEmpty {
+                        Text(comment)
+                            .font(.system(size: 11))
+                            .foregroundStyle(.primary)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    } else {
+                        Text("Без комментария")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.tertiary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    Text(TrackerAPI.formatDuration(entry.seconds))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 70, alignment: .trailing)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+            }
+        }
+        .padding(.leading, 24)
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.03))
     }
 
     // MARK: Вспомогательное
@@ -371,6 +494,20 @@ struct WeeklyReportView: View {
         formatter.dateFormat = "EE, d MMM"
         let text = formatter.string(from: date)
         return text.prefix(1).uppercased() + text.dropFirst()
+    }
+
+    /// «Пн, 18 авг · 10:30» — заголовок отдельной записи в детализации.
+    private func entryDateTitle(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.dateFormat = "EE, d MMM"
+        let day = formatter.string(from: date)
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = Locale(identifier: "ru_RU")
+        timeFormatter.dateFormat = "HH:mm"
+
+        return "\(day.prefix(1).uppercased())\(day.dropFirst()) · \(timeFormatter.string(from: date))"
     }
 
     private var weekRangeTitle: String {
