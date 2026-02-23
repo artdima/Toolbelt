@@ -74,7 +74,7 @@ struct ContentView: View {
             }
 
             VStack(spacing: 8) {
-                Button(action: { LLMChatWindow.show() }) {
+                Button(action: { openAppWindow { LLMChatWindow.show() } }) {
                     actionButtonLabel(
                         title: "Спросить LLM",
                         systemImage: "sparkles",
@@ -84,7 +84,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
-                Button(action: { WeeklyReportWindow.show() }) {
+                Button(action: { openAppWindow { WeeklyReportWindow.show() } }) {
                     actionButtonLabel(
                         title: "Получить отчёт за неделю",
                         systemImage: "chart.bar.doc.horizontal",
@@ -94,7 +94,7 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
-                Button(action: { IssuesBoardWindow.show() }) {
+                Button(action: { openAppWindow { IssuesBoardWindow.show() } }) {
                     actionButtonLabel(
                         title: "Мои задачи",
                         systemImage: "square.grid.3x2",
@@ -167,9 +167,17 @@ struct ContentView: View {
         .padding(16)
         .frame(width: 330)
         .colorScheme(.dark)
+        .background(MenuBarPanelReader().frame(width: 0, height: 0))
         .onAppear {
             detectCurrentProfile()
         }
+    }
+
+    /// Открывает обычное окно и закрывает меню в строке состояния,
+    /// иначе панель остаётся висеть поверх открытого окна.
+    private func openAppWindow(_ show: () -> Void) {
+        MenuBarPanel.dismiss()
+        show()
     }
 
     private func actionButtonLabel(
