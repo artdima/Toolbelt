@@ -61,6 +61,28 @@ private struct IssueBucket: Identifiable {
     let entries: [Worklog]
 }
 
+private struct DayGroup: Identifiable {
+    var id: Date { date }
+    let date: Date
+    let seconds: TimeInterval
+    let issueCount: Int
+    let entries: [Worklog]
+}
+
+private enum BreakdownMode: String, CaseIterable, Identifiable {
+    case issues
+    case days
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .issues: return "По задачам"
+        case .days: return "По дням"
+        }
+    }
+}
+
 // MARK: - Вью отчёта
 
 struct WeeklyReportView: View {
@@ -71,6 +93,8 @@ struct WeeklyReportView: View {
     @State private var isSettingsPresented = false
     /// Ключи задач, у которых раскрыта детализация по записям.
     @State private var expandedIssues: Set<String> = []
+    @State private var expandedDays: Set<Date> = []
+    @State private var breakdownMode: BreakdownMode = .issues
 
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
@@ -132,6 +156,22 @@ struct WeeklyReportView: View {
             .sorted { $0.seconds > $1.seconds }
     }
 
+    private var dayGroups: [DayGroup] {
+        days.compactMap { day in
+            let next = calendar.date(byAdding: .day, value: 1, to: day.date) ?? day.date
+            let items = entries
+                .filter { $0.start >= day.date && $0.start < next }
+                .sorted { $0.start < $1.start }
+            guard !items.isEmpty else { return nil }
+            return DayGroup(
+                date: day.date,
+                seconds: items.reduce(0) { $0 + $1.seconds },
+                issueCount: Set(items.map(\.issueKey)).count,
+                entries: items
+            )
+        }
+    }
+
     // MARK: Тело
 
     var body: some View {
@@ -168,7 +208,7 @@ struct WeeklyReportView: View {
                     VStack(alignment: .leading, spacing: 20) {
                         totalCard
                         daysSection
-                        issuesSection
+                        breakdownSection
                     }
                     .padding(16)
                 }
@@ -183,6 +223,7 @@ struct WeeklyReportView: View {
         .task(id: weekOffset) {
             // При смене недели детализация схлопывается; ручное обновление её сохраняет.
             expandedIssues.removeAll()
+            expandedDays.removeAll()
             await load()
         }
     }
@@ -336,23 +377,25 @@ struct WeeklyReportView: View {
         }
     }
 
-    private var issuesSection: some View {
+    private var breakdownSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Text("По задачам")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                Picker("", selection: $breakdownMode) {
+                    ForEach(BreakdownMode.allCases) { mode in
+                        Text(mode.title).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .controlSize(.small)
+                .fixedSize()
 
                 Spacer()
 
-                if !issues.isEmpty {
+                if !isBreakdownEmpty {
                     Button(expandAllTitle) {
                         withAnimation(.easeInOut(duration: 0.15)) {
-                            if expandedIssues.isEmpty {
-                                expandedIssues = Set(issues.map(\.key))
-                            } else {
-                                expandedIssues.removeAll()
-                            }
+                            toggleExpandAll()
                         }
                     }
                     .buttonStyle(.plain)
@@ -362,9 +405,17 @@ struct WeeklyReportView: View {
             }
 
             VStack(spacing: 0) {
-                ForEach(Array(issues.enumerated()), id: \.element.id) { index, issue in
-                    if index > 0 { Divider() }
-                    issueRow(issue)
+                switch breakdownMode {
+                case .issues:
+                    ForEach(Array(issues.enumerated()), id: \.element.id) { index, issue in
+                        if index > 0 { Divider() }
+                        issueRow(issue)
+                    }
+                case .days:
+                    ForEach(Array(dayGroups.enumerated()), id: \.element.id) { index, group in
+                        if index > 0 { Divider() }
+                        dayRow(group)
+                    }
                 }
             }
             .background(Color.primary.opacity(0.04))
@@ -372,8 +423,22 @@ struct WeeklyReportView: View {
         }
     }
 
+    private var isBreakdownEmpty: Bool {
+        breakdownMode == .issues ? issues.isEmpty : dayGroups.isEmpty
+    }
+
     private var expandAllTitle: String {
-        expandedIssues.isEmpty ? "Раскрыть все" : "Свернуть все"
+        let isCollapsed = breakdownMode == .issues ? expandedIssues.isEmpty : expandedDays.isEmpty
+        return isCollapsed ? "Раскрыть все" : "Свернуть все"
+    }
+
+    private func toggleExpandAll() {
+        switch breakdownMode {
+        case .issues:
+            expandedIssues = expandedIssues.isEmpty ? Set(issues.map(\.key)) : []
+        case .days:
+            expandedDays = expandedDays.isEmpty ? Set(dayGroups.map(\.date)) : []
+        }
     }
 
     private var detailsShowHint: String { "Показать детализацию" }
@@ -476,6 +541,105 @@ struct WeeklyReportView: View {
         .background(Color.primary.opacity(0.03))
     }
 
+    @ViewBuilder
+    private func dayRow(_ group: DayGroup) -> some View {
+        let isExpanded = expandedDays.contains(group.date)
+
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 8) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        if isExpanded {
+                            expandedDays.remove(group.date)
+                        } else {
+                            expandedDays.insert(group.date)
+                        }
+                    }
+                } label: {
+                    Image(systemName: isExpanded ? "minus" : "plus")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 16, height: 16)
+                        .background(Color.primary.opacity(0.07))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(isExpanded ? detailsHideHint : detailsShowHint)
+                .padding(.top, 1)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(dayTitle(group.date))
+                        .font(.system(size: 12, weight: isToday(group.date) ? .semibold : .regular))
+                    Text("\(group.issueCount) \(pluralize(group.issueCount, "задача", "задачи", "задач"))")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                }
+
+                Spacer(minLength: 12)
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(TrackerAPI.formatDuration(group.seconds))
+                        .font(.system(size: 12, weight: .medium))
+                    Text("\(group.entries.count) \(pluralize(group.entries.count, "запись", "записи", "записей"))")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+
+            if isExpanded {
+                dayDetails(group)
+            }
+        }
+    }
+
+    private func dayDetails(_ group: DayGroup) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(group.entries.enumerated()), id: \.element.id) { index, entry in
+                if index > 0 {
+                    Divider().padding(.leading, 12)
+                }
+                HStack(alignment: .top, spacing: 10) {
+                    Text(timeTitle(entry.start))
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, alignment: .leading)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(entry.issueKey)
+                            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                            .foregroundStyle(Color.accentColor)
+
+                        if let comment = entry.comment, !comment.isEmpty {
+                            Text(comment)
+                                .font(.system(size: 11))
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text("Без комментария")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Text(TrackerAPI.formatDuration(entry.seconds))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 70, alignment: .trailing)
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
+            }
+        }
+        .padding(.leading, 24)
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.03))
+    }
+
     // MARK: Вспомогательное
 
     private func barWidth(_ seconds: TimeInterval, max maxSeconds: TimeInterval) -> CGFloat {
@@ -508,6 +672,13 @@ struct WeeklyReportView: View {
         timeFormatter.dateFormat = "HH:mm"
 
         return "\(day.prefix(1).uppercased())\(day.dropFirst()) · \(timeFormatter.string(from: date))"
+    }
+
+    private func timeTitle(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ru_RU")
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 
     private var weekRangeTitle: String {
