@@ -1,6 +1,6 @@
 //
 //  WeeklyReportView.swift
-//  GitSwitcher
+//  Toolbelt
 //
 //  Окно с отчётом по трудозатратам за неделю из Яндекс Трекера.
 //

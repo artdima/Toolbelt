@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		32D62D492FAE0164009FBCC6 /* GitSwitcher.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GitSwitcher.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		32D62D492FAE0164009FBCC6 /* Toolbelt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Toolbelt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		32D62D4B2FAE0164009FBCC6 /* GitSwitcher */ = {
+		32D62D4B2FAE0164009FBCC6 /* Toolbelt */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = GitSwitcher;
+			path = Toolbelt;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		32D62D402FAE0163009FBCC6 = {
 			isa = PBXGroup;
 			children = (
-				32D62D4B2FAE0164009FBCC6 /* GitSwitcher */,
+				32D62D4B2FAE0164009FBCC6 /* Toolbelt */,
 				32D62D4A2FAE0164009FBCC6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		32D62D4A2FAE0164009FBCC6 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				32D62D492FAE0164009FBCC6 /* GitSwitcher.app */,
+				32D62D492FAE0164009FBCC6 /* Toolbelt.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		32D62D482FAE0163009FBCC6 /* GitSwitcher */ = {
+		32D62D482FAE0163009FBCC6 /* Toolbelt */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 32D62D542FAE0165009FBCC6 /* Build configuration list for PBXNativeTarget "GitSwitcher" */;
+			buildConfigurationList = 32D62D542FAE0165009FBCC6 /* Build configuration list for PBXNativeTarget "Toolbelt" */;
 			buildPhases = (
 				32D62D452FAE0163009FBCC6 /* Sources */,
 				32D62D462FAE0163009FBCC6 /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				32D62D4B2FAE0164009FBCC6 /* GitSwitcher */,
+				32D62D4B2FAE0164009FBCC6 /* Toolbelt */,
 			);
-			name = GitSwitcher;
+			name = Toolbelt;
 			packageProductDependencies = (
 			);
-			productName = GitSwitcher;
-			productReference = 32D62D492FAE0164009FBCC6 /* GitSwitcher.app */;
+			productName = Toolbelt;
+			productReference = 32D62D492FAE0164009FBCC6 /* Toolbelt.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 32D62D442FAE0163009FBCC6 /* Build configuration list for PBXProject "GitSwitcher" */;
+			buildConfigurationList = 32D62D442FAE0163009FBCC6 /* Build configuration list for PBXProject "Toolbelt" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				32D62D482FAE0163009FBCC6 /* GitSwitcher */,
+				32D62D482FAE0163009FBCC6 /* Toolbelt */,
 			);
 		};
 /* End PBXProject section */
@@ -261,7 +261,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.dima.GitSwitcher;
+				PRODUCT_BUNDLE_IDENTIFIER = app.dima.Toolbelt;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -291,7 +291,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = app.dima.GitSwitcher;
+				PRODUCT_BUNDLE_IDENTIFIER = app.dima.Toolbelt;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -306,7 +306,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		32D62D442FAE0163009FBCC6 /* Build configuration list for PBXProject "GitSwitcher" */ = {
+		32D62D442FAE0163009FBCC6 /* Build configuration list for PBXProject "Toolbelt" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				32D62D522FAE0165009FBCC6 /* Debug */,
@@ -315,7 +315,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		32D62D542FAE0165009FBCC6 /* Build configuration list for PBXNativeTarget "GitSwitcher" */ = {
+		32D62D542FAE0165009FBCC6 /* Build configuration list for PBXNativeTarget "Toolbelt" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				32D62D552FAE0165009FBCC6 /* Debug */,

@@ -1,6 +1,6 @@
 //
 //  LLMChatView.swift
-//  GitSwitcher
+//  Toolbelt
 //
 
 import SwiftUI

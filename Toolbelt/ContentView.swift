@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  GitSwitcher
+//  Toolbelt
 //
 //  Created by Medyannik Dmitri on 08.05.2026.
 //
@@ -28,7 +28,7 @@ struct ContentView: View {
                 Image(systemName: "arrow.triangle.branch")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.78))
-                Text("Git Switcher")
+                Text("Toolbelt")
                     .font(.system(size: 15))
                     .fontWeight(.semibold)
                 Spacer()
@@ -161,7 +161,7 @@ struct ContentView: View {
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
-                .help("Завершить Git Switcher")
+                .help("Завершить Toolbelt")
             }
         }
         .padding(16)

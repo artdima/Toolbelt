@@ -1,6 +1,6 @@
 //
 //  TrackerAPI.swift
-//  GitSwitcher
+//  Toolbelt
 //
 //  Работа с API Яндекс Трекера: записи о затраченном времени (worklog).
 //
@@ -41,10 +41,15 @@ enum TrackerOrgKind: String, CaseIterable, Identifiable {
 
 /// Токен хранится в Keychain, идентификатор организации — в UserDefaults.
 enum TrackerCredentials {
-    private static let keychainService = "app.dima.GitSwitcher.tracker"
+    private static let keychainService = "app.dima.Toolbelt.tracker"
     private static let keychainAccount = "oauth-token"
     private static let orgIdKey = "tracker.orgId"
     private static let orgKindKey = "tracker.orgKind"
+
+    /// Хранилища приложения до переименования в Toolbelt — читаются один раз при первом запуске.
+    private static let legacyKeychainService = "app.dima.GitSwitcher.tracker"
+    private static let legacyDefaultsSuite = "app.dima.GitSwitcher"
+    private static let migrationKey = "tracker.migratedFromGitSwitcher"
 
     static var token: String {
         get { readKeychain() ?? "" }
@@ -69,12 +74,31 @@ enum TrackerCredentials {
             && !orgId.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
+    static func migrateLegacyStorageIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: migrationKey) else { return }
+        defaults.set(true, forKey: migrationKey)
+
+        if readKeychain() == nil, let legacyToken = readKeychain(service: legacyKeychainService) {
+            writeKeychain(legacyToken)
+        }
+
+        guard let legacy = UserDefaults(suiteName: legacyDefaultsSuite) else { return }
+
+        if defaults.string(forKey: orgIdKey) == nil, let value = legacy.string(forKey: orgIdKey) {
+            defaults.set(value, forKey: orgIdKey)
+        }
+        if defaults.string(forKey: orgKindKey) == nil, let value = legacy.string(forKey: orgKindKey) {
+            defaults.set(value, forKey: orgKindKey)
+        }
+    }
+
     // MARK: Keychain
 
-    private static func readKeychain() -> String? {
+    private static func readKeychain(service: String = keychainService) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
+            kSecAttrService as String: service,
             kSecAttrAccount as String: keychainAccount,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne
