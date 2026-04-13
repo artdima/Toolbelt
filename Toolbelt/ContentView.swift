@@ -74,16 +74,6 @@ struct ContentView: View {
             }
 
             VStack(spacing: 8) {
-                Button(action: { openAppWindow { LLMChatWindow.show() } }) {
-                    actionButtonLabel(
-                        title: "Спросить LLM",
-                        systemImage: "sparkles",
-                        tint: .secondary,
-                        background: Color.white.opacity(0.07)
-                    )
-                }
-                .buttonStyle(.plain)
-
                 Button(action: { openAppWindow { WeeklyReportWindow.show() } }) {
                     actionButtonLabel(
                         title: "Получить отчёт за неделю",
@@ -98,26 +88,6 @@ struct ContentView: View {
                     actionButtonLabel(
                         title: "Мои задачи",
                         systemImage: "square.grid.3x2",
-                        tint: .secondary,
-                        background: Color.white.opacity(0.07)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                Button(action: restartFork) {
-                    actionButtonLabel(
-                        title: "Перезапустить Fork",
-                        systemImage: "arrow.counterclockwise",
-                        tint: .secondary,
-                        background: Color.white.opacity(0.07)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                Button(action: captureSelectedArea) {
-                    actionButtonLabel(
-                        title: "Снимок выделенной области",
-                        systemImage: "camera.viewfinder",
                         tint: .secondary,
                         background: Color.white.opacity(0.07)
                     )
@@ -209,54 +179,6 @@ struct ContentView: View {
         NSApplication.shared.terminate(nil)
     }
 
-    private func captureSelectedArea() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd HH.mm.ss"
-
-        let fileURL = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Downloads", isDirectory: true)
-            .appendingPathComponent("Снимок экрана \(formatter.string(from: Date())).png")
-
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        process.arguments = ["-i", fileURL.path]
-
-        process.terminationHandler = { process in
-            DispatchQueue.main.async {
-                withAnimation {
-                    if process.terminationStatus == 0 {
-                        statusMessage = "✓ Снимок сохранён в Downloads"
-                    } else {
-                        statusMessage = "Снимок экрана отменён"
-                    }
-                }
-            }
-        }
-
-        do {
-            try process.run()
-            withAnimation { statusMessage = "Выберите область для снимка экрана" }
-        } catch {
-            withAnimation { statusMessage = "⚠ Не удалось запустить снимок экрана: \(error.localizedDescription)" }
-        }
-    }
-
-    private func restartFork() {
-        let isRunning = NSWorkspace.shared.runningApplications
-            .contains(where: { $0.bundleIdentifier == "com.DanPristupov.Fork" })
-
-        if isRunning {
-            shell("pkill", "-x", "Fork")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Fork.app"))
-                withAnimation { statusMessage = "↺ Fork перезапущен" }
-            }
-        } else {
-            NSWorkspace.shared.open(URL(fileURLWithPath: "/Applications/Fork.app"))
-            withAnimation { statusMessage = "↺ Fork запущен" }
-        }
-    }
-
     private func deleteDerivedData() {
         let derivedDataURL = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Developer/Xcode/DerivedData", isDirectory: true)
@@ -312,9 +234,6 @@ struct ContentView: View {
 
         if let match = profiles.first(where: { $0.name == currentName && $0.email == currentEmail }) {
             activeProfile = match.displayName
-            statusMessage = "Текущий профиль: \(match.name) <\(match.email)>"
-        } else if !currentName.isEmpty {
-            statusMessage = "Текущий: \(currentName) <\(currentEmail)>"
         }
     }
 
