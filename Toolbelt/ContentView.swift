@@ -7,19 +7,14 @@
 
 import SwiftUI
 
-struct GitProfile {
-    let name: String
-    let email: String
-    let displayName: String
-}
-
 struct ContentView: View {
+    @ObservedObject private var store = GitProfileStore.shared
     @State private var statusMessage: String = ""
-    @State private var activeProfile: String? = nil
+    @State private var activeProfileID: UUID? = nil
 
-    let profiles: [GitProfile] = [
-        GitProfile(name: "Dmitriy Medyannik", email: "mail@artdima.ru", displayName: "Дмитрий"),
-        GitProfile(name: "user2", email: "user2@example.com", displayName: "Профиль 2")
+    private let columns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10)
     ]
 
     var body: some View {
@@ -32,44 +27,33 @@ struct ContentView: View {
                     .font(.system(size: 15))
                     .fontWeight(.semibold)
                 Spacer()
+                Button(action: { openAppWindow { GitProfilesWindow.show() } }) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Настроить профили Git")
             }
 
-            HStack(spacing: 10) {
-                ForEach(profiles, id: \.displayName) { profile in
-                    Button(action: {
-                        applyProfile(profile)
-                    }) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(profile.displayName)
-                                .font(.system(size: 14, weight: .semibold))
-                            Text(profile.email)
-                                .font(.system(size: 11))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                                .foregroundStyle(
-                                    activeProfile == profile.displayName
-                                        ? .white.opacity(0.72)
-                                        : .secondary
-                                )
+            if store.profiles.isEmpty {
+                Button(action: { openAppWindow { GitProfilesWindow.show() } }) {
+                    actionButtonLabel(
+                        title: "Добавить профиль Git",
+                        systemImage: "person.crop.circle.badge.plus",
+                        tint: .secondary,
+                        background: Color.white.opacity(0.07)
+                    )
+                }
+                .buttonStyle(.plain)
+            } else {
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(store.profiles) { profile in
+                        Button(action: { applyProfile(profile) }) {
+                            profileCard(profile)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 14)
-                        .background(
-                            activeProfile == profile.displayName
-                                ? Color.accentColor.opacity(0.88)
-                                : Color.white.opacity(0.07)
-                        )
-                        .foregroundStyle(
-                            activeProfile == profile.displayName ? .white : .primary
-                        )
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        }
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
 
@@ -141,6 +125,9 @@ struct ContentView: View {
         .onAppear {
             detectCurrentProfile()
         }
+        .onChange(of: store.profiles) { _, _ in
+            detectCurrentProfile()
+        }
     }
 
     /// Открывает обычное окно и закрывает меню в строке состояния,
@@ -148,6 +135,31 @@ struct ContentView: View {
     private func openAppWindow(_ show: () -> Void) {
         MenuBarPanel.dismiss()
         show()
+    }
+
+    private func profileCard(_ profile: GitProfile) -> some View {
+        let isActive = activeProfileID == profile.id
+
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(profile.displayName.isEmpty ? profile.name : profile.displayName)
+                .font(.system(size: 14, weight: .semibold))
+                .lineLimit(1)
+            Text(profile.email)
+                .font(.system(size: 11))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .foregroundStyle(isActive ? .white.opacity(0.72) : .secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .background(isActive ? Color.accentColor.opacity(0.88) : Color.white.opacity(0.07))
+        .foregroundStyle(isActive ? .white : .primary)
+        .overlay {
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     private func actionButtonLabel(
@@ -199,7 +211,7 @@ struct ContentView: View {
         let result = runGitConfig(name: profile.name, email: profile.email)
         withAnimation {
             if result {
-                activeProfile = profile.displayName
+                activeProfileID = profile.id
                 statusMessage = "✓ Применено: \(profile.name) <\(profile.email)>"
             } else {
                 statusMessage = "⚠ Не удалось применить настройки"
@@ -232,9 +244,9 @@ struct ContentView: View {
         let currentName = shellOutput("git", "config", "--global", "user.name").trimmingCharacters(in: .whitespacesAndNewlines)
         let currentEmail = shellOutput("git", "config", "--global", "user.email").trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if let match = profiles.first(where: { $0.name == currentName && $0.email == currentEmail }) {
-            activeProfile = match.displayName
-        }
+        activeProfileID = store.profiles
+            .first(where: { $0.name == currentName && $0.email == currentEmail })?
+            .id
     }
 
     private func shellOutput(_ args: String...) -> String {
