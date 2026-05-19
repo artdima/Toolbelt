@@ -5,6 +5,7 @@
 //  Профили git-пользователей: хранение в UserDefaults и окно редактирования.
 //
 
+import Observation
 import SwiftUI
 
 struct GitProfile: Identifiable, Codable, Equatable {
@@ -14,22 +15,22 @@ struct GitProfile: Identifiable, Codable, Equatable {
     var displayName: String
 }
 
-final class GitProfileStore: ObservableObject {
+@Observable
+final class GitProfileStore {
     static let shared = GitProfileStore()
 
     private static let storageKey = "git.profiles"
 
-    @Published var profiles: [GitProfile] {
-        didSet { persist() }
-    }
+    private(set) var profiles: [GitProfile]
 
     private init() {
         let data = UserDefaults.standard.data(forKey: Self.storageKey)
         profiles = data.flatMap { try? JSONDecoder().decode([GitProfile].self, from: $0) } ?? []
     }
 
-    private func persist() {
-        guard let data = try? JSONEncoder().encode(profiles) else { return }
+    func replace(with newProfiles: [GitProfile]) {
+        profiles = newProfiles
+        guard let data = try? JSONEncoder().encode(newProfiles) else { return }
         UserDefaults.standard.set(data, forKey: Self.storageKey)
     }
 }
@@ -78,7 +79,7 @@ enum GitProfilesWindow {
 // MARK: - Редактор
 
 struct GitProfilesView: View {
-    @ObservedObject private var store = GitProfileStore.shared
+    @State private var draft: [GitProfile] = GitProfileStore.shared.profiles
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -89,7 +90,7 @@ struct GitProfilesView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
-            if store.profiles.isEmpty {
+            if draft.isEmpty {
                 VStack(spacing: 8) {
                     Image(systemName: "person.crop.circle.badge.plus")
                         .font(.system(size: 24))
@@ -102,7 +103,7 @@ struct GitProfilesView: View {
             } else {
                 ScrollView {
                     VStack(spacing: 10) {
-                        ForEach($store.profiles) { $profile in
+                        ForEach($draft) { $profile in
                             profileCard($profile)
                         }
                     }
@@ -112,14 +113,20 @@ struct GitProfilesView: View {
 
             HStack {
                 Button {
-                    store.profiles.append(GitProfile(name: "", email: "", displayName: ""))
+                    draft.append(GitProfile(name: "", email: "", displayName: ""))
                 } label: {
                     Label("Добавить профиль", systemImage: "plus")
                 }
 
                 Spacer()
 
-                Button("Готово") {
+                Button("Отмена") {
+                    GitProfilesWindow.close()
+                }
+                .keyboardShortcut(.cancelAction)
+
+                Button("Сохранить") {
+                    GitProfileStore.shared.replace(with: cleanedDraft())
                     GitProfilesWindow.close()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -137,7 +144,7 @@ struct GitProfilesView: View {
 
                 Button {
                     let id = profile.wrappedValue.id
-                    store.profiles.removeAll { $0.id == id }
+                    draft.removeAll { $0.id == id }
                 } label: {
                     Image(systemName: "trash")
                 }
@@ -155,6 +162,19 @@ struct GitProfilesView: View {
         .padding(10)
         .background(Color.primary.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    /// Пустые и незаполненные профили не сохраняем — по ним нечего применить.
+    private func cleanedDraft() -> [GitProfile] {
+        draft
+            .map { profile in
+                var trimmed = profile
+                trimmed.name = profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                trimmed.email = profile.email.trimmingCharacters(in: .whitespacesAndNewlines)
+                trimmed.displayName = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+                return trimmed
+            }
+            .filter { !$0.name.isEmpty && !$0.email.isEmpty }
     }
 }
 

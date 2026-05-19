@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @ObservedObject private var store = GitProfileStore.shared
+    private let store = GitProfileStore.shared
     @State private var statusMessage: String = ""
     @State private var activeProfileID: UUID? = nil
 
