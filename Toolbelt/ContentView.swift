@@ -27,17 +27,17 @@ struct ContentView: View {
                     .font(.system(size: 15))
                     .fontWeight(.semibold)
                 Spacer()
-                Button(action: { openAppWindow { GitProfilesWindow.show() } }) {
+                Button(action: { openAppWindow { AppSettingsWindow.show() } }) {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .help("Настроить профили Git")
+                .help("Настройки")
             }
 
             if store.profiles.isEmpty {
-                Button(action: { openAppWindow { GitProfilesWindow.show() } }) {
+                Button(action: { openAppWindow { AppSettingsWindow.show(tab: .profiles) } }) {
                     actionButtonLabel(
                         title: "Добавить профиль Git",
                         systemImage: "person.crop.circle.badge.plus",

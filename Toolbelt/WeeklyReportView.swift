@@ -86,11 +86,12 @@ private enum BreakdownMode: String, CaseIterable, Identifiable {
 // MARK: - Вью отчёта
 
 struct WeeklyReportView: View {
+    private let settings = TrackerSettingsStore.shared
+
     @State private var weekOffset = 0
     @State private var entries: [Worklog] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @State private var isSettingsPresented = false
     /// Ключи задач, у которых раскрыта детализация по записям.
     @State private var expandedIssues: Set<String> = []
     @State private var expandedDays: Set<Date> = []
@@ -183,7 +184,7 @@ struct WeeklyReportView: View {
                 banner(errorMessage)
             }
 
-            if !TrackerCredentials.isConfigured {
+            if !settings.isConfigured {
                 setupPrompt
             } else if isLoading && entries.isEmpty {
                 VStack(spacing: 10) {
@@ -215,10 +216,8 @@ struct WeeklyReportView: View {
             }
         }
         .frame(minWidth: 460, minHeight: 480)
-        .sheet(isPresented: $isSettingsPresented) {
-            TrackerSettingsView {
-                Task { await load() }
-            }
+        .onChange(of: settings.revision) { _, _ in
+            Task { await load() }
         }
         .task(id: weekOffset) {
             // При смене недели детализация схлопывается; ручное обновление её сохраняет.
@@ -275,15 +274,6 @@ struct WeeklyReportView: View {
             .buttonStyle(.plain)
             .disabled(isLoading)
             .help("Обновить")
-
-            Button {
-                isSettingsPresented = true
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 12, weight: .semibold))
-            }
-            .buttonStyle(.plain)
-            .help("Настройки доступа к Трекеру")
         }
         .foregroundStyle(.secondary)
         .padding(.horizontal, 14)
@@ -309,7 +299,7 @@ struct WeeklyReportView: View {
                 .font(.system(size: 12))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            Button("Открыть настройки") { isSettingsPresented = true }
+            Button("Открыть настройки") { AppSettingsWindow.show(tab: .tracker) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(24)
@@ -708,7 +698,7 @@ struct WeeklyReportView: View {
     // MARK: Загрузка
 
     private func load() async {
-        guard TrackerCredentials.isConfigured else {
+        guard settings.isConfigured else {
             entries = []
             return
         }
@@ -723,76 +713,6 @@ struct WeeklyReportView: View {
             entries = []
             errorMessage = error.localizedDescription
         }
-    }
-}
-
-// MARK: - Настройки доступа
-
-struct TrackerSettingsView: View {
-    var onSave: () -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var token: String = TrackerCredentials.token
-    @State private var orgId: String = TrackerCredentials.orgId
-    @State private var orgKind: TrackerOrgKind = TrackerCredentials.orgKind
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Доступ к Яндекс Трекеру")
-                .font(.system(size: 14, weight: .semibold))
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text("OAuth-токен")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                SecureField("y0_Ag…", text: $token)
-                    .textFieldStyle(.roundedBorder)
-                Text("Хранится в Keychain. Получить: oauth.yandex.ru")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-            }
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Идентификатор организации")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                TextField("123456", text: $orgId)
-                    .textFieldStyle(.roundedBorder)
-            }
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Тип организации")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Picker("", selection: $orgKind) {
-                    ForEach(TrackerOrgKind.allCases) { kind in
-                        Text(kind.title).tag(kind)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                Text("Заголовок запроса: \(orgKind.headerName)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-            }
-
-            HStack {
-                Spacer()
-                Button("Отмена") { dismiss() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Сохранить") {
-                    TrackerCredentials.token = token
-                    TrackerCredentials.orgId = orgId.trimmingCharacters(in: .whitespacesAndNewlines)
-                    TrackerCredentials.orgKind = orgKind
-                    dismiss()
-                    onSave()
-                }
-                .keyboardShortcut(.defaultAction)
-            }
-            .padding(.top, 4)
-        }
-        .padding(18)
-        .frame(width: 380)
     }
 }
 

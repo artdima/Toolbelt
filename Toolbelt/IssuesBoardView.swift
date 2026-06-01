@@ -56,12 +56,13 @@ private struct StatusColumn: Identifiable {
 // MARK: - Доска
 
 struct IssuesBoardView: View {
+    private let settings = TrackerSettingsStore.shared
+
     @State private var issues: [Issue] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var includeResolved = false
     @State private var search = ""
-    @State private var isSettingsPresented = false
 
     /// Порядок колонок: сначала известные статусы в логичной последовательности,
     /// остальные — следом по алфавиту.
@@ -121,7 +122,7 @@ struct IssuesBoardView: View {
                     .background(Color.red.opacity(0.1))
             }
 
-            if !TrackerCredentials.isConfigured {
+            if !settings.isConfigured {
                 VStack(spacing: 12) {
                     Image(systemName: "key")
                         .font(.system(size: 26))
@@ -129,7 +130,7 @@ struct IssuesBoardView: View {
                     Text("Укажите OAuth-токен и идентификатор организации")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
-                    Button("Открыть настройки") { isSettingsPresented = true }
+                    Button("Открыть настройки") { AppSettingsWindow.show(tab: .tracker) }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if isLoading && issues.isEmpty {
@@ -155,10 +156,8 @@ struct IssuesBoardView: View {
             }
         }
         .frame(minWidth: 640, minHeight: 420)
-        .sheet(isPresented: $isSettingsPresented) {
-            TrackerSettingsView {
-                Task { await load() }
-            }
+        .onChange(of: settings.revision) { _, _ in
+            Task { await load() }
         }
         .task(id: includeResolved) {
             await load()
@@ -198,15 +197,6 @@ struct IssuesBoardView: View {
             .buttonStyle(.plain)
             .disabled(isLoading)
             .help("Обновить")
-
-            Button {
-                isSettingsPresented = true
-            } label: {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 12, weight: .semibold))
-            }
-            .buttonStyle(.plain)
-            .help("Настройки доступа к Трекеру")
         }
         .foregroundStyle(.secondary)
         .padding(.horizontal, 14)
@@ -261,7 +251,7 @@ struct IssuesBoardView: View {
     }
 
     private func load() async {
-        guard TrackerCredentials.isConfigured else {
+        guard settings.isConfigured else {
             issues = []
             return
         }
