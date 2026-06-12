@@ -11,6 +11,7 @@ import SwiftUI
 enum SettingsTab: String, Hashable {
     case profiles
     case tracker
+    case tools
 }
 
 @Observable
@@ -114,6 +115,10 @@ struct SettingsView: View {
             TrackerSettings()
                 .tabItem { Label("Яндекс Трекер", systemImage: "key") }
                 .tag(SettingsTab.tracker)
+
+            ToolsSettings()
+                .tabItem { Label("Инструменты", systemImage: "wrench.and.screwdriver") }
+                .tag(SettingsTab.tools)
         }
         .frame(width: 460, height: 470)
     }
@@ -282,6 +287,56 @@ struct TrackerSettings: View {
         token.trimmingCharacters(in: .whitespacesAndNewlines) != store.token
             || orgId.trimmingCharacters(in: .whitespacesAndNewlines) != store.orgId
             || orgKind != store.orgKind
+    }
+}
+
+// MARK: - Раздел «Инструменты»
+
+struct ToolsSettings: View {
+    @State private var adbPath = AndroidTools.customPath
+
+    private var autodetected: String? { AndroidTools.autodetectedPath() }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Путь к adb")
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+
+                TextField(autodetected ?? "/path/to/platform-tools/adb", text: $adbPath)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12, design: .monospaced))
+
+                if let autodetected {
+                    Text("Оставьте пустым — будет использован \(autodetected)")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                } else {
+                    Text("adb не найден автоматически. Обычно он лежит в ~/Library/Android/sdk/platform-tools.")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.orange)
+                }
+            }
+
+            Text("xcrun для симуляторов iOS берётся из /usr/bin и настройки не требует.")
+                .font(.system(size: 10))
+                .foregroundStyle(.tertiary)
+
+            Spacer()
+
+            HStack {
+                Spacer()
+                Button("Сохранить") {
+                    AndroidTools.customPath = adbPath.trimmingCharacters(in: .whitespacesAndNewlines)
+                    adbPath = AndroidTools.customPath
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(adbPath.trimmingCharacters(in: .whitespacesAndNewlines) == AndroidTools.customPath)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
 

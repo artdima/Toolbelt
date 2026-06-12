@@ -78,6 +78,16 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
+                Button(action: { openAppWindow { DeepLinkWindow.show() } }) {
+                    actionButtonLabel(
+                        title: "Deep Link",
+                        systemImage: "link",
+                        tint: .secondary,
+                        background: Color.white.opacity(0.07)
+                    )
+                }
+                .buttonStyle(.plain)
+
                 Button(action: deleteDerivedData) {
                     actionButtonLabel(
                         title: "Удалить Derived Data",
