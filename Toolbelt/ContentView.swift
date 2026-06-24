@@ -88,6 +88,16 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
 
+                Button(action: { openAppWindow { ReleaseNotesWindow.show() } }) {
+                    actionButtonLabel(
+                        title: "Release Notes",
+                        systemImage: "doc.text",
+                        tint: .secondary,
+                        background: Color.white.opacity(0.07)
+                    )
+                }
+                .buttonStyle(.plain)
+
                 Button(action: deleteDerivedData) {
                     actionButtonLabel(
                         title: "Удалить Derived Data",
