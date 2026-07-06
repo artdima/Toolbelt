@@ -10,12 +10,14 @@ import SwiftUI
 @main
 struct ToolbeltApp: App {
     init() {
-        TrackerCredentials.migrateLegacyStorageIfNeeded()
+        // Перенос настроек со старого bundle id должен отработать до первого
+        // обращения к API, поэтому он синхронный и здесь.
+        TrackerCredentialsStore.shared.migrateLegacyStorageIfNeeded()
     }
 
     var body: some Scene {
         MenuBarExtra {
-            ContentView()
+            MenuBarView()
         } label: {
             Image(systemName: "arrow.triangle.branch")
         }
