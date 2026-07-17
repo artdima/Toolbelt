@@ -1,0 +1,17 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  tests:
+    name: Тесты чистой логики
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Версия Swift
+        run: swift --version
+      - name: swift test
+        run: swift test
