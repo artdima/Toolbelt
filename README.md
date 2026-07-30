@@ -1,99 +1,34 @@
-# Toolbelt
+<p align="center">
+  <img src="AppIcon-1024.png" width="140" alt="Toolbelt">
+</p>
 
-Утилита в строке меню macOS с инструментами, которые iOS-разработчику нужны каждый день.
-Написана на SwiftUI, без внешних зависимостей.
+<h1 align="center">Toolbelt</h1>
 
-<img src="AppIcon-1024.png" width="128" alt="Toolbelt">
+<p align="center">
+  A belt of tools in the macOS menu bar — the ones a mobile developer reaches for every day.
+</p>
 
-## Что умеет
+<p align="center">
+  <img src="https://img.shields.io/badge/macOS-26.3+-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 26.3+">
+  <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.0">
+  <img src="https://img.shields.io/badge/UI-SwiftUI-1575F9?style=flat-square" alt="SwiftUI">
+  <img src="https://img.shields.io/badge/dependencies-none-2EA043?style=flat-square" alt="No dependencies">
+  <img src="https://img.shields.io/badge/license-MIT-8A8A8A?style=flat-square" alt="MIT">
+</p>
 
-| Инструмент | Что делает |
+## What's inside
+
+| Tool | What it does |
 |---|---|
-| **Профили Git** | Переключает `git config --global user.name` и `user.email` в один клик |
-| **Отчёт за неделю** | Забирает worklog из Яндекс Трекера, считает итоги по дням и по задачам |
-| **Мои задачи** | Канбан-доска своих задач Трекера, колонки — статусы |
-| **Deep Link** | Открывает ссылку на загруженном симуляторе iOS (`simctl openurl`) или на подключённом Android-устройстве (`adb shell am start`) |
-| **Release Notes** | Собирает «Что нового» для App Store и Google Play из Conventional Commits репозитория |
-| **Derived Data** | Удаляет `~/Library/Developer/Xcode/DerivedData` |
+| **Git profiles** | Switches `user.name` and `user.email` in one click |
+| **Weekly report** | Pulls worklog from Yandex Tracker, totals by day and by issue |
+| **My issues** | A kanban of your Tracker issues, columns are statuses |
+| **Deep Link** | Opens a link on a booted iOS simulator or a connected Android device |
+| **Release Notes** | Builds "What's New" for the stores from your commits |
+| **Derived Data** | Wipes the folder with one button |
 
-## Сборка и запуск
+The interface is in Russian for now.
 
-```bash
-open Toolbelt.xcodeproj      # Xcode 26+, macOS 26.3+
-```
+## License
 
-Тесты чистой логики запускаются отдельно от Xcode-проекта:
-
-```bash
-swift test
-```
-
-## Архитектура
-
-```
-Toolbelt/
-├── App/            точка входа, панель меню, реестр окон
-├── Core/           инфраструктура: процессы, окна, Keychain, логи
-├── DesignSystem/   переиспользуемые вью и форматтеры
-├── Features/       по одной папке на инструмент: модель → сервис → вьюмодель → вью
-└── Settings/       общий экран настроек
-Tests/              тесты чистой логики
-```
-
-Слои разделены так: **вью не знает о транспорте**. Она работает с `@Observable`-вьюмоделью,
-вьюмодель — с протоколом (`TrackerService`, `GitConfigService`, `GitRepositoryReading`,
-`DeepLinkOpening`, `DerivedDataCleaning`), а конкретная реализация приходит в инициализаторе.
-Отсюда же берётся тестируемость: в тестах вместо сети и процессов подставляется заглушка.
-
-Вся арифметика вынесена из вью в чистые типы: `WeekReport` (агрегация недели),
-`IssuesBoard` (раскладка по статусам), `ReleaseNotesBuilder` (разбор коммитов),
-`TrackerDuration` (ISO 8601), `Plural` (русские числительные). Они считаются один раз
-после загрузки, а не на каждой перерисовке, и покрыты тестами.
-
-## Решения, которые стоит объяснить
-
-**Приложение не в песочнице.** Инструмент разработчика по определению запускает `git`,
-`xcrun` и `adb` и читает `~/Library/Developer`. В App Store такое не отдать, поэтому
-песочница отключена осознанно, а не по недосмотру.
-
-**`Shell.run` уходит в `Task.detached`.** В проекте включён
-`SWIFT_APPROACHABLE_CONCURRENCY`, а вместе с ним `NonisolatedNonsendingByDefault`:
-`nonisolated async` функция наследует изоляцию вызывающего. Одной пометки `nonisolated`
-не хватило бы — ожидание процесса осталось бы на главном потоке.
-
-**stdout и stderr читаются параллельно.** Если вычитывать их по очереди, процесс,
-заполнивший второй пайп, заблокируется на записи и не завершится никогда.
-Плюс сторожевой таймер: зависший `adb` не должен вешать окно навсегда.
-
-**Путь к `adb` проверяется при каждом чтении.** Он берётся из `UserDefaults`, а plist
-доступен на запись любому процессу пользователя. Без проверки каталога подменённая
-настройка означала бы запуск произвольного кода от имени подписанного приложения.
-
-**git запускается с `core.fsmonitor=false` и `core.hooksPath=/dev/null`.** git читает
-конфиг открываемого репозитория, а эти две точки расширения умеют запускать внешние
-команды — для чужого репозитория это исполнение кода.
-
-**Токен лежит в файловой связке Keychain, а не в data protection.** `kSecUseDataProtectionKeychain`
-потребовал бы Keychain Sharing и сломал бы доступ к уже сохранённым записям.
-
-**Один источник правды для доступов.** `TrackerCredentialsStore` — единственное место,
-которое знает про Keychain и `UserDefaults`; и UI, и сетевой клиент читают оттуда же.
-
-## Известные ограничения
-
-- Разбор ответа Трекера идёт на главном акторе. При тысяче записей это заметные
-  десятки миллисекунд; вынос требует пометить доменные модели `nonisolated`.
-- Worklog запрашивается одной страницей на 1000 записей — если предел достигнут,
-  в лог уходит предупреждение, но постраничной подгрузки нет.
-- Интерфейс только на русском.
-
-## Тесты
-
-`swift test` собирает из `Toolbelt/` файлы без SwiftUI и AppKit в модуль `ToolbeltCore`
-и прогоняет по ним тесты (Swift Testing). Xcode-проект при этом не меняется:
-он собирает ту же папку целиком через `PBXFileSystemSynchronizedRootGroup`.
-
-Покрыто то, где ошибка стоит дорого и не видна глазом: разбор Conventional Commits,
-ISO 8601 длительности в «рабочих» днях Трекера, границы недели, агрегация отчёта,
-порядок колонок доски, разбор вывода `simctl` и `adb`, экранирование аргументов
-для `adb shell`, маппинг HTTP-кодов и русские числительные.
+MIT — take it and use it.
