@@ -25,7 +25,7 @@ struct MenuBarView: View {
         }
         .padding(16)
         .frame(width: 330)
-        .colorScheme(.dark)
+        .environment(\.colorScheme, .dark)
         .background(MenuBarPanelReader().frame(width: 0, height: 0))
         .task {
             await model.refreshActiveProfile()

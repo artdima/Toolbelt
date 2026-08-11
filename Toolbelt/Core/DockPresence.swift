@@ -29,7 +29,9 @@ enum DockPresence {
     /// Смена политики применяется не мгновенно, поэтому активируем следующим циклом.
     static func activate() {
         DispatchQueue.main.async {
-            NSApp.activate(ignoringOtherApps: true)
+            MainActor.assumeIsolated {
+                NSApp.activate(ignoringOtherApps: true)
+            }
         }
     }
 }

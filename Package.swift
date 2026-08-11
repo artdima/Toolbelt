@@ -16,6 +16,7 @@ let package = Package(
         .target(
             name: "ToolbeltCore",
             path: "Toolbelt",
+            exclude: ["Assets.xcassets"],
             sources: [
                 "Core/Locked.swift",
                 "Core/Log.swift",
@@ -31,12 +32,17 @@ let package = Package(
                 "Features/Tracker/TrackerError.swift",
                 "Features/Tracker/TrackerModels.swift",
                 "Features/Tracker/WeekReport.swift"
-            ]
+            ],
+            // Тот же языковой режим, что у Xcode-проекта: иначе пакет собирал бы
+            // те же файлы со строгими проверками конкурентности Swift 6,
+            // а приложение — по правилам Swift 5.
+            swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(
             name: "ToolbeltCoreTests",
             dependencies: ["ToolbeltCore"],
-            path: "Tests/ToolbeltCoreTests"
+            path: "Tests/ToolbeltCoreTests",
+            swiftSettings: [.swiftLanguageMode(.v5)]
         )
     ]
 )

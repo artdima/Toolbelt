@@ -2,6 +2,9 @@ import Foundation
 import Testing
 @testable import ToolbeltCore
 
+/// В Testing тоже есть тип Issue — без уточнения имя неоднозначно.
+private typealias Issue = ToolbeltCore.Issue
+
 @Suite("Доска задач")
 struct IssuesBoardTests {
     private func issue(_ key: String, summary: String = "Задача", status: String, statusName: String? = nil) -> Issue {

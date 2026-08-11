@@ -43,7 +43,9 @@ struct MenuBarPanelReader: NSViewRepresentable {
         let view = NSView(frame: .zero)
         // На момент создания вью ещё не добавлено в окно — читаем следующим циклом.
         DispatchQueue.main.async {
-            MenuBarPanel.register(view.window)
+            MainActor.assumeIsolated {
+                MenuBarPanel.register(view.window)
+            }
         }
         return view
     }

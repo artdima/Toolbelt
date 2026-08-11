@@ -3,6 +3,7 @@
 //  Toolbelt
 //
 
+import Foundation
 import OSLog
 
 enum Log {

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import OSLog
 
 protocol TrackerService {
     func worklog(from: Date, to: Date) async throws -> [Worklog]

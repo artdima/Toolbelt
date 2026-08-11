@@ -4,6 +4,8 @@
 //
 
 import Foundation
+import Observation
+import OSLog
 
 struct GitProfile: Identifiable, Codable, Equatable {
     var id = UUID()

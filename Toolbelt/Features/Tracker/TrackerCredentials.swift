@@ -4,6 +4,7 @@
 //
 
 import Observation
+import OSLog
 import SwiftUI
 
 struct TrackerCredentials: Equatable {
