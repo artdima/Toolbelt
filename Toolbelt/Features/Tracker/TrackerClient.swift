@@ -67,10 +67,11 @@ final class TrackerClient: TrackerService {
     /// Логин не меняется в пределах токена, а нужен для каждого запроса worklog.
     private var cachedLogin: (token: String, login: String)?
 
-    init(
-        session: URLSession = .shared,
-        credentialsProvider: TrackerCredentialsProviding = TrackerCredentialsStore.shared
-    ) {
+    convenience init() {
+        self.init(session: .shared, credentialsProvider: TrackerCredentialsStore.shared)
+    }
+
+    init(session: URLSession, credentialsProvider: TrackerCredentialsProviding) {
         self.session = session
         self.credentialsProvider = credentialsProvider
     }

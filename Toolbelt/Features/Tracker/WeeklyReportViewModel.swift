@@ -39,10 +39,11 @@ final class WeeklyReportViewModel {
     private(set) var expandedIssues: Set<String> = []
     private(set) var expandedDays: Set<Date> = []
 
-    init(
-        tracker: TrackerService = TrackerClient(),
-        credentialsStore: TrackerCredentialsStore = .shared
-    ) {
+    convenience init() {
+        self.init(tracker: TrackerClient(), credentialsStore: .shared)
+    }
+
+    init(tracker: TrackerService, credentialsStore: TrackerCredentialsStore) {
         self.tracker = tracker
         self.credentialsStore = credentialsStore
     }

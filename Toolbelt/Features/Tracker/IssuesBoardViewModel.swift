@@ -24,10 +24,11 @@ final class IssuesBoardViewModel {
     /// хранимые свойства в вычисляемые, и срабатывание didSet не гарантировано.
     var searchQuery = ""
 
-    init(
-        tracker: TrackerService = TrackerClient(),
-        credentialsStore: TrackerCredentialsStore = .shared
-    ) {
+    convenience init() {
+        self.init(tracker: TrackerClient(), credentialsStore: .shared)
+    }
+
+    init(tracker: TrackerService, credentialsStore: TrackerCredentialsStore) {
         self.tracker = tracker
         self.credentialsStore = credentialsStore
     }

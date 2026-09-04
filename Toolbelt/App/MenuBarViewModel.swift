@@ -19,10 +19,18 @@ final class MenuBarViewModel {
 
     var profiles: [GitProfile] { profileStore.profiles }
 
+    convenience init() {
+        self.init(
+            profileStore: .shared,
+            gitConfig: SystemGitConfigService(),
+            derivedData: DerivedDataCleaner()
+        )
+    }
+
     init(
-        profileStore: GitProfileStore = .shared,
-        gitConfig: GitConfigService = SystemGitConfigService(),
-        derivedData: DerivedDataCleaning = DerivedDataCleaner()
+        profileStore: GitProfileStore,
+        gitConfig: GitConfigService,
+        derivedData: DerivedDataCleaning
     ) {
         self.profileStore = profileStore
         self.gitConfig = gitConfig

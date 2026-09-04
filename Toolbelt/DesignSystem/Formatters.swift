@@ -9,10 +9,12 @@
 import Foundation
 
 enum AppFormatters {
-    static let russianLocale = Locale(identifier: "ru_RU")
+    nonisolated static let russianLocale = Locale(identifier: "ru_RU")
 
     /// Неделя начинается с понедельника — от этого зависит вся арифметика отчёта.
-    static let calendar: Calendar = {
+    /// nonisolated, чтобы календарь можно было использовать в значениях по умолчанию:
+    /// они вычисляются вне изоляции вызывающего.
+    nonisolated static let calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.firstWeekday = 2
         calendar.locale = russianLocale

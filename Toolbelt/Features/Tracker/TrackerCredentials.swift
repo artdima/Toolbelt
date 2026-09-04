@@ -49,10 +49,11 @@ final class TrackerCredentialsStore: TrackerCredentialsProviding {
 
     private(set) var credentials: TrackerCredentials
 
-    init(
-        defaults: UserDefaults = .standard,
-        keychain: KeychainStore = KeychainStore(service: TrackerCredentialsStore.service)
-    ) {
+    convenience init() {
+        self.init(defaults: .standard, keychain: KeychainStore(service: Self.service))
+    }
+
+    init(defaults: UserDefaults, keychain: KeychainStore) {
         self.defaults = defaults
         self.keychain = keychain
         credentials = TrackerCredentials()

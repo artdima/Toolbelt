@@ -21,10 +21,11 @@ final class DeepLinkViewModel {
     private(set) var isLoadingTargets = false
     private(set) var isOpening = false
 
-    init(
-        runner: DeepLinkOpening = DeepLinkRunner(),
-        history: DeepLinkHistoryStore = .shared
-    ) {
+    convenience init() {
+        self.init(runner: DeepLinkRunner(), history: .shared)
+    }
+
+    init(runner: DeepLinkOpening, history: DeepLinkHistoryStore) {
         self.runner = runner
         self.history = history
     }

@@ -34,10 +34,11 @@ final class ReleaseNotesViewModel {
     private var drafts: [DraftKey: String] = [:]
     private var reloadTagsTask: Task<Void, Never>?
 
-    init(
-        git: GitRepositoryReading = GitRepositoryService(),
-        defaults: UserDefaults = .standard
-    ) {
+    convenience init() {
+        self.init(git: GitRepositoryService(), defaults: .standard)
+    }
+
+    init(git: GitRepositoryReading, defaults: UserDefaults) {
         self.git = git
         self.defaults = defaults
         repositoryPath = defaults.string(forKey: Self.repositoryPathKey) ?? ""
