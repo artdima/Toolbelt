@@ -2,7 +2,7 @@
 //  ExpandableRow.swift
 //  Toolbelt
 //
-//  Строка списка с кнопкой «+ / −» и раскрываемой детализацией.
+//  A list row with a "+ / −" button and collapsible details.
 //
 
 import SwiftUI
@@ -43,7 +43,7 @@ struct ExpandableRow<Leading: View, Trailing: View, Details: View>: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(isExpanded ? "Свернуть детализацию" : "Показать детализацию")
+                .help(isExpanded ? "Hide details" : "Show details")
                 .padding(.top, 1)
 
                 leading

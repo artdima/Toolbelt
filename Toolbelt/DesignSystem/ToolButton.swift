@@ -2,7 +2,7 @@
 //  ToolButton.swift
 //  Toolbelt
 //
-//  Кнопка инструмента в панели строки меню.
+//  A tool button in the menu bar panel.
 //
 
 import SwiftUI

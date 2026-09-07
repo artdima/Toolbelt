@@ -12,15 +12,15 @@ enum KeychainError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .unexpectedStatus(status):
-            let message = SecCopyErrorMessageString(status, nil) as String? ?? "код \(status)"
-            return "Ошибка Keychain: \(message)"
+            let message = SecCopyErrorMessageString(status, nil) as String? ?? "code \(status)"
+            return "Keychain error: \(message)"
         }
     }
 }
 
-/// Обёртка над generic password. Приложение не в песочнице и без entitlements,
-/// поэтому используется файловая связка: `kSecUseDataProtectionKeychain` потребовал бы
-/// Keychain Sharing и сломал бы доступ к уже сохранённым записям.
+/// A wrapper around a generic password item. The app is not sandboxed and ships no
+/// entitlements, so it stays on the file-based keychain: `kSecUseDataProtectionKeychain`
+/// would require Keychain Sharing and cut off access to already stored items.
 struct KeychainStore {
     let service: String
 
@@ -43,8 +43,8 @@ struct KeychainStore {
         }
     }
 
-    /// Обновление вместо «удалить и добавить»: при падении второго шага
-    /// пользователь остался бы вообще без сохранённого значения.
+    /// Update instead of delete-then-add: if the second step failed, the user would
+    /// be left with nothing stored at all.
     func write(_ value: String, account: String) throws {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {

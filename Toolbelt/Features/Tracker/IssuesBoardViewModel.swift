@@ -20,8 +20,8 @@ final class IssuesBoardViewModel {
     private var loadTask: Task<Void, Never>?
 
     var includeResolved = false
-    /// Пересборка вызывается из вью по .onChange: макрос @Observable переписывает
-    /// хранимые свойства в вычисляемые, и срабатывание didSet не гарантировано.
+    /// The rebuild is triggered from the view via .onChange: the @Observable macro
+    /// rewrites stored properties into computed ones, so didSet is not guaranteed.
     var searchQuery = ""
 
     convenience init() {
@@ -39,9 +39,9 @@ final class IssuesBoardViewModel {
     var hasLoadedIssues: Bool { !issues.isEmpty }
 
     var summary: String {
-        let issues = Plural.counted(board.issueCount, "задача", "задачи", "задач")
-        let columns = Plural.counted(board.columns.count, "статусе", "статусах", "статусах")
-        return "\(issues) в \(columns)"
+        let issues = Plural.counted(board.issueCount, "issue", "issues")
+        let columns = Plural.counted(board.columns.count, "status", "statuses")
+        return "\(issues) across \(columns)"
     }
 
     func reload() async {
@@ -71,7 +71,7 @@ final class IssuesBoardViewModel {
             issues = loaded
             rebuildBoard()
         } catch is CancellationError {
-            // Запрос вытеснен более свежим.
+            // Superseded by a newer request.
         } catch let error as URLError where error.code == .cancelled {
         } catch {
             errorMessage = error.localizedDescription

@@ -17,7 +17,7 @@ enum GitConfigError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case let .rejectedValue(value):
-            return "Значение «\(value)» начинается с дефиса и будет разобрано git как опция"
+            return "\"\(value)\" starts with a dash and git would read it as an option"
         case let .commandFailed(message):
             return message
         }
@@ -29,7 +29,7 @@ protocol GitConfigService {
     func apply(_ identity: GitIdentity) async throws
 }
 
-/// Читает и пишет `git config --global`.
+/// Reads and writes `git config --global`.
 struct SystemGitConfigService: GitConfigService {
     private let git = ExecutablePath.git
 
@@ -40,8 +40,8 @@ struct SystemGitConfigService: GitConfigService {
     }
 
     func apply(_ identity: GitIdentity) async throws {
-        // git не умеет `--` перед значением, поэтому строку, начинающуюся с дефиса,
-        // он разберёт как опцию. Отсекаем до запуска процесса.
+        // git has no `--` before a value, so a string starting with a dash would be
+        // parsed as an option. Cut it off before spawning the process.
         try validate(identity.name)
         try validate(identity.email)
 
@@ -55,7 +55,7 @@ struct SystemGitConfigService: GitConfigService {
 
     private func value(forKey key: String) async throws -> String {
         let result = try await Shell.run(git, ["config", "--global", key])
-        // Код 1 без вывода означает «значение не задано», это не ошибка.
+        // Exit code 1 with no output means "not set", which is not an error.
         guard result.isSuccess || result.exitCode == 1 else {
             throw GitConfigError.commandFailed(result.combinedOutput)
         }

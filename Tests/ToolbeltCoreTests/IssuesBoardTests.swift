@@ -2,12 +2,12 @@ import Foundation
 import Testing
 @testable import ToolbeltCore
 
-/// В Testing тоже есть тип Issue — без уточнения имя неоднозначно.
+/// Testing exports an Issue type too — without qualifying it the name is ambiguous.
 private typealias Issue = ToolbeltCore.Issue
 
-@Suite("Доска задач")
+@Suite("Issues board")
 struct IssuesBoardTests {
-    private func issue(_ key: String, summary: String = "Задача", status: String, statusName: String? = nil) -> Issue {
+    private func issue(_ key: String, summary: String = "Issue", status: String, statusName: String? = nil) -> Issue {
         Issue(
             key: key,
             summary: summary,
@@ -21,7 +21,7 @@ struct IssuesBoardTests {
         )
     }
 
-    @Test("Пустой список даёт пустую доску")
+    @Test("An empty list yields an empty board")
     func emptyBoard() {
         let board = IssuesBoard(issues: [], searchQuery: "")
 
@@ -29,7 +29,7 @@ struct IssuesBoardTests {
         #expect(board.issueCount == 0)
     }
 
-    @Test("Задачи группируются по статусу")
+    @Test("Issues are grouped by status")
     func issuesAreGroupedByStatus() {
         let board = IssuesBoard(
             issues: [
@@ -44,8 +44,8 @@ struct IssuesBoardTests {
         #expect(board.columns.first { $0.key == "open" }?.issues.count == 2)
     }
 
-    /// Порядок колонок отражает процесс, а не алфавит.
-    @Test("Известные статусы идут в порядке процесса")
+    /// Column order follows the process, not the alphabet.
+    @Test("Known statuses follow the process order")
     func knownStatusesFollowProcessOrder() {
         let board = IssuesBoard(
             issues: [
@@ -59,12 +59,12 @@ struct IssuesBoardTests {
         #expect(board.columns.map(\.key) == ["open", "inProgress", "closed"])
     }
 
-    @Test("Неизвестные статусы уходят в конец по алфавиту")
+    @Test("Unknown statuses go last, alphabetically")
     func unknownStatusesGoLastAlphabetically() {
         let board = IssuesBoard(
             issues: [
-                issue("A-1", status: "zeta", statusName: "Зета"),
-                issue("A-2", status: "alpha", statusName: "Альфа"),
+                issue("A-1", status: "zeta", statusName: "Zeta"),
+                issue("A-2", status: "alpha", statusName: "Alpha"),
                 issue("A-3", status: "open")
             ],
             searchQuery: ""
@@ -73,7 +73,7 @@ struct IssuesBoardTests {
         #expect(board.columns.map(\.key) == ["open", "alpha", "zeta"])
     }
 
-    @Test("Поиск по ключу задачи")
+    @Test("Search by issue key")
     func searchByKey() {
         let board = IssuesBoard(
             issues: [issue("ABC-1", status: "open"), issue("XYZ-2", status: "open")],
@@ -83,35 +83,35 @@ struct IssuesBoardTests {
         #expect(board.issueCount == 1)
     }
 
-    @Test("Поиск по названию, регистр не важен")
+    @Test("Search by summary is case insensitive")
     func searchBySummaryIsCaseInsensitive() {
         let board = IssuesBoard(
             issues: [
-                issue("A-1", summary: "Починить Логин", status: "open"),
-                issue("A-2", summary: "Отчёт", status: "open")
+                issue("A-1", summary: "Fix the Login", status: "open"),
+                issue("A-2", summary: "Report", status: "open")
             ],
-            searchQuery: "логин"
+            searchQuery: "login"
         )
 
         #expect(board.issueCount == 1)
     }
 
-    @Test("Пробелы в запросе игнорируются")
+    @Test("A blank query is ignored")
     func blankQueryIsIgnored() {
         let board = IssuesBoard(issues: [issue("A-1", status: "open")], searchQuery: "   ")
 
         #expect(board.issueCount == 1)
     }
 
-    @Test("Пустой результат поиска даёт пустую доску")
+    @Test("A search with no matches yields an empty board")
     func searchWithNoMatches() {
-        let board = IssuesBoard(issues: [issue("A-1", status: "open")], searchQuery: "нет такого")
+        let board = IssuesBoard(issues: [issue("A-1", status: "open")], searchQuery: "no such thing")
 
         #expect(board.isEmpty)
     }
 }
 
-@Suite("Просрочка задачи")
+@Suite("Overdue issues")
 struct IssueOverdueTests {
     private let calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
@@ -122,9 +122,9 @@ struct IssueOverdueTests {
     private func issue(deadlineDay: Int?) -> Issue {
         Issue(
             key: "A-1",
-            summary: "Задача",
+            summary: "Issue",
             statusKey: "open",
-            statusName: "Открыта",
+            statusName: "Open",
             priorityKey: "normal",
             priorityName: "",
             queueName: "",
@@ -139,23 +139,23 @@ struct IssueOverdueTests {
         calendar.date(from: DateComponents(year: 2026, month: 9, day: 10, hour: 15))!
     }
 
-    @Test("Без дедлайна задача не просрочена")
+    @Test("Without a deadline nothing is overdue")
     func noDeadline() {
         #expect(issue(deadlineDay: nil).isOverdue(now: now, calendar: calendar) == false)
     }
 
-    @Test("Вчерашний дедлайн — просрочка")
+    @Test("Yesterday's deadline is overdue")
     func yesterdayIsOverdue() {
         #expect(issue(deadlineDay: 9).isOverdue(now: now, calendar: calendar))
     }
 
-    /// Дедлайн сегодня ещё не просрочен — сравнение идёт с началом дня.
-    @Test("Сегодняшний дедлайн ещё не просрочен")
+    /// A deadline today is not overdue yet — the comparison is against the start of the day.
+    @Test("A deadline today is not overdue yet")
     func todayIsNotOverdue() {
         #expect(issue(deadlineDay: 10).isOverdue(now: now, calendar: calendar) == false)
     }
 
-    @Test("Будущий дедлайн не просрочен")
+    @Test("A future deadline is not overdue")
     func futureIsNotOverdue() {
         #expect(issue(deadlineDay: 20).isOverdue(now: now, calendar: calendar) == false)
     }

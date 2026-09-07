@@ -2,8 +2,8 @@
 //  IssuesBoard.swift
 //  Toolbelt
 //
-//  Раскладка задач по колонкам-статусам. Чистая логика, считается один раз
-//  после загрузки или смены запроса, а не на каждой перерисовке.
+//  Laying issues out into status columns. Pure logic, computed once after a load
+//  or a query change rather than on every redraw.
 //
 
 import Foundation
@@ -16,7 +16,7 @@ struct IssuesBoard: Equatable {
         let issues: [Issue]
     }
 
-    /// Известные статусы идут в логичном порядке процесса, остальные — следом по алфавиту.
+    /// Known statuses follow the order of the process, the rest go after them alphabetically.
     static let knownStatusOrder = [
         "open", "needInfo", "new", "backlog",
         "inProgress", "inDevelopment", "development",

@@ -2,9 +2,9 @@
 //  DockPresence.swift
 //  Toolbelt
 //
-//  Приложение помечено LSUIElement и обычно живёт только в строке меню.
-//  Пока открыто хотя бы одно обычное окно, временно переводим его в .regular,
-//  чтобы иконка появилась в доке и на окно можно было переключиться.
+//  The app is marked LSUIElement and normally lives only in the menu bar.
+//  While at least one regular window is open it temporarily switches to .regular
+//  so the icon shows up in the Dock and the window can be reached with Cmd-Tab.
 //
 
 import SwiftUI
@@ -12,21 +12,22 @@ import SwiftUI
 enum DockPresence {
     private static var openWindows = 0
 
-    /// Вызывать при открытии окна — до `makeKeyAndOrderFront`.
+    /// Call when opening a window, before `makeKeyAndOrderFront`.
     static func retain() {
         openWindows += 1
         guard openWindows == 1 else { return }
         NSApp.setActivationPolicy(.regular)
     }
 
-    /// Вызывать при закрытии окна.
+    /// Call when a window closes.
     static func release() {
+        assert(openWindows > 0, "release() without a matching retain()")
         openWindows = max(0, openWindows - 1)
         guard openWindows == 0 else { return }
         NSApp.setActivationPolicy(.accessory)
     }
 
-    /// Смена политики применяется не мгновенно, поэтому активируем следующим циклом.
+    /// The policy change does not apply immediately, so activate on the next cycle.
     static func activate() {
         DispatchQueue.main.async {
             MainActor.assumeIsolated {

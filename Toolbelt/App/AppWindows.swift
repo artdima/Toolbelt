@@ -2,7 +2,8 @@
 //  AppWindows.swift
 //  Toolbelt
 //
-//  Все точки открытия окон собраны здесь, чтобы вью не знали друг о друге.
+//  Every entry point that opens a window lives here, so views never reference
+//  one another.
 //
 
 import SwiftUI
@@ -10,12 +11,12 @@ import SwiftUI
 extension WindowConfiguration {
     static let weeklyReport = WindowConfiguration(
         id: "weekly-report",
-        title: "Отчёт за неделю",
+        title: "Weekly Report",
         size: NSSize(width: 520, height: 660)
     )
     static let issuesBoard = WindowConfiguration(
         id: "issues-board",
-        title: "Мои задачи",
+        title: "My Issues",
         size: NSSize(width: 980, height: 640)
     )
     static let deepLink = WindowConfiguration(
@@ -30,7 +31,7 @@ extension WindowConfiguration {
     )
     static let settings = WindowConfiguration(
         id: "settings",
-        title: "Настройки",
+        title: "Settings",
         size: NSSize(width: 460, height: 470),
         isResizable: false
     )
@@ -38,9 +39,9 @@ extension WindowConfiguration {
 
 @MainActor
 enum AppWindows {
-    /// Вкладка настроек живёт дольше окна: `show(tab:)` должен переключать
-    /// и уже открытое окно, поэтому роутер создаётся один раз здесь и
-    /// передаётся во вью явно, а не читается ей из глобального синглтона.
+    /// The selected tab outlives the window: opening settings "on a given section"
+    /// has to switch an already open window too. The router is created once here and
+    /// handed to the view explicitly instead of being read from a global singleton.
     private static let settingsRouter = SettingsRouter()
 
     static func weeklyReport() {

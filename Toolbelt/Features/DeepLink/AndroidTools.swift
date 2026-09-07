@@ -12,15 +12,15 @@ enum AndroidToolsError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case let .notExecutable(path):
-            return "По пути \(path) нет исполняемого файла"
+            return "There is no executable at \(path)"
         case let .untrustedLocation(path):
-            return "Путь \(path) вне каталогов, где ожидается adb"
+            return "\(path) is outside the directories where adb is expected"
         }
     }
 }
 
-/// Поиск adb. Путь берётся из настроек, иначе из типовых мест: у приложения
-/// из строки меню в PATH нет ни Homebrew, ни Android SDK.
+/// Locating adb. The path comes from settings, otherwise from the usual places:
+/// a menu bar app has neither Homebrew nor the Android SDK on its PATH.
 enum AndroidTools {
     static let pathKey = "adb.path"
 
@@ -28,9 +28,9 @@ enum AndroidTools {
         FileManager.default.homeDirectoryForCurrentUser.path
     }
 
-    /// Путь исполняется как есть, а UserDefaults доступны на запись любому процессу
-    /// пользователя. Каталоги ограничены, чтобы подменённый plist не превращался
-    /// в запуск произвольного кода от имени подписанного приложения.
+    /// The path is executed as is, and UserDefaults is writable by any process running
+    /// as the user. The directories are restricted so that a tampered plist cannot turn
+    /// into arbitrary code execution under a signed app.
     private static var trustedPrefixes: [String] {
         ["/usr/", "/opt/", "/Applications/", "\(home)/Library/Android/", "\(home)/Android/"]
     }
@@ -53,7 +53,7 @@ enum AndroidTools {
     static func resolvedPath() -> String? {
         let custom = customPath.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !custom.isEmpty else { return autodetectedPath() }
-        // Проверяем и на чтении: значение могло попасть в plist в обход приложения.
+        // Validated on read too: the value could have reached the plist behind the app's back.
         return (try? validate(custom)) == nil ? nil : custom
     }
 

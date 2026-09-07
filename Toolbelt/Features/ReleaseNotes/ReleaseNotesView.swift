@@ -2,7 +2,7 @@
 //  ReleaseNotesView.swift
 //  Toolbelt
 //
-//  Подготовка What's New для App Store и Google Play из коммитов репозитория.
+//  Preparing What's New for the App Store and Google Play from repository commits.
 //
 
 import SwiftUI
@@ -43,28 +43,28 @@ struct ReleaseNotesView: View {
 
     private var repositoryRow: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Репозиторий")
+            Text("Repository")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 8) {
-                Text(model.hasRepository ? model.repositoryPath : "Папка не выбрана")
+                Text(model.hasRepository ? model.repositoryPath : "No folder selected")
                     .font(.system(size: 11, design: .monospaced))
                     .lineLimit(1)
                     .truncationMode(.head)
                     .foregroundStyle(model.hasRepository ? Color.primary : Color.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                Button("Выбрать…", action: chooseRepository)
+                Button("Choose…", action: chooseRepository)
             }
         }
     }
 
     private var rangeRow: some View {
         HStack(alignment: .bottom, spacing: 10) {
-            labeled("От") {
+            labeled("From") {
                 Picker("", selection: $model.fromTag) {
-                    Text("начало истории").tag("")
+                    Text("Start of history").tag("")
                     ForEach(model.tags, id: \.self) { tag in
                         Text(tag).tag(tag)
                     }
@@ -72,7 +72,7 @@ struct ReleaseNotesView: View {
                 .labelsHidden()
             }
 
-            labeled("До") {
+            labeled("To") {
                 Picker("", selection: $model.toRef) {
                     Text(GitRepositoryService.headRef).tag(GitRepositoryService.headRef)
                     ForEach(model.tags, id: \.self) { tag in
@@ -82,16 +82,16 @@ struct ReleaseNotesView: View {
                 .labelsHidden()
             }
 
-            Toggle("Технические", isOn: $model.includeTechnical)
+            Toggle("Technical", isOn: $model.includeTechnical)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 11))
-                .help("Включить chore, refactor, docs, test, ci, build и style")
+                .help("Include chore, refactor, docs, test, ci, build and style")
 
             if model.isLoadingTags || model.isBuilding {
                 ProgressView().controlSize(.small)
             }
 
-            Button("Собрать черновик") {
+            Button("Build draft") {
                 Task { await model.build() }
             }
             .keyboardShortcut(.defaultAction)
@@ -126,7 +126,7 @@ struct ReleaseNotesView: View {
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(isOverLimit ? Color.red : Color.secondary)
 
-                CopyButton(value: text, help: "Скопировать текст")
+                CopyButton(value: text, help: "Copy text")
             }
 
             TextEditor(text: binding(for: store))
@@ -158,7 +158,7 @@ struct ReleaseNotesView: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        panel.prompt = "Выбрать"
+        panel.prompt = "Choose"
 
         guard panel.runModal() == .OK, let url = panel.url else { return }
         model.selectRepository(at: url.path)

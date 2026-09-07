@@ -2,8 +2,8 @@
 //  WeekReport.swift
 //  Toolbelt
 //
-//  Агрегация записей worklog за неделю. Чистая логика без SwiftUI:
-//  считается один раз после загрузки, а не на каждой перерисовке.
+//  Aggregating a week of worklog entries. Pure logic, no SwiftUI: computed once
+//  after a load rather than on every redraw.
 //
 
 import Foundation
@@ -11,7 +11,7 @@ import Foundation
 enum WeekMath {
     static let daysInWeek = 7
 
-    /// Начало недели со сдвигом на `offset` недель от сегодняшней.
+    /// The start of the week `offset` weeks away from the current one.
     static func weekStart(
         offset: Int,
         now: Date = Date(),
@@ -94,7 +94,7 @@ struct WeekReport: Equatable {
         issues = Self.groupByIssue(entries)
     }
 
-    /// Порядок задач — по убыванию затраченного времени.
+    /// Issues are ordered by time spent, descending.
     private static func groupByIssue(_ entries: [Worklog]) -> [IssueTotal] {
         var order: [String] = []
         var titles: [String: String] = [:]

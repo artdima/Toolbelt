@@ -2,7 +2,7 @@
 //  ReleaseNotesBuilder.swift
 //  Toolbelt
 //
-//  Разбор Conventional Commits и сборка текста «Что нового».
+//  Parsing Conventional Commits and building the What's New text.
 //
 
 import Foundation
@@ -12,8 +12,8 @@ enum ReleaseNotesBuilder {
         "chore", "refactor", "docs", "test", "tests", "ci", "build", "style"
     ]
 
-    /// Формат Conventional Commits: `type(scope)!: описание`.
-    /// Всё, что под него не подходит, попадает в «Прочее» целиком.
+    /// Conventional Commits format: `type(scope)!: description`.
+    /// Anything that does not match goes to "Other" verbatim.
     static func parse(subject: String) -> ReleaseCommit {
         guard let colon = headerColon(in: subject) else {
             return ReleaseCommit(type: nil, isBreaking: false, summary: subject)
@@ -39,9 +39,9 @@ enum ReleaseNotesBuilder {
         return ReleaseCommit(type: prefix, isBreaking: isBreaking, summary: rest)
     }
 
-    /// Двоеточие заголовка — первое вне скобок и до первого пробела:
-    /// в `fix(api:v2): текст` двоеточие внутри scope заголовок не заканчивает,
-    /// а `Add support for X: details` вообще не conventional-коммит.
+    /// The header colon is the first one outside parentheses and before any space:
+    /// in `fix(api:v2): text` the colon inside the scope does not end the header,
+    /// and `Add support for X: details` is not a conventional commit at all.
     private static func headerColon(in subject: String) -> String.Index? {
         var depth = 0
         var index = subject.startIndex
@@ -105,7 +105,7 @@ enum ReleaseNotesBuilder {
                 .joined(separator: "\n\n")
 
         case .googlePlay:
-            // 500 символов — заголовки разделов тут только съедают лимит.
+            // With a 500-character limit, section titles only eat into it.
             return ReleaseSection.allCases
                 .flatMap { grouped[$0] ?? [] }
                 .joined(separator: "\n")

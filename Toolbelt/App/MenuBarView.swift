@@ -2,7 +2,7 @@
 //  MenuBarView.swift
 //  Toolbelt
 //
-//  Панель приложения в строке меню.
+//  The app panel in the menu bar.
 //
 
 import SwiftUI
@@ -34,15 +34,15 @@ struct MenuBarView: View {
             Task { await model.refreshActiveProfile() }
         }
         .confirmationDialog(
-            "Удалить Derived Data?",
+            "Delete Derived Data?",
             isPresented: $isConfirmingDerivedDataCleanup
         ) {
-            Button("Удалить", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 Task { await model.cleanDerivedData() }
             }
-            Button("Отмена", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Все проекты придётся собрать заново — это может занять время.")
+            Text("Every project will have to be rebuilt from scratch.")
         }
     }
 
@@ -62,14 +62,14 @@ struct MenuBarView: View {
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
-            .help("Настройки")
+            .help("Settings")
         }
     }
 
     @ViewBuilder
     private var profiles: some View {
         if model.profiles.isEmpty {
-            ToolButton(title: "Добавить профиль Git", systemImage: "person.crop.circle.badge.plus") {
+            ToolButton(title: "Add a Git profile", systemImage: "person.crop.circle.badge.plus") {
                 AppWindows.settings(tab: .profiles)
             }
         } else {
@@ -113,10 +113,10 @@ struct MenuBarView: View {
 
     private var tools: some View {
         VStack(spacing: 8) {
-            ToolButton(title: "Получить отчёт за неделю", systemImage: "chart.bar.doc.horizontal") {
+            ToolButton(title: "Weekly Report", systemImage: "chart.bar.doc.horizontal") {
                 AppWindows.weeklyReport()
             }
-            ToolButton(title: "Мои задачи", systemImage: "square.grid.3x2") {
+            ToolButton(title: "My Issues", systemImage: "square.grid.3x2") {
                 AppWindows.issuesBoard()
             }
             ToolButton(title: "Deep Link", systemImage: "link") {
@@ -125,7 +125,7 @@ struct MenuBarView: View {
             ToolButton(title: "Release Notes", systemImage: "doc.text") {
                 AppWindows.releaseNotes()
             }
-            ToolButton(title: "Удалить Derived Data", systemImage: "trash", isDestructive: true) {
+            ToolButton(title: "Delete Derived Data", systemImage: "trash", isDestructive: true) {
                 isConfirmingDerivedDataCleanup = true
             }
             .disabled(model.isWorking)
@@ -157,7 +157,7 @@ struct MenuBarView: View {
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .help("Завершить Toolbelt")
+            .help("Quit Toolbelt")
         }
     }
 }

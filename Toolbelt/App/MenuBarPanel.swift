@@ -2,46 +2,45 @@
 //  MenuBarPanel.swift
 //  Toolbelt
 //
-//  Панель MenuBarExtra (меню в строке состояния) висит на уровне статус-бара
-//  и не закрывается сама, когда мы открываем обычное окно поверх неё.
-//  Публичного API для её закрытия SwiftUI не даёт, поэтому запоминаем NSWindow,
-//  в котором живёт содержимое меню, и закрываем его вручную.
+//  The MenuBarExtra panel sits at status bar level and does not close itself when
+//  a regular window opens on top of it. SwiftUI exposes no API to dismiss it, so we
+//  remember the NSWindow that hosts the menu content and close it by hand.
 //
 
 import SwiftUI
 
 enum MenuBarPanel {
-    /// Окно панели. Слабая ссылка: SwiftUI пересоздаёт панель при каждом открытии.
+    /// The panel window. Weak, because SwiftUI recreates the panel on every open.
     private static weak var panelWindow: NSWindow?
 
-    /// Запоминает окно, в котором отрисовано содержимое меню.
-    /// Вызывается из `MenuBarPanelReader`, а он живёт только внутри панели,
-    /// поэтому проверять окно дополнительно не нужно.
+    /// Remembers the window that hosts the menu content. Called from
+    /// `MenuBarPanelReader`, which only ever lives inside the panel, so no extra
+    /// checks on the window are needed.
     static func register(_ window: NSWindow?) {
         guard let window else { return }
         panelWindow = window
     }
 
-    /// Закрывает меню в строке состояния. Вызывать перед открытием обычного окна.
+    /// Closes the menu bar panel. Call before opening a regular window.
     static func dismiss() {
         if let panelWindow, panelWindow.isVisible {
             panelWindow.close()
             return
         }
 
-        // Запасной путь: активное окно без строки заголовка — это и есть панель меню.
-        // Обычные окна приложения помечены `.titled`, поэтому их не трогаем.
+        // Fallback: a key window without a title bar is the menu panel.
+        // Every regular window of the app is `.titled`, so those are left alone.
         if let key = NSApp.keyWindow, !key.styleMask.contains(.titled) {
             key.close()
         }
     }
 }
 
-/// Невидимая подложка: сообщает `MenuBarPanel`, в каком окне живёт SwiftUI-вью.
+/// An invisible backing view that tells `MenuBarPanel` which window hosts the content.
 struct MenuBarPanelReader: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView(frame: .zero)
-        // На момент создания вью ещё не добавлено в окно — читаем следующим циклом.
+        // The view is not in a window yet at creation time — read it next cycle.
         DispatchQueue.main.async {
             MainActor.assumeIsolated {
                 MenuBarPanel.register(view.window)

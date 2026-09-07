@@ -17,8 +17,8 @@ enum TrackerError: LocalizedError, Equatable {
     case decoding(String)
     case unknownUser
 
-    /// Разбор HTTP-ответа отделён от транспорта: так его можно проверить тестами
-    /// без сети и без подмены URLSession.
+    /// Turning an HTTP response into an error is kept apart from the transport,
+    /// so it can be tested without a network and without stubbing URLSession.
     static func from(status: Int, body: String) -> TrackerError {
         switch status {
         case 401: return .unauthorized
@@ -31,25 +31,25 @@ enum TrackerError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .missingToken:
-            return "Не указан OAuth-токен. Откройте настройки."
+            return "No OAuth token set. Open Settings."
         case .missingOrgId:
-            return "Не указан идентификатор организации. Откройте настройки."
+            return "No organization ID set. Open Settings."
         case .invalidURL:
-            return "Некорректный URL запроса"
+            return "Malformed request URL"
         case .unexpectedResponse:
-            return "Неожиданный ответ сервера"
+            return "Unexpected response from the server"
         case .unauthorized:
-            return "401: токен недействителен или истёк"
+            return "401: the token is invalid or has expired"
         case .forbidden:
-            return "403: нет доступа. Проверьте идентификатор организации и её тип"
+            return "403: access denied. Check the organization ID and its kind"
         case .notFound:
-            return "404: ресурс не найден"
+            return "404: not found"
         case let .http(status, message):
             return message.isEmpty ? "HTTP \(status)" : "HTTP \(status): \(message)"
         case let .decoding(details):
-            return "Не удалось разобрать ответ Трекера: \(details)"
+            return "Could not parse the Tracker response: \(details)"
         case .unknownUser:
-            return "Не удалось определить текущего пользователя Трекера"
+            return "Could not determine the current Tracker user"
         }
     }
 }

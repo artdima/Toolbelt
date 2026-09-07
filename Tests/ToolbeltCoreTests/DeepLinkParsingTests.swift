@@ -2,9 +2,9 @@ import Foundation
 import Testing
 @testable import ToolbeltCore
 
-@Suite("Разбор списка устройств")
+@Suite("Device list parsing")
 struct DeepLinkParsingTests {
-    @Test("Симуляторы из JSON simctl")
+    @Test("Simulators from simctl JSON")
     func simulatorsFromSimctl() throws {
         let json = """
         {
@@ -25,7 +25,7 @@ struct DeepLinkParsingTests {
         #expect(target.name == "iPhone 16 Pro · iOS 18 0")
     }
 
-    @Test("Несколько рантаймов идут в предсказуемом порядке")
+    @Test("Multiple runtimes come back in a predictable order")
     func simulatorsAreOrdered() {
         let json = """
         {
@@ -43,12 +43,12 @@ struct DeepLinkParsingTests {
         #expect(DeepLinkParsing.simulators(fromSimctlJSON: Data(json.utf8)).map(\.identifier) == ["A", "B"])
     }
 
-    @Test("Битый JSON даёт пустой список")
+    @Test("Broken JSON yields an empty list")
     func brokenJSONIsEmpty() {
-        #expect(DeepLinkParsing.simulators(fromSimctlJSON: Data("не json".utf8)).isEmpty)
+        #expect(DeepLinkParsing.simulators(fromSimctlJSON: Data("not json".utf8)).isEmpty)
     }
 
-    @Test("Устройства из вывода adb devices -l")
+    @Test("Devices from adb devices -l output")
     func androidDevices() throws {
         let output = """
         List of devices attached
@@ -64,8 +64,8 @@ struct DeepLinkParsingTests {
         #expect(target.name == "sdk gphone64 arm64 · emulator-5554")
     }
 
-    /// В список попадают только устройства в состоянии device.
-    @Test("Неавторизованные и оффлайн-устройства пропускаются")
+    /// Only devices in the "device" state make the list.
+    @Test("Unauthorized and offline devices are skipped")
     func onlyReadyDevicesAreListed() {
         let output = """
         List of devices attached
@@ -77,7 +77,7 @@ struct DeepLinkParsingTests {
         #expect(DeepLinkParsing.androidDevices(fromAdbOutput: output).map(\.identifier) == ["emulator-5554"])
     }
 
-    @Test("Устройство без model показывается по серийному номеру")
+    @Test("A device without a model shows its serial")
     func deviceWithoutModel() {
         let output = """
         List of devices attached
@@ -87,12 +87,12 @@ struct DeepLinkParsingTests {
         #expect(DeepLinkParsing.androidDevices(fromAdbOutput: output).first?.name == "R58M1234ABC")
     }
 
-    @Test("Пустой вывод adb даёт пустой список")
+    @Test("Empty adb output yields an empty list")
     func emptyAdbOutput() {
         #expect(DeepLinkParsing.androidDevices(fromAdbOutput: "List of devices attached\n").isEmpty)
     }
 
-    @Test("Идентификатор цели различает платформы")
+    @Test("A target id distinguishes platforms")
     func targetIdIncludesPlatform() {
         let ios = DeepLinkTarget(platform: .ios, identifier: "X", name: "n")
         let android = DeepLinkTarget(platform: .android, identifier: "X", name: "n")
@@ -101,43 +101,43 @@ struct DeepLinkParsingTests {
     }
 }
 
-@Suite("Экранирование команд")
+@Suite("Command quoting")
 struct ShellQuotingTests {
-    /// adb пересобирает команду на устройстве, поэтому `&` из query-строки
-    /// обязан остаться внутри кавычек.
-    @Test("Ссылка с амперсандом закрывается кавычками")
+    /// adb reassembles the command on the device, so an `&` from the query string
+    /// has to stay inside quotes.
+    @Test("A link with an ampersand is quoted")
     func urlWithAmpersandIsQuoted() {
         #expect(Shell.singleQuoted("myapp://x?a=1&b=2") == "'myapp://x?a=1&b=2'")
     }
 
-    @Test("Одинарная кавычка внутри значения экранируется")
+    @Test("A single quote inside the value is escaped")
     func singleQuoteInsideValue() {
         #expect(Shell.singleQuoted("a'b") == "'a'\\''b'")
     }
 
-    @Test("Команда для терминала берёт спецсимволы в кавычки")
+    @Test("The displayed command quotes shell metacharacters")
     func displayCommandQuotesSpecialCharacters() {
         let command = Shell.displayCommand("/usr/bin/xcrun", ["simctl", "openurl", "BOOTED", "myapp://x?a=1&b=2"])
 
         #expect(command == "/usr/bin/xcrun simctl openurl BOOTED \"myapp://x?a=1&b=2\"")
     }
 
-    @Test("Уже закавыченный аргумент оборачивается в двойные кавычки")
+    @Test("An already quoted argument gets double quotes around it")
     func alreadyQuotedArgument() {
         let command = Shell.displayCommand("/opt/adb", ["-d", "'myapp://x'"])
 
         #expect(command == "/opt/adb -d \"'myapp://x'\"")
     }
 
-    @Test("Обычные аргументы остаются без кавычек")
+    @Test("Plain arguments stay bare")
     func plainArgumentsStayBare() {
         #expect(Shell.displayCommand("/usr/bin/git", ["status"]) == "/usr/bin/git status")
     }
 }
 
-@Suite("Ошибки Трекера")
+@Suite("Tracker errors")
 struct TrackerErrorTests {
-    @Test("Коды ответа разбираются в понятные ошибки", arguments: [
+    @Test("Status codes map to readable errors", arguments: [
         (401, TrackerError.unauthorized),
         (403, TrackerError.forbidden),
         (404, TrackerError.notFound)
@@ -146,22 +146,22 @@ struct TrackerErrorTests {
         #expect(TrackerError.from(status: status, body: "") == expected)
     }
 
-    @Test("Неизвестный код сохраняет тело ответа")
+    @Test("An unknown status keeps the response body")
     func unknownStatusKeepsBody() {
         let error = TrackerError.from(status: 500, body: "internal error")
 
         #expect(error == .http(status: 500, message: "internal error"))
     }
 
-    /// Тело ответа попадает в UI, поэтому обрезается.
-    @Test("Длинное тело ответа обрезается")
+    /// The body reaches the UI, so it is truncated.
+    @Test("A long response body is truncated")
     func longBodyIsTruncated() {
         let error = TrackerError.from(status: 500, body: String(repeating: "x", count: 1000))
 
         #expect(error == .http(status: 500, message: String(repeating: "x", count: 300)))
     }
 
-    @Test("У всех ошибок есть текст для пользователя")
+    @Test("Every error carries a message for the user")
     func allErrorsHaveDescription() {
         let errors: [TrackerError] = [
             .missingToken, .missingOrgId, .invalidURL, .unexpectedResponse,

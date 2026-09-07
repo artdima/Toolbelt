@@ -18,13 +18,13 @@ final class DeepLinkHistoryStore {
     private let defaults: UserDefaults
     private(set) var entries: [DeepLinkEntry]
 
-    /// `defaults` — шов для тестов.
+    /// `defaults` is the seam for tests.
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         entries = Self.decode(defaults.data(forKey: Self.storageKey))
     }
 
-    /// Закреплённые вверху, остальные — в порядке последнего использования.
+    /// Pinned entries first, the rest in most-recently-used order.
     var sorted: [DeepLinkEntry] {
         entries.filter(\.isPinned) + entries.filter { !$0.isPinned }
     }
@@ -38,7 +38,7 @@ final class DeepLinkHistoryStore {
             updated.insert(DeepLinkEntry(url: url), at: 0)
         }
 
-        // Лимит считается только по незакреплённым: звёздочка защищает от вытеснения.
+        // The limit counts unpinned entries only: a star protects from eviction.
         var unpinned = 0
         updated = updated.filter { entry in
             guard !entry.isPinned else { return true }
@@ -65,7 +65,7 @@ final class DeepLinkHistoryStore {
         do {
             defaults.set(try JSONEncoder().encode(newEntries), forKey: Self.storageKey)
         } catch {
-            Log.storage.error("Не удалось сохранить историю ссылок: \(error.localizedDescription, privacy: .public)")
+            Log.storage.error("Could not save link history: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -74,7 +74,7 @@ final class DeepLinkHistoryStore {
         do {
             return try JSONDecoder().decode([DeepLinkEntry].self, from: data)
         } catch {
-            Log.storage.error("История ссылок повреждена: \(error.localizedDescription, privacy: .public)")
+            Log.storage.error("Link history is corrupted: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }

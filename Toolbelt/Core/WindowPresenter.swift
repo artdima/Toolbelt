@@ -2,7 +2,7 @@
 //  WindowPresenter.swift
 //  Toolbelt
 //
-//  Единая точка открытия обычных окон поверх приложения из строки меню.
+//  The single place that opens regular windows on top of a menu bar app.
 //
 
 import SwiftUI
@@ -21,8 +21,8 @@ enum WindowPresenter {
     private static var windows: [String: NSWindow] = [:]
     private static var closeObservers: [String: NSObjectProtocol] = [:]
 
-    /// Открывает окно или поднимает уже открытое.
-    /// Панель в строке меню закрывается: иначе она висит поверх нового окна.
+    /// Opens a window, or raises the one already open.
+    /// The menu bar panel is dismissed first: otherwise it hangs over the new window.
     static func show<Content: View>(
         _ configuration: WindowConfiguration,
         @ViewBuilder content: () -> Content
@@ -51,8 +51,8 @@ enum WindowPresenter {
         }
 
         windows[configuration.id] = window
-        // Токен наблюдателя обязателен: без снятия каждый цикл «открыл — закрыл»
-        // оставлял бы в NotificationCenter живую регистрацию на мёртвое окно.
+        // Keeping the observer token matters: without removing it every open/close
+        // cycle would leave a live registration pointing at a dead window.
         closeObservers[configuration.id] = NotificationCenter.default.addObserver(
             forName: NSWindow.willCloseNotification,
             object: window,

@@ -5,7 +5,7 @@
 
 import Foundation
 
-/// Значение под мьютексом — для обмена данными между потоками GCD внутри `Shell`.
+/// A mutex-guarded value, used to hand data between GCD threads inside `Shell`.
 nonisolated final class Locked<Value>: @unchecked Sendable {
     private let mutex = NSLock()
     private var value: Value

@@ -2,7 +2,7 @@
 //  TrackerClient.swift
 //  Toolbelt
 //
-//  Сетевой слой Яндекс Трекера.
+//  The Yandex Tracker network layer.
 //
 
 import Foundation
@@ -48,7 +48,7 @@ private struct IssueDTO: Decodable {
     let deadline: String?
 }
 
-// MARK: - Клиент
+// MARK: - Client
 
 @MainActor
 final class TrackerClient: TrackerService {
@@ -56,7 +56,7 @@ final class TrackerClient: TrackerService {
         static let worklogPageSize = 1000
         static let issuesPageSize = 200
         static let requestTimeout: TimeInterval = 60
-        /// Запись можно залогировать задним числом, поэтому окно по `createdAt` шире недели.
+        /// An entry can be logged retroactively, so the `createdAt` window is wider than the week.
         static let createdAtPaddingDays = 30
     }
 
@@ -64,7 +64,7 @@ final class TrackerClient: TrackerService {
     private let session: URLSession
     private let credentialsProvider: TrackerCredentialsProviding
 
-    /// Логин не меняется в пределах токена, а нужен для каждого запроса worklog.
+    /// The login does not change for a given token but is needed by every worklog request.
     private var cachedLogin: (token: String, login: String)?
 
     convenience init() {
@@ -76,7 +76,7 @@ final class TrackerClient: TrackerService {
         self.credentialsProvider = credentialsProvider
     }
 
-    // MARK: Публичный API
+    // MARK: Public API
 
     func worklog(from: Date, to: Date) async throws -> [Worklog] {
         let login = try await currentLogin()
@@ -101,13 +101,13 @@ final class TrackerClient: TrackerService {
         let raw: [WorklogDTO] = try decode(data)
 
         if raw.count >= Limits.worklogPageSize {
-            Log.tracker.warning("Достигнут предел страницы worklog — часть записей могла не попасть в отчёт")
+            Log.tracker.warning("Worklog page limit reached — some entries may be missing from the report")
         }
 
         return raw
             .compactMap { dto -> Worklog? in
                 guard let start = TrackerDate.parse(dto.start) else {
-                    Log.tracker.warning("Запись пропущена: не разобрана дата")
+                    Log.tracker.warning("Entry skipped: could not parse its date")
                     return nil
                 }
                 guard start >= from, start < to else { return nil }
@@ -143,7 +143,7 @@ final class TrackerClient: TrackerService {
                 key: dto.key,
                 summary: dto.summary,
                 statusKey: dto.status?.key ?? "unknown",
-                statusName: dto.status?.display ?? "Без статуса",
+                statusName: dto.status?.display ?? "No status",
                 priorityKey: dto.priority?.key ?? "normal",
                 priorityName: dto.priority?.display ?? "",
                 queueName: dto.queue?.display ?? dto.queue?.key ?? "",
@@ -153,7 +153,7 @@ final class TrackerClient: TrackerService {
         }
     }
 
-    // MARK: Транспорт
+    // MARK: Transport
 
     private func currentLogin() async throws -> String {
         let token = credentialsProvider.credentials.token
@@ -181,7 +181,7 @@ final class TrackerClient: TrackerService {
         }
         guard (200..<300).contains(http.statusCode) else {
             let body = String(decoding: data, as: UTF8.self)
-            Log.tracker.error("HTTP \(http.statusCode, privacy: .public) на \(path, privacy: .public)")
+            Log.tracker.error("HTTP \(http.statusCode, privacy: .public) on \(path, privacy: .public)")
             throw TrackerError.from(status: http.statusCode, body: body)
         }
         return data

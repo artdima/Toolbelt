@@ -2,7 +2,7 @@
 //  Shell.swift
 //  Toolbelt
 //
-//  Запуск внешних команд: git, xcrun, adb.
+//  Running external commands: git, xcrun, adb.
 //
 
 import Foundation
@@ -14,7 +14,7 @@ nonisolated struct ShellResult: Sendable {
 
     var isSuccess: Bool { exitCode == 0 }
 
-    /// Вывод для показа пользователю: stdout и stderr подряд, без пустых строк.
+    /// Output to show the user: stdout and stderr back to back, blank lines dropped.
     var combinedOutput: String {
         [standardOutput, standardError]
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -30,9 +30,9 @@ nonisolated enum ShellError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case let .launchFailed(command, reason):
-            return "Не удалось запустить \(command): \(reason)"
+            return "Could not launch \(command): \(reason)"
         case let .timedOut(command, seconds):
-            return "\(command) не ответил за \(seconds) с и был остановлен"
+            return "\(command) did not respond within \(seconds)s and was terminated"
         }
     }
 }
@@ -40,9 +40,9 @@ nonisolated enum ShellError: LocalizedError, Equatable {
 nonisolated enum Shell {
     static let defaultTimeout: TimeInterval = 30
 
-    /// Работа целиком уходит в `Task.detached`: при `NonisolatedNonsendingByDefault`
-    /// одной пометки `nonisolated` мало — функция унаследовала бы изоляцию вызывающего
-    /// и ждала бы процесс на главном потоке.
+    /// The work goes into `Task.detached` on purpose: with `NonisolatedNonsendingByDefault`
+    /// a `nonisolated` marker alone is not enough — the function would inherit the
+    /// caller's isolation and wait for the process on the main thread.
     nonisolated static func run(
         _ executable: String,
         _ arguments: [String],
@@ -77,8 +77,8 @@ nonisolated enum Shell {
             )
         }
 
-        // stdout и stderr вычитываются параллельно. Если читать их по очереди,
-        // процесс, заполнивший второй пайп, заблокируется на записи и не завершится.
+        // stdout and stderr are drained in parallel. Read them one after the other and
+        // a child that fills the second pipe blocks on write and never exits.
         let output = Locked(Data())
         let errorOutput = Locked(Data())
         let readers = DispatchGroup()
@@ -116,13 +116,13 @@ nonisolated enum Shell {
         )
     }
 
-    /// Аргумент для `adb shell`: команда собирается на устройстве заново,
-    /// поэтому `&` и пробелы в ссылке нужно закрыть кавычками.
+    /// An argument for `adb shell`: the command is reassembled on the device,
+    /// so ampersands and spaces in a link have to stay inside quotes.
     static func singleQuoted(_ value: String) -> String {
         "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 
-    /// Команда в виде, пригодном для вставки в терминал.
+    /// The command in a form that can be pasted into a terminal as is.
     static func displayCommand(_ executable: String, _ arguments: [String]) -> String {
         let special: Set<Character> = [" ", "&", "?", ";", "|", "<", ">", "(", ")", "$", "*"]
         return ([executable] + arguments)

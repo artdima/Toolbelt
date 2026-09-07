@@ -2,7 +2,7 @@
 //  IssuesBoardView.swift
 //  Toolbelt
 //
-//  Канбан своих задач: колонки — статусы Трекера.
+//  A kanban of your issues: columns are Tracker statuses.
 //
 
 import SwiftUI
@@ -37,17 +37,17 @@ struct IssuesBoardView: View {
     private var content: some View {
         if !model.isConfigured {
             SetupPrompt(
-                text: "Укажите OAuth-токен и идентификатор организации",
-                actionTitle: "Открыть настройки"
+                text: "Set an OAuth token and an organization ID",
+                actionTitle: "Open Settings"
             ) {
                 AppWindows.settings(tab: .tracker)
             }
         } else if model.isLoading && !model.hasLoadedIssues {
-            LoadingState(text: "Загружаем задачи…")
+            LoadingState(text: "Loading issues…")
         } else if model.board.isEmpty {
             EmptyState(
                 systemImage: "tray",
-                text: model.hasLoadedIssues ? "Ничего не найдено по запросу" : "Задач не найдено"
+                text: model.hasLoadedIssues ? "Nothing matches the search" : "No issues found"
             )
         } else {
             board
@@ -57,7 +57,7 @@ struct IssuesBoardView: View {
     private var header: some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 1) {
-                Text("Мои задачи")
+                Text("My Issues")
                     .font(.system(size: 13, weight: .semibold))
                 Text(model.summary)
                     .font(.system(size: 10))
@@ -66,11 +66,11 @@ struct IssuesBoardView: View {
 
             Spacer()
 
-            TextField("Поиск по ключу или названию", text: $model.searchQuery)
+            TextField("Search by key or summary", text: $model.searchQuery)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 220)
 
-            Toggle("Решённые", isOn: $model.includeResolved)
+            Toggle("Resolved", isOn: $model.includeResolved)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 11))
 
@@ -130,7 +130,7 @@ struct IssuesBoardView: View {
     }
 }
 
-// MARK: - Карточка задачи
+// MARK: - Issue card
 
 private struct IssueCard: View {
     let issue: Issue
@@ -190,10 +190,10 @@ private struct IssueCard: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
-        .help("\(issue.key) — открыть в браузере")
+        .help("\(issue.key) — open in browser")
         .contextMenu {
-            Button("Открыть в браузере", action: open)
-            Button("Скопировать ключ") {
+            Button("Open in Browser", action: open)
+            Button("Copy Key") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(issue.key, forType: .string)
             }

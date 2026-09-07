@@ -5,7 +5,8 @@
 
 import Foundation
 
-/// Тип организации определяет заголовок запроса: `X-Org-ID` или `X-Cloud-Org-ID`.
+/// The organization kind decides which header the request carries:
+/// `X-Org-ID` or `X-Cloud-Org-ID`.
 enum TrackerOrgKind: String, CaseIterable, Identifiable, Codable {
     case yandex360
     case cloud
@@ -14,7 +15,7 @@ enum TrackerOrgKind: String, CaseIterable, Identifiable, Codable {
 
     var title: String {
         switch self {
-        case .yandex360: return "Яндекс 360"
+        case .yandex360: return "Yandex 360"
         case .cloud: return "Yandex Cloud"
         }
     }
@@ -27,7 +28,7 @@ enum TrackerOrgKind: String, CaseIterable, Identifiable, Codable {
     }
 }
 
-/// Запись о затраченном времени.
+/// A logged time entry.
 struct Worklog: Identifiable, Hashable {
     let id: Int
     let issueKey: String
@@ -37,7 +38,7 @@ struct Worklog: Identifiable, Hashable {
     let seconds: TimeInterval
 }
 
-/// Задача для доски.
+/// An issue on the board.
 struct Issue: Identifiable, Hashable {
     var id: String { key }
     let key: String

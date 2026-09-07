@@ -2,7 +2,7 @@
 //  StateViews.swift
 //  Toolbelt
 //
-//  Состояния загрузки, пустоты и ошибки — одинаково во всех окнах.
+//  Loading, empty and error states, identical across every window.
 //
 
 import SwiftUI
@@ -77,7 +77,7 @@ struct SetupPrompt: View {
 
 struct CopyButton: View {
     let value: String
-    var help = "Скопировать"
+    var help = "Copy"
 
     var body: some View {
         Button {
@@ -105,6 +105,6 @@ struct RefreshButton: View {
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
-        .help("Обновить")
+        .help("Refresh")
     }
 }

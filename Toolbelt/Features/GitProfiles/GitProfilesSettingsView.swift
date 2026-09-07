@@ -12,14 +12,14 @@ struct GitProfilesSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Значения подставляются в git config --global user.name и user.email.")
+            Text("These values go into git config --global user.name and user.email.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
             if draft.isEmpty {
                 EmptyState(
                     systemImage: "person.crop.circle.badge.plus",
-                    text: "Пока нет ни одного профиля"
+                    text: "No profiles yet"
                 )
             } else {
                 ScrollView {
@@ -36,12 +36,12 @@ struct GitProfilesSettingsView: View {
                 Button {
                     draft.append(GitProfile(name: "", email: "", displayName: ""))
                 } label: {
-                    Label("Добавить профиль", systemImage: "plus")
+                    Label("Add profile", systemImage: "plus")
                 }
 
                 Spacer()
 
-                Button("Сохранить") {
+                Button("Save") {
                     let cleaned = cleanedDraft
                     store.replace(with: cleaned)
                     draft = cleaned
@@ -57,7 +57,7 @@ struct GitProfilesSettingsView: View {
     private func profileCard(_ profile: Binding<GitProfile>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
-                TextField("Подпись на кнопке", text: profile.displayName)
+                TextField("Label on the button", text: profile.displayName)
                     .textFieldStyle(.roundedBorder)
 
                 Button {
@@ -68,7 +68,7 @@ struct GitProfilesSettingsView: View {
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.red)
-                .help("Удалить профиль")
+                .help("Delete profile")
             }
 
             TextField("user.name", text: profile.name)
@@ -82,7 +82,7 @@ struct GitProfilesSettingsView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
-    /// Незаполненные профили не сохраняем — по ним нечего применить.
+    /// Incomplete profiles are not saved — there is nothing to apply from them.
     private var cleanedDraft: [GitProfile] {
         draft.map { $0.trimmed() }.filter(\.isComplete)
     }

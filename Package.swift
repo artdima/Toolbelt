@@ -1,10 +1,11 @@
 // swift-tools-version: 6.0
 //
-//  Тесты чистой логики приложения.
+//  Tests for the pure logic of the app.
 //
-//  Xcode-проект собирает всю папку Toolbelt/ (PBXFileSystemSynchronizedRootGroup),
-//  а этот пакет отдельно компилирует из неё файлы без SwiftUI и AppKit —
-//  так `swift test` работает и локально, и в CI, не трогая project.pbxproj.
+//  The Xcode project builds the whole Toolbelt/ folder through a
+//  PBXFileSystemSynchronizedRootGroup. This package compiles only the SwiftUI-free
+//  files out of that same folder, so `swift test` works locally and in CI without
+//  touching project.pbxproj.
 //
 
 import PackageDescription
@@ -33,9 +34,9 @@ let package = Package(
                 "Features/Tracker/TrackerModels.swift",
                 "Features/Tracker/WeekReport.swift"
             ],
-            // Тот же языковой режим, что у Xcode-проекта: иначе пакет собирал бы
-            // те же файлы со строгими проверками конкурентности Swift 6,
-            // а приложение — по правилам Swift 5.
+            // The same language mode as the Xcode project: otherwise the package would
+            // check the very same files under strict Swift 6 concurrency while the app
+            // is built under Swift 5 rules.
             swiftSettings: [.swiftLanguageMode(.v5)]
         ),
         .testTarget(

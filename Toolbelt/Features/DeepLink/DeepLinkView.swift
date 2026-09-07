@@ -2,7 +2,7 @@
 //  DeepLinkView.swift
 //  Toolbelt
 //
-//  Проверка deep link на симуляторе iOS или подключённом Android-устройстве.
+//  Testing a deep link on a booted iOS simulator or a connected Android device.
 //
 
 import SwiftUI
@@ -37,13 +37,13 @@ struct DeepLinkView: View {
 
     private var devicePicker: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Устройство")
+            Text("Device")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 8) {
                 if model.targets.isEmpty {
-                    Text("Нет загруженных симуляторов и подключённых устройств")
+                    Text("No booted simulators and no connected devices")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -70,7 +70,7 @@ struct DeepLinkView: View {
 
     private var linkField: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text("Ссылка")
+            Text("Link")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
@@ -80,7 +80,7 @@ struct DeepLinkView: View {
                     .font(.system(size: 13, design: .monospaced))
                     .onSubmit { Task { await model.open() } }
 
-                Button("Открыть") {
+                Button("Open") {
                     Task { await model.open() }
                 }
                 .keyboardShortcut(.defaultAction)
@@ -88,7 +88,7 @@ struct DeepLinkView: View {
             }
 
             if model.showsSchemeHint {
-                Text("В ссылке нет схемы — обычно нужно что-то вида myapp://path")
+                Text("The link has no scheme — it usually looks like myapp://path")
                     .font(.system(size: 10))
                     .foregroundStyle(.orange)
             }
@@ -100,10 +100,10 @@ struct DeepLinkView: View {
             HStack(spacing: 6) {
                 Image(systemName: result.isSuccess ? "checkmark.circle.fill" : "xmark.circle.fill")
                     .foregroundStyle(result.isSuccess ? Color.green : Color.red)
-                Text(result.isSuccess ? "Ссылка отправлена" : "Не удалось открыть")
+                Text(result.isSuccess ? "Link sent" : "Could not open")
                     .font(.system(size: 12, weight: .medium))
                 Spacer()
-                CopyButton(value: result.command, help: "Скопировать команду")
+                CopyButton(value: result.command, help: "Copy command")
             }
 
             Text(result.command)
@@ -126,12 +126,12 @@ struct DeepLinkView: View {
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("История")
+            Text("History")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
 
             if model.history.entries.isEmpty {
-                Text("Открытые ссылки будут сохраняться здесь")
+                Text("Links you open will be kept here")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -158,7 +158,7 @@ struct DeepLinkView: View {
                     .foregroundStyle(entry.isPinned ? Color.yellow : Color.secondary)
             }
             .buttonStyle(.plain)
-            .help(entry.isPinned ? "Открепить" : "Закрепить")
+            .help(entry.isPinned ? "Unpin" : "Pin")
 
             Button {
                 model.url = entry.url
@@ -171,7 +171,7 @@ struct DeepLinkView: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Подставить в поле ввода")
+            .help("Paste into the field")
 
             Button {
                 model.history.remove(entry)
@@ -181,7 +181,7 @@ struct DeepLinkView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(.tertiary)
-            .help("Удалить из истории")
+            .help("Remove from history")
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 6)

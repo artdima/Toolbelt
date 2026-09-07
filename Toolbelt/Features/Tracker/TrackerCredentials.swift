@@ -27,8 +27,8 @@ protocol TrackerCredentialsProviding {
     var credentials: TrackerCredentials { get }
 }
 
-/// Единственный источник правды: и UI, и сетевой клиент читают отсюда.
-/// Токен лежит в Keychain, остальное — в UserDefaults.
+/// The single source of truth: both the UI and the network client read from here.
+/// The token lives in Keychain, everything else in UserDefaults.
 @Observable
 @MainActor
 final class TrackerCredentialsStore: TrackerCredentialsProviding {
@@ -39,7 +39,7 @@ final class TrackerCredentialsStore: TrackerCredentialsProviding {
     private static let orgIdKey = "tracker.orgId"
     private static let orgKindKey = "tracker.orgKind"
 
-    /// Хранилища до переименования проекта в Toolbelt.
+    /// Storage used before the project was renamed to Toolbelt.
     private static let legacyService = "app.dima.GitSwitcher.tracker"
     private static let legacySuite = "app.dima.GitSwitcher"
     private static let migrationKey = "tracker.migratedFromGitSwitcher"
@@ -62,16 +62,16 @@ final class TrackerCredentialsStore: TrackerCredentialsProviding {
 
     func save(_ newCredentials: TrackerCredentials) throws {
         let trimmed = newCredentials.trimmed()
-        // Keychain пишется первым: если он откажет, в памяти и в UserDefaults
-        // не должно остаться состояния, которого нет на диске.
+        // Keychain goes first: if it refuses, memory and UserDefaults must not hold
+        // state that never made it to disk.
         try keychain.write(trimmed.token, account: Self.account)
         defaults.set(trimmed.orgId, forKey: Self.orgIdKey)
         defaults.set(trimmed.orgKind.rawValue, forKey: Self.orgKindKey)
         credentials = trimmed
     }
 
-    /// Однократный перенос со старого bundle id. Флаг ставится только после успеха:
-    /// иначе сбой Keychain навсегда оставил бы пользователя без токена.
+    /// A one-off move from the old bundle id. The flag is set only after success:
+    /// otherwise a Keychain failure would leave the user without a token forever.
     func migrateLegacyStorageIfNeeded() {
         guard !defaults.bool(forKey: Self.migrationKey) else { return }
 
@@ -97,7 +97,7 @@ final class TrackerCredentialsStore: TrackerCredentialsProviding {
             defaults.set(true, forKey: Self.migrationKey)
             credentials = load()
         } catch {
-            Log.storage.error("Миграция настроек Трекера не удалась: \(error.localizedDescription, privacy: .public)")
+            Log.storage.error("Tracker settings migration failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -106,7 +106,7 @@ final class TrackerCredentialsStore: TrackerCredentialsProviding {
         do {
             token = try keychain.read(account: Self.account) ?? ""
         } catch {
-            Log.storage.error("Не удалось прочитать токен: \(error.localizedDescription, privacy: .public)")
+            Log.storage.error("Could not read the token: \(error.localizedDescription, privacy: .public)")
             token = ""
         }
 

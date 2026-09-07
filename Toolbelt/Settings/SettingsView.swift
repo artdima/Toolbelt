@@ -12,8 +12,8 @@ enum SettingsTab: String, Hashable {
     case tools
 }
 
-/// Выбранная вкладка живёт дольше окна: открытие настроек «на нужном разделе»
-/// должно переключать и уже открытое окно. Экземпляр создаёт `AppWindows`.
+/// The selected tab outlives the window: opening settings "on a given section" has to
+/// switch an already open window too. The instance is owned by `AppWindows`.
 @Observable
 @MainActor
 final class SettingsRouter {
@@ -26,22 +26,22 @@ struct SettingsView: View {
     var body: some View {
         TabView(selection: $router.tab) {
             GitProfilesSettingsView()
-                .tabItem { Label("Профили Git", systemImage: "person.2") }
+                .tabItem { Label("Git Profiles", systemImage: "person.2") }
                 .tag(SettingsTab.profiles)
 
             TrackerSettingsView()
-                .tabItem { Label("Яндекс Трекер", systemImage: "key") }
+                .tabItem { Label("Yandex Tracker", systemImage: "key") }
                 .tag(SettingsTab.tracker)
 
             ToolsSettingsView()
-                .tabItem { Label("Инструменты", systemImage: "wrench.and.screwdriver") }
+                .tabItem { Label("Tools", systemImage: "wrench.and.screwdriver") }
                 .tag(SettingsTab.tools)
         }
         .frame(width: 460, height: 470)
     }
 }
 
-/// Нижняя панель раздела настроек: кнопка сохранения и место под ошибку.
+/// The bottom bar of a settings section: a save button and room for an error.
 struct SettingsFooter: View {
     let errorMessage: String?
     let isSaveDisabled: Bool
@@ -56,7 +56,7 @@ struct SettingsFooter: View {
                     .lineLimit(2)
             }
             Spacer()
-            Button("Сохранить", action: save)
+            Button("Save", action: save)
                 .keyboardShortcut(.defaultAction)
                 .disabled(isSaveDisabled)
         }

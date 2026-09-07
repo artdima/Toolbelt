@@ -2,115 +2,108 @@ import Foundation
 import Testing
 @testable import ToolbeltCore
 
-@Suite("Длительности Трекера")
+@Suite("Tracker durations")
 struct TrackerDurationTests {
     private let hour: TimeInterval = 3600
     private var workday: TimeInterval { TrackerDuration.hoursPerWorkday * hour }
     private var workweek: TimeInterval { TrackerDuration.daysPerWorkweek * workday }
 
-    @Test("Часы и минуты")
+    @Test("Hours and minutes")
     func hoursAndMinutes() {
         #expect(TrackerDuration.seconds(fromISO8601: "PT7H30M") == 7 * hour + 30 * 60)
     }
 
-    @Test("Только минуты")
+    @Test("Minutes only")
     func minutesOnly() {
         #expect(TrackerDuration.seconds(fromISO8601: "PT45M") == 45 * 60)
     }
 
-    /// День и неделя в Трекере рабочие: 8 часов и 5 дней.
-    @Test("Рабочий день — восемь часов")
+    /// Tracker counts a day and a week as working ones: 8 hours and 5 days.
+    @Test("A working day is eight hours")
     func workdayIsEightHours() {
         #expect(TrackerDuration.seconds(fromISO8601: "P1D") == workday)
     }
 
-    @Test("Рабочая неделя — пять дней")
+    @Test("A working week is five days")
     func workweekIsFiveDays() {
         #expect(TrackerDuration.seconds(fromISO8601: "P1W") == workweek)
     }
 
-    @Test("Составная длительность")
+    @Test("A composite duration")
     func compositeDuration() {
         let expected = workweek + 2 * workday + 3 * hour + 30 * 60
         #expect(TrackerDuration.seconds(fromISO8601: "P1W2DT3H30M") == expected)
     }
 
-    /// `M` до `T` — месяцы, после `T` — минуты. Классическая ошибка разбора.
-    @Test("M до T — месяц, после T — минута")
+    /// `M` before `T` is a month, after `T` it is a minute. The classic parsing bug.
+    @Test("M before T is a month, after T a minute")
     func monthVersusMinute() {
         #expect(TrackerDuration.seconds(fromISO8601: "PT1M") == 60)
         #expect(TrackerDuration.seconds(fromISO8601: "P1M") == 4 * workweek)
     }
 
-    @Test("Запятая как десятичный разделитель")
+    @Test("A comma as the decimal separator")
     func commaAsDecimalSeparator() {
         #expect(TrackerDuration.seconds(fromISO8601: "PT1,5H") == 1.5 * hour)
     }
 
-    @Test("Точка как десятичный разделитель")
+    @Test("A dot as the decimal separator")
     func dotAsDecimalSeparator() {
         #expect(TrackerDuration.seconds(fromISO8601: "PT0.5H") == 0.5 * hour)
     }
 
-    @Test("Секунды")
+    @Test("Seconds")
     func seconds() {
         #expect(TrackerDuration.seconds(fromISO8601: "PT90S") == 90)
     }
 
-    @Test("Мусор даёт ноль", arguments: ["", "1H", "нет", "T1H"])
+    @Test("Garbage parses to zero", arguments: ["", "1H", "nonsense", "T1H"])
     func garbageIsZero(input: String) {
         #expect(TrackerDuration.seconds(fromISO8601: input) == 0)
     }
 }
 
-@Suite("Формат длительности")
+@Suite("Duration formatting")
 struct DurationFormatterTests {
-    @Test("Часы и минуты")
+    @Test("Hours and minutes")
     func hoursAndMinutes() {
-        #expect(DurationFormatter.short(7 * 3600 + 30 * 60) == "7 ч 30 м")
+        #expect(DurationFormatter.short(7 * 3600 + 30 * 60) == "7h 30m")
     }
 
-    @Test("Только часы")
+    @Test("Hours only")
     func hoursOnly() {
-        #expect(DurationFormatter.short(2 * 3600) == "2 ч")
+        #expect(DurationFormatter.short(2 * 3600) == "2h")
     }
 
-    @Test("Только минуты")
+    @Test("Minutes only")
     func minutesOnly() {
-        #expect(DurationFormatter.short(15 * 60) == "15 м")
+        #expect(DurationFormatter.short(15 * 60) == "15m")
     }
 
-    @Test("Ноль и отрицательное значение")
+    @Test("Zero and negative values")
     func zeroAndNegative() {
-        #expect(DurationFormatter.short(0) == "0 ч")
-        #expect(DurationFormatter.short(-10) == "0 ч")
+        #expect(DurationFormatter.short(0) == "0h")
+        #expect(DurationFormatter.short(-10) == "0h")
     }
 
-    @Test("Секунды округляются до минут")
+    @Test("Seconds round up to minutes")
     func secondsRoundToMinutes() {
-        #expect(DurationFormatter.short(119) == "1 м")
+        #expect(DurationFormatter.short(119) == "1m")
     }
 }
 
-@Suite("Русская плюрализация")
+@Suite("Pluralization")
 struct PluralTests {
-    @Test("Формы по последней цифре", arguments: [
-        (1, "запись"), (2, "записи"), (4, "записи"), (5, "записей"),
-        (21, "запись"), (22, "записи"), (25, "записей"),
-        (101, "запись"), (0, "записей")
+    @Test("One takes the singular, everything else the plural", arguments: [
+        (0, "0 entries"), (1, "1 entry"), (2, "2 entries"), (21, "21 entries")
     ])
-    func basicForms(count: Int, expected: String) {
-        #expect(Plural.ru(count, "запись", "записи", "записей") == expected)
+    func forms(count: Int, expected: String) {
+        #expect(Plural.counted(count, "entry", "entries") == expected)
     }
 
-    /// 11–14 — исключение: «одиннадцать записей», а не «запись».
-    @Test("Числа 11–14 всегда во множественном числе", arguments: [11, 12, 13, 14, 111, 112])
-    func teensAreAlwaysMany(count: Int) {
-        #expect(Plural.ru(count, "запись", "записи", "записей") == "записей")
-    }
-
-    @Test("Число подставляется в строку")
-    func countedIncludesNumber() {
-        #expect(Plural.counted(3, "задача", "задачи", "задач") == "3 задачи")
+    /// Irregular plurals are passed explicitly rather than guessed by appending an "s".
+    @Test("An irregular plural is used as given")
+    func irregularPlural() {
+        #expect(Plural.counted(3, "status", "statuses") == "3 statuses")
     }
 }

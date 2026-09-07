@@ -27,8 +27,6 @@
 | **Release Notes** | Builds "What's New" for the stores from your commits |
 | **Derived Data** | Wipes the folder with one button |
 
-The interface is in Russian for now.
-
 ## Build
 
 ```bash
@@ -56,8 +54,8 @@ testability comes from: tests swap in a stub instead of the network and the shel
 
 All arithmetic lives outside the views, in plain value types: `WeekReport` (week
 aggregation), `IssuesBoard` (status columns), `ReleaseNotesBuilder` (commit parsing),
-`TrackerDuration` (ISO 8601), `Plural` (Russian numerals). They are computed once after
-a load rather than on every redraw, and they are what the tests cover.
+`TrackerDuration` (ISO 8601). They are computed once after a load rather than on
+every redraw, and they are what the tests cover.
 
 ## Decisions worth explaining
 
@@ -93,7 +91,7 @@ builds the same folder as a whole through `PBXFileSystemSynchronizedRootGroup`.
 
 Covered: Conventional Commits parsing, ISO 8601 durations in Tracker's "working" days,
 week boundaries, report aggregation, board column ordering, `simctl` and `adb` output
-parsing, argument quoting for `adb shell`, HTTP status mapping and Russian pluralization.
+parsing, argument quoting for `adb shell`, HTTP status mapping and pluralization.
 
 ## Known limitations
 
@@ -101,6 +99,8 @@ parsing, argument quoting for `adb shell`, HTTP status mapping and Russian plura
   of milliseconds. Moving it off requires marking the domain models `nonisolated`.
 - Worklog is fetched as a single 1000-entry page — hitting the limit logs a warning, but
   there is no pagination.
+- The UI is English only; there is no localization layer. Release notes are the exception:
+  they are generated content, so section titles come in both English and Russian.
 
 ## License
 

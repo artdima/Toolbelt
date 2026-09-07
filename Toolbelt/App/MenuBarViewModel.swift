@@ -43,7 +43,7 @@ final class MenuBarViewModel {
             activeProfileID = profiles.first { $0.identity == identity }?.id
         } catch {
             activeProfileID = nil
-            setStatus("⚠ Не удалось прочитать настройки git: \(error.localizedDescription)")
+            setStatus("⚠ Could not read git config: \(error.localizedDescription)")
         }
     }
 
@@ -51,7 +51,7 @@ final class MenuBarViewModel {
         do {
             try await gitConfig.apply(profile.identity)
             activeProfileID = profile.id
-            setStatus("✓ Применено: \(profile.name) <\(profile.email)>")
+            setStatus("✓ Applied: \(profile.name) <\(profile.email)>")
         } catch {
             setStatus("⚠ \(error.localizedDescription)")
         }
@@ -60,17 +60,17 @@ final class MenuBarViewModel {
     func cleanDerivedData() async {
         isWorking = true
         defer { isWorking = false }
-        setStatus("Удаляем Derived Data…")
+        setStatus("Deleting Derived Data…")
 
         do {
             switch try await derivedData.clean() {
             case .removed:
-                setStatus("✓ Derived Data удалена")
+                setStatus("✓ Derived Data deleted")
             case .nothingToRemove:
-                setStatus("Derived Data уже отсутствует")
+                setStatus("Derived Data is already gone")
             }
         } catch {
-            setStatus("⚠ Не удалось удалить Derived Data: \(error.localizedDescription)")
+            setStatus("⚠ Could not delete Derived Data: \(error.localizedDescription)")
         }
     }
 

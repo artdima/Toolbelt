@@ -5,10 +5,10 @@
 
 import Foundation
 
-/// Разбор длительностей и дат Трекера. Чистые функции без зависимостей —
-/// вся нетривиальная арифметика проекта живёт здесь и покрыта тестами.
+/// Parsing Tracker durations and dates. Pure functions with no dependencies —
+/// every piece of non-obvious arithmetic in the project lives here and is tested.
 enum TrackerDuration {
-    /// В Трекере день и неделя считаются рабочими.
+    /// Tracker counts a day and a week as working ones.
     static let hoursPerWorkday: Double = 8
     static let daysPerWorkweek: Double = 5
 
@@ -16,8 +16,8 @@ enum TrackerDuration {
     private static let monthsPerYear: Double = 12
     private static let weeksPerMonth: Double = 4
 
-    /// Разбирает ISO 8601 длительность вида `P1W2DT3H30M` в секунды.
-    /// `M` до `T` — месяцы, после `T` — минуты.
+    /// Parses an ISO 8601 duration such as `P1W2DT3H30M` into seconds.
+    /// `M` before `T` means months, after `T` it means minutes.
     static func seconds(fromISO8601 string: String) -> TimeInterval {
         var value = Substring(string)
         guard value.first == "P" else { return 0 }
@@ -62,7 +62,7 @@ enum TrackerDuration {
 enum TrackerDate {
     private static let withMilliseconds = formatter("yyyy-MM-dd'T'HH:mm:ss.SSSZ")
     private static let withSeconds = formatter("yyyy-MM-dd'T'HH:mm:ssZ")
-    /// Дедлайн приходит без времени.
+    /// A deadline arrives without a time component.
     private static let dayOnly = formatter("yyyy-MM-dd")
 
     static func parse(_ string: String) -> Date? {

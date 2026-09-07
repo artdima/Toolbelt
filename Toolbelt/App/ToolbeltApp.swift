@@ -2,16 +2,14 @@
 //  ToolbeltApp.swift
 //  Toolbelt
 //
-//  Created by Medyannik Dmitri on 08.05.2026.
-//
 
 import SwiftUI
 
 @main
 struct ToolbeltApp: App {
     init() {
-        // Перенос настроек со старого bundle id должен отработать до первого
-        // обращения к API, поэтому он синхронный и здесь.
+        // Settings have to be migrated off the old bundle id before the first
+        // API call, so this runs synchronously here.
         TrackerCredentialsStore.shared.migrateLegacyStorageIfNeeded()
     }
 

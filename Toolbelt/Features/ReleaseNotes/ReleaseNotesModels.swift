@@ -13,7 +13,7 @@ enum NoteLocale: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .ru: return "Русский"
+        case .ru: return "Russian"
         case .en: return "English"
         }
     }
@@ -32,7 +32,7 @@ enum StoreTarget: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Лимиты площадок на текст «Что нового».
+    /// Store limits on the What's New text.
     var characterLimit: Int {
         switch self {
         case .appStore: return 4000

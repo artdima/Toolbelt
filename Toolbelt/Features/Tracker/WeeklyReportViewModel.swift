@@ -14,8 +14,8 @@ enum BreakdownMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .issues: return "По задачам"
-        case .days: return "По дням"
+        case .issues: return "By issue"
+        case .days: return "By day"
         }
     }
 }
@@ -29,8 +29,8 @@ final class WeeklyReportViewModel {
     private(set) var report = WeekReport.empty
     private(set) var errorMessage: String?
 
-    /// Счётчик, а не Bool: ручное обновление и смена недели могут пересекаться,
-    /// и завершившийся первым запрос не должен гасить чужой индикатор.
+    /// A counter rather than a Bool: a manual refresh and a week change can overlap,
+    /// and whichever finishes first must not switch off the other one's spinner.
     private var inFlightCount = 0
     private var loadTask: Task<Void, Never>?
 
@@ -48,7 +48,7 @@ final class WeeklyReportViewModel {
         self.credentialsStore = credentialsStore
     }
 
-    // MARK: Состояние
+    // MARK: State
 
     var isLoading: Bool { inFlightCount > 0 }
     var credentials: TrackerCredentials { credentialsStore.credentials }
@@ -61,24 +61,24 @@ final class WeeklyReportViewModel {
         let calendar = AppFormatters.calendar
         let start = weekStart
         let last = calendar.date(byAdding: .day, value: WeekMath.daysInWeek - 1, to: start) ?? start
-        let formatter = AppFormatters.dayAndMonth
+        let formatter = AppFormatters.monthAndDay
         return "\(formatter.string(from: start)) — \(formatter.string(from: last))"
     }
 
     var relativeWeekTitle: String {
         switch weekOffset {
-        case 0: return "Текущая неделя"
-        case -1: return "Прошлая неделя"
-        case ..<0: return "\(Plural.counted(abs(weekOffset), "неделя", "недели", "недель")) назад"
-        default: return "Через \(Plural.counted(weekOffset, "неделю", "недели", "недель"))"
+        case 0: return "This week"
+        case -1: return "Last week"
+        case ..<0: return "\(Plural.counted(abs(weekOffset), "week", "weeks")) ago"
+        default: return "In \(Plural.counted(weekOffset, "week", "weeks"))"
         }
     }
 
-    // MARK: Действия
+    // MARK: Actions
 
     func changeWeek(by delta: Int) {
         weekOffset += delta
-        // Детализация относится к записям прошлой недели — раскрытие сбрасываем.
+        // The expanded rows belong to last week's entries — collapse them.
         expandedIssues.removeAll()
         expandedDays.removeAll()
     }
@@ -108,7 +108,7 @@ final class WeeklyReportViewModel {
         }
     }
 
-    // MARK: Загрузка
+    // MARK: Loading
 
     func reload() async {
         loadTask?.cancel()
@@ -134,15 +134,15 @@ final class WeeklyReportViewModel {
         do {
             let entries = try await tracker.worklog(from: start, to: end)
             try Task.checkCancellation()
-            // Пока запрос летел, пользователь мог переключить неделю.
+            // The user may have switched weeks while the request was in flight.
             guard requestedOffset == weekOffset else { return }
             report = WeekReport(entries: entries, weekStart: start)
         } catch is CancellationError {
-            // Запрос вытеснен более свежим — состояние не трогаем.
+            // Superseded by a newer request — leave the state alone.
         } catch let error as URLError where error.code == .cancelled {
         } catch {
-            // Данные оставляем на экране: баннер поверх старого отчёта
-            // полезнее, чем пустой экран с ошибкой.
+            // Keep the data on screen: a banner over the previous report is more
+            // useful than an empty screen with an error.
             errorMessage = error.localizedDescription
         }
     }

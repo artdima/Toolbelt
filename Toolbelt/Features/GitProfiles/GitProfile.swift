@@ -38,7 +38,7 @@ final class GitProfileStore {
     private let defaults: UserDefaults
     private(set) var profiles: [GitProfile]
 
-    /// `defaults` — шов для тестов: в них подставляется отдельный suite.
+    /// `defaults` is the seam for tests: they pass a separate suite.
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         profiles = Self.decode(defaults.data(forKey: Self.storageKey))
@@ -49,7 +49,7 @@ final class GitProfileStore {
         do {
             defaults.set(try JSONEncoder().encode(newProfiles), forKey: Self.storageKey)
         } catch {
-            Log.storage.error("Не удалось сохранить профили: \(error.localizedDescription, privacy: .public)")
+            Log.storage.error("Could not save profiles: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -58,7 +58,7 @@ final class GitProfileStore {
         do {
             return try JSONDecoder().decode([GitProfile].self, from: data)
         } catch {
-            Log.storage.error("Профили повреждены, начинаем с пустого списка: \(error.localizedDescription, privacy: .public)")
+            Log.storage.error("Profiles are corrupted, starting empty: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }

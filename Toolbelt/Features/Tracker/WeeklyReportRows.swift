@@ -2,14 +2,14 @@
 //  WeeklyReportRows.swift
 //  Toolbelt
 //
-//  Строки детализации отчёта.
+//  Detail rows of the weekly report.
 //
 
 import SwiftUI
 
 struct WorklogEntryRow: View {
     let entry: Worklog
-    /// Слева либо дата со временем (разбивка по задачам), либо только время (по дням).
+    /// Either a date with a time (issue breakdown) or just a time (day breakdown).
     let showsDate: Bool
 
     var body: some View {
@@ -46,7 +46,7 @@ struct WorklogEntryRow: View {
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         } else {
-            Text("Без комментария")
+            Text("No comment")
                 .font(.system(size: 11))
                 .foregroundStyle(.tertiary)
         }
@@ -55,7 +55,7 @@ struct WorklogEntryRow: View {
     private var leadingTitle: String {
         let time = AppFormatters.time.string(from: entry.start)
         guard showsDate else { return time }
-        return "\(AppFormatters.weekdayAndDay.string(from: entry.start).capitalizedFirst) · \(time)"
+        return "\(AppFormatters.weekdayAndDay.string(from: entry.start)) · \(time)"
     }
 }
 

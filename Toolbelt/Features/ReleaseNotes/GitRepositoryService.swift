@@ -24,9 +24,9 @@ protocol GitRepositoryReading {
 struct GitRepositoryService: GitRepositoryReading {
     static let headRef = "HEAD"
 
-    /// git читает конфиг открываемого репозитория, а `core.fsmonitor` и хуки
-    /// умеют запускать внешние команды. Для чужого репозитория это исполнение кода,
-    /// поэтому обе точки расширения выключаются явно.
+    /// git reads the config of whatever repository it opens, and both `core.fsmonitor`
+    /// and hooks can launch external commands. For a repository you did not write that is
+    /// code execution, so both extension points are turned off explicitly.
     private var safeArguments: [String] {
         ["-c", "core.fsmonitor=false", "-c", "core.hooksPath=/dev/null"]
     }
@@ -55,7 +55,7 @@ struct GitRepositoryService: GitRepositoryReading {
             safeArguments + [
                 "-C", path,
                 "log", "--no-merges", "--pretty=format:%s",
-                // Имя тега, начинающееся с дефиса, иначе будет разобрано как опция.
+                // Otherwise a tag name starting with a dash would be parsed as an option.
                 "--end-of-options", range, "--"
             ]
         )
@@ -63,7 +63,7 @@ struct GitRepositoryService: GitRepositoryReading {
         guard result.isSuccess else {
             let message = result.standardError.trimmingCharacters(in: .whitespacesAndNewlines)
             throw GitRepositoryError.commandFailed(
-                message.isEmpty ? "git завершился с кодом \(result.exitCode)" : message
+                message.isEmpty ? "git exited with code \(result.exitCode)" : message
             )
         }
         return lines(from: result.standardOutput)

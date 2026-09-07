@@ -29,7 +29,7 @@ final class ReleaseNotesViewModel {
     var fromTag = ""
     var toRef = GitRepositoryService.headRef
     var includeTechnical = false
-    var locale: NoteLocale = .ru
+    var locale: NoteLocale = .en
 
     private var drafts: [DraftKey: String] = [:]
     private var reloadTagsTask: Task<Void, Never>?
@@ -65,8 +65,8 @@ final class ReleaseNotesViewModel {
     }
 
     func reloadTags() async {
-        // Путь фиксируется до первого await: пользователь может выбрать другой
-        // репозиторий, пока git ещё отвечает.
+        // The path is captured before the first await: the user can pick another
+        // repository while git is still answering.
         let path = repositoryPath
         guard !path.isEmpty else {
             tags = []
@@ -79,7 +79,7 @@ final class ReleaseNotesViewModel {
         guard await git.isRepository(at: path) else {
             guard path == repositoryPath else { return }
             tags = []
-            report("В выбранной папке нет git-репозитория", isError: true)
+            report("The selected folder is not a git repository", isError: true)
             return
         }
 
@@ -88,7 +88,7 @@ final class ReleaseNotesViewModel {
 
         tags = loaded
         if loaded.isEmpty {
-            report("Тегов нет — доступна вся история", isError: false)
+            report("No tags — the whole history is available", isError: false)
         }
 
         if !tags.contains(fromTag) { fromTag = "" }
@@ -114,18 +114,18 @@ final class ReleaseNotesViewModel {
         }
 
         guard !subjects.isEmpty else {
-            fail("В этом диапазоне нет коммитов")
+            fail("No commits in this range")
             return
         }
 
         let commits = ReleaseNotesBuilder.commits(from: subjects, includeTechnical: includeTechnical)
         guard !commits.isEmpty else {
-            fail("Все коммиты диапазона технические — включите «Технические»")
+            fail("Every commit in the range is technical — turn on \"Technical\"")
             return
         }
 
-        // Черновики строятся сразу для обеих локалей: иначе переключение языка
-        // показывало бы пустые поля при непустом статусе.
+        // Drafts are built for both locales at once: otherwise switching the language
+        // would show empty fields next to a non-empty status.
         for noteLocale in NoteLocale.allCases {
             for store in StoreTarget.allCases {
                 drafts[DraftKey(locale: noteLocale, store: store)] = ReleaseNotesBuilder.draft(
@@ -136,11 +136,11 @@ final class ReleaseNotesViewModel {
             }
         }
 
-        report("В черновике \(commits.count) из \(subjects.count) коммитов", isError: false)
+        report("\(commits.count) of \(subjects.count) commits in the draft", isError: false)
     }
 
-    /// Ошибка сборки очищает черновики: рядом с красным статусом не должен
-    /// оставаться валидный текст от прошлого диапазона.
+    /// A build failure clears the drafts: valid text from a previous range must not
+    /// sit next to a red status.
     private func fail(_ message: String) {
         drafts.removeAll()
         report(message, isError: true)

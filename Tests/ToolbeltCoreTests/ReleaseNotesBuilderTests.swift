@@ -2,9 +2,9 @@ import Foundation
 import Testing
 @testable import ToolbeltCore
 
-@Suite("Разбор Conventional Commits")
+@Suite("Conventional Commits parsing")
 struct ReleaseNotesParsingTests {
-    @Test("Простой коммит: тип и описание")
+    @Test("Plain commit: type and description")
     func plainCommit() {
         let commit = ReleaseNotesBuilder.parse(subject: "feat: add deep link tester")
 
@@ -13,7 +13,7 @@ struct ReleaseNotesParsingTests {
         #expect(commit.summary == "add deep link tester")
     }
 
-    @Test("Scope отбрасывается")
+    @Test("The scope is dropped")
     func scopeIsDropped() {
         let commit = ReleaseNotesBuilder.parse(subject: "fix(ui): dismiss panel")
 
@@ -21,15 +21,15 @@ struct ReleaseNotesParsingTests {
         #expect(commit.summary == "dismiss panel")
     }
 
-    @Test("Двоеточие внутри scope не заканчивает заголовок")
+    @Test("A colon inside the scope does not end the header")
     func colonInsideScope() {
-        let commit = ReleaseNotesBuilder.parse(subject: "fix(api:v2): не падать на пустом ответе")
+        let commit = ReleaseNotesBuilder.parse(subject: "fix(api:v2): keep empty responses from crashing")
 
         #expect(commit.type == "fix")
-        #expect(commit.summary == "не падать на пустом ответе")
+        #expect(commit.summary == "keep empty responses from crashing")
     }
 
-    @Test("Восклицательный знак помечает breaking change")
+    @Test("An exclamation mark marks a breaking change")
     func breakingMarker() {
         let commit = ReleaseNotesBuilder.parse(subject: "feat(ui)!: drop legacy panel")
 
@@ -38,7 +38,7 @@ struct ReleaseNotesParsingTests {
         #expect(commit.summary == "drop legacy panel")
     }
 
-    @Test("Пробел до двоеточия отменяет разбор")
+    @Test("A space before the colon cancels parsing")
     func spaceBeforeColon() {
         let commit = ReleaseNotesBuilder.parse(subject: "Add support for X: details here")
 
@@ -46,7 +46,7 @@ struct ReleaseNotesParsingTests {
         #expect(commit.summary == "Add support for X: details here")
     }
 
-    @Test("Коммит без двоеточия попадает в «Прочее»")
+    @Test("A subject without a colon goes to Other")
     func subjectWithoutColon() {
         let commit = ReleaseNotesBuilder.parse(subject: "WIP")
 
@@ -54,17 +54,17 @@ struct ReleaseNotesParsingTests {
         #expect(ReleaseNotesBuilder.section(for: commit) == .other)
     }
 
-    @Test("Тип с заглавной буквы типом не считается")
+    @Test("A capitalized type is not a type")
     func capitalizedTypeIsNotAType() {
         #expect(ReleaseNotesBuilder.parse(subject: "Fix: something").type == nil)
     }
 
-    @Test("Пустое описание отменяет разбор")
+    @Test("An empty description cancels parsing")
     func emptySummary() {
         #expect(ReleaseNotesBuilder.parse(subject: "chore:").type == nil)
     }
 
-    @Test("Раскладка по разделам", arguments: [
+    @Test("Mapping types onto sections", arguments: [
         ("feat: a", ReleaseSection.feature),
         ("fix: a", ReleaseSection.fix),
         ("perf: a", ReleaseSection.performance),
@@ -76,7 +76,7 @@ struct ReleaseNotesParsingTests {
     }
 }
 
-@Suite("Сборка текста What's New")
+@Suite("Building the What's New text")
 struct ReleaseNotesDraftTests {
     private let subjects = [
         "feat: add deep link tester",
@@ -85,7 +85,7 @@ struct ReleaseNotesDraftTests {
         "feat!: drop legacy panel"
     ]
 
-    @Test("Технические коммиты скрыты по умолчанию")
+    @Test("Technical commits are hidden by default")
     func technicalHiddenByDefault() {
         let commits = ReleaseNotesBuilder.commits(from: subjects, includeTechnical: false)
 
@@ -93,62 +93,64 @@ struct ReleaseNotesDraftTests {
         #expect(commits.allSatisfy { $0.type != "chore" })
     }
 
-    @Test("Флаг включает технические коммиты")
+    @Test("The flag brings technical commits back")
     func technicalIncludedByFlag() {
         #expect(ReleaseNotesBuilder.commits(from: subjects, includeTechnical: true).count == 4)
     }
 
-    @Test("Breaking change не считается техническим даже с типом chore")
+    @Test("A breaking change is never technical, even typed chore")
     func breakingIsNeverTechnical() {
         #expect(ReleaseNotesBuilder.commits(from: ["chore!: drop API"], includeTechnical: false).count == 1)
     }
 
-    @Test("App Store: текст с заголовками разделов")
+    @Test("App Store: the text carries section titles")
     func appStoreDraftHasSectionTitles() {
         let commits = ReleaseNotesBuilder.commits(from: subjects, includeTechnical: false)
-        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .ru, store: .appStore)
+        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .appStore)
 
-        #expect(draft.contains("Важно"))
-        #expect(draft.contains("Новое"))
-        #expect(draft.contains("Исправления"))
+        #expect(draft.contains("Important"))
+        #expect(draft.contains("What's new"))
+        #expect(draft.contains("Fixes"))
         #expect(draft.contains("• Add deep link tester"))
     }
 
-    @Test("Google Play: плоский список без заголовков")
+    @Test("Google Play: a flat list without titles")
     func googlePlayDraftIsFlat() {
         let commits = ReleaseNotesBuilder.commits(from: subjects, includeTechnical: false)
-        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .ru, store: .googlePlay)
+        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .googlePlay)
 
-        #expect(!draft.contains("Новое"))
+        #expect(!draft.contains("What's new"))
         #expect(draft.split(separator: "\n").allSatisfy { $0.hasPrefix("• ") })
     }
 
-    @Test("Заголовки разделов локализуются")
+    @Test("Section titles are localized")
     func sectionTitlesAreLocalized() {
         let commits = ReleaseNotesBuilder.commits(from: ["feat: a"], includeTechnical: false)
-        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .appStore)
+        let english = ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .appStore)
+        let russian = ReleaseNotesBuilder.draft(commits: commits, locale: .ru, store: .appStore)
 
-        #expect(draft.contains("What's new"))
+        #expect(english.contains("What's new"))
+        #expect(english != russian)
     }
 
-    @Test("Описание начинается с заглавной буквы")
+    @Test("A description starts with a capital letter")
     func summaryIsCapitalized() {
         let commits = ReleaseNotesBuilder.commits(from: ["feat: add thing"], includeTechnical: false)
 
-        #expect(ReleaseNotesBuilder.draft(commits: commits, locale: .ru, store: .googlePlay) == "• Add thing")
+        #expect(ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .googlePlay) == "• Add thing")
     }
 
-    @Test("Порядок разделов: важное, новое, исправления")
+    @Test("Section order: breaking, new, fixes")
     func sectionOrderIsStable() throws {
         let commits = ReleaseNotesBuilder.commits(
             from: ["fix: b", "feat!: a", "feat: c"],
             includeTechnical: false
         )
-        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .ru, store: .appStore)
+        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .appStore)
 
-        let breaking = try #require(draft.range(of: "Важно"))
-        let feature = try #require(draft.range(of: "Новое"))
-        let fix = try #require(draft.range(of: "Исправления"))
+        let breaking = try #require(draft.range(of: "Important"))
+        let feature = try #require(draft.range(of: "What's new"))
+        let fix = try #require(draft.range(of: "Fixes"))
 
         #expect(breaking.lowerBound < feature.lowerBound)
         #expect(feature.lowerBound < fix.lowerBound)

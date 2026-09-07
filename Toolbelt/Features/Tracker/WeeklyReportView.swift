@@ -2,7 +2,7 @@
 //  WeeklyReportView.swift
 //  Toolbelt
 //
-//  Отчёт по трудозатратам за неделю из Яндекс Трекера.
+//  A week of logged time from Yandex Tracker.
 //
 
 import SwiftUI
@@ -34,15 +34,15 @@ struct WeeklyReportView: View {
     private var content: some View {
         if !model.isConfigured {
             SetupPrompt(
-                text: "Укажите OAuth-токен и идентификатор организации,\nчтобы получить отчёт из Яндекс Трекера",
-                actionTitle: "Открыть настройки"
+                text: "Set an OAuth token and an organization ID\nto pull the report from Yandex Tracker",
+                actionTitle: "Open Settings"
             ) {
                 AppWindows.settings(tab: .tracker)
             }
         } else if model.isLoading && model.report.isEmpty {
-            LoadingState(text: "Загружаем записи из Трекера…")
+            LoadingState(text: "Loading entries from Tracker…")
         } else if model.report.isEmpty {
-            EmptyState(systemImage: "clock.badge.questionmark", text: "За эту неделю записей нет")
+            EmptyState(systemImage: "clock.badge.questionmark", text: "No entries this week")
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
@@ -55,7 +55,7 @@ struct WeeklyReportView: View {
         }
     }
 
-    // MARK: Шапка
+    // MARK: Header
 
     private var header: some View {
         HStack(spacing: 8) {
@@ -64,7 +64,7 @@ struct WeeklyReportView: View {
                     .font(.system(size: 12, weight: .semibold))
             }
             .buttonStyle(.plain)
-            .help("Предыдущая неделя")
+            .help("Previous week")
 
             Button { model.changeWeek(by: 1) } label: {
                 Image(systemName: "chevron.right")
@@ -72,7 +72,7 @@ struct WeeklyReportView: View {
             }
             .buttonStyle(.plain)
             .disabled(!model.canShowNextWeek)
-            .help("Следующая неделя")
+            .help("Next week")
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(model.weekRangeTitle)
@@ -98,12 +98,12 @@ struct WeeklyReportView: View {
         .padding(.vertical, 10)
     }
 
-    // MARK: Секции
+    // MARK: Sections
 
     private var totalCard: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Всего за неделю")
+                Text("Total this week")
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                 Text(DurationFormatter.short(model.report.totalSeconds))
@@ -111,8 +111,8 @@ struct WeeklyReportView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(Plural.counted(model.report.entryCount, "запись", "записи", "записей"))
-                Text(Plural.counted(model.report.issues.count, "задача", "задачи", "задач"))
+                Text(Plural.counted(model.report.entryCount, "entry", "entries"))
+                Text(Plural.counted(model.report.issues.count, "issue", "issues"))
             }
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
@@ -128,14 +128,14 @@ struct WeeklyReportView: View {
         let maxSeconds = max(days.map(\.seconds).max() ?? 0, 1)
 
         return VStack(alignment: .leading, spacing: 8) {
-            Text("По дням")
+            Text("By day")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
 
             VStack(spacing: 6) {
                 ForEach(days) { day in
                     HStack(spacing: 10) {
-                        Text(AppFormatters.weekdayAndDay.string(from: day.date).capitalizedFirst)
+                        Text(AppFormatters.weekdayAndDay.string(from: day.date))
                             .font(.system(size: 12, weight: isToday(day.date) ? .semibold : .regular))
                             .frame(width: 92, alignment: .leading)
 
@@ -175,7 +175,7 @@ struct WeeklyReportView: View {
                 Spacer()
 
                 if !model.isBreakdownEmpty {
-                    Button(model.isBreakdownCollapsed ? "Раскрыть все" : "Свернуть все") {
+                    Button(model.isBreakdownCollapsed ? "Expand all" : "Collapse all") {
                         withAnimation(.easeInOut(duration: 0.15)) {
                             model.toggleExpandAll()
                         }
@@ -199,7 +199,7 @@ struct WeeklyReportView: View {
         }
     }
 
-    /// Разделители между строками, но не перед первой.
+    /// Dividers between rows, but not above the first one.
     private func separated<Item: Identifiable, Row: View>(
         _ items: [Item],
         @ViewBuilder row: @escaping (Item) -> Row
@@ -227,7 +227,7 @@ struct WeeklyReportView: View {
         } trailing: {
             RowTotals(
                 value: DurationFormatter.short(issue.seconds),
-                caption: Plural.counted(issue.entries.count, "запись", "записи", "записей")
+                caption: Plural.counted(issue.entries.count, "entry", "entries")
             )
         } details: {
             WorklogEntryList(entries: issue.entries, showsDate: true)
@@ -240,23 +240,23 @@ struct WeeklyReportView: View {
             toggle: { model.toggleDay(group.date) }
         ) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(AppFormatters.weekdayAndDay.string(from: group.date).capitalizedFirst)
+                Text(AppFormatters.weekdayAndDay.string(from: group.date))
                     .font(.system(size: 12, weight: isToday(group.date) ? .semibold : .regular))
-                Text(Plural.counted(group.issueCount, "задача", "задачи", "задач"))
+                Text(Plural.counted(group.issueCount, "issue", "issues"))
                     .font(.system(size: 10))
                     .foregroundStyle(.tertiary)
             }
         } trailing: {
             RowTotals(
                 value: DurationFormatter.short(group.seconds),
-                caption: Plural.counted(group.entries.count, "запись", "записи", "записей")
+                caption: Plural.counted(group.entries.count, "entry", "entries")
             )
         } details: {
             WorklogEntryList(entries: group.entries, showsDate: false)
         }
     }
 
-    // MARK: Вспомогательное
+    // MARK: Helpers
 
     private func isToday(_ date: Date) -> Bool {
         AppFormatters.calendar.isDateInToday(date)

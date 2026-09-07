@@ -6,8 +6,8 @@
 import Foundation
 import OSLog
 
-/// Разбор вывода инструментов вынесен из запуска процессов: чистые функции
-/// проверяются тестами на реальных примерах вывода.
+/// Parsing tool output is kept apart from spawning processes: pure functions are
+/// tested against real captured output.
 enum DeepLinkParsing {
     private struct SimctlList: Decodable {
         struct Device: Decodable {
@@ -37,7 +37,7 @@ enum DeepLinkParsing {
     static func androidDevices(fromAdbOutput output: String) -> [DeepLinkTarget] {
         output
             .split(separator: "\n")
-            .dropFirst() // «List of devices attached»
+            .dropFirst() // "List of devices attached"
             .compactMap { line in
                 let fields = line.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
                 guard fields.count >= 2, fields[1] == "device" else { return nil }
@@ -69,7 +69,7 @@ protocol DeepLinkOpening {
 
 struct DeepLinkRunner: DeepLinkOpening {
     func targets() async -> (targets: [DeepLinkTarget], warning: String?) {
-        // Запросы независимы, а холодный simctl отвечает секунды — идём параллельно.
+        // The two queries are independent and a cold simctl takes seconds — run them in parallel.
         async let simulators = bootedSimulators()
         async let android = connectedAndroidDevices()
 
@@ -86,7 +86,7 @@ struct DeepLinkRunner: DeepLinkOpening {
 
         case .android:
             guard let adb = AndroidTools.resolvedPath() else {
-                return DeepLinkResult(command: "", output: "adb не найден", isSuccess: false)
+                return DeepLinkResult(command: "", output: "adb not found", isSuccess: false)
             }
             let arguments = [
                 "-s", target.identifier,
@@ -94,7 +94,7 @@ struct DeepLinkRunner: DeepLinkOpening {
                 "-a", "android.intent.action.VIEW",
                 "-d", Shell.singleQuoted(url)
             ]
-            // `am start` возвращает 0 даже когда активность не нашлась.
+            // `am start` returns 0 even when no activity was found.
             return await execute(adb, arguments) { result in
                 let output = result.combinedOutput
                 return result.isSuccess
@@ -135,7 +135,7 @@ struct DeepLinkRunner: DeepLinkOpening {
             guard result.isSuccess else { return [] }
             return DeepLinkParsing.simulators(fromSimctlJSON: Data(result.standardOutput.utf8))
         } catch {
-            Log.shell.error("simctl недоступен: \(error.localizedDescription, privacy: .public)")
+            Log.shell.error("simctl is unavailable: \(error.localizedDescription, privacy: .public)")
             return []
         }
     }
@@ -143,15 +143,15 @@ struct DeepLinkRunner: DeepLinkOpening {
     private func connectedAndroidDevices() async -> (targets: [DeepLinkTarget], warning: String?) {
         guard let adb = AndroidTools.resolvedPath() else {
             let warning = AndroidTools.customPath.isEmpty
-                ? "adb не найден — укажите путь в настройках, вкладка «Инструменты»"
-                : "adb не найден по пути из настроек"
+                ? "adb not found — set the path in Settings → Tools"
+                : "adb not found at the path from Settings"
             return ([], warning)
         }
 
         do {
             let result = try await Shell.run(adb, ["devices", "-l"])
             guard result.isSuccess else {
-                return ([], "adb ответил ошибкой: \(result.combinedOutput)")
+                return ([], "adb returned an error: \(result.combinedOutput)")
             }
             return (DeepLinkParsing.androidDevices(fromAdbOutput: result.standardOutput), nil)
         } catch {
