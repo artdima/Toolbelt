@@ -103,56 +103,30 @@ struct ReleaseNotesDraftTests {
         #expect(ReleaseNotesBuilder.commits(from: ["chore!: drop API"], includeTechnical: false).count == 1)
     }
 
-    @Test("App Store: the text carries section titles")
-    func appStoreDraftHasSectionTitles() {
+    @Test("A flat list without section titles")
+    func draftIsFlatList() {
         let commits = ReleaseNotesBuilder.commits(from: subjects, includeTechnical: false)
-        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .appStore)
-
-        #expect(draft.contains("Important"))
-        #expect(draft.contains("What's new"))
-        #expect(draft.contains("Fixes"))
-        #expect(draft.contains("• Add deep link tester"))
-    }
-
-    @Test("Google Play: a flat list without titles")
-    func googlePlayDraftIsFlat() {
-        let commits = ReleaseNotesBuilder.commits(from: subjects, includeTechnical: false)
-        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .googlePlay)
+        let draft = ReleaseNotesBuilder.draft(commits: commits)
 
         #expect(!draft.contains("What's new"))
+        #expect(draft.contains("• Add deep link tester"))
         #expect(draft.split(separator: "\n").allSatisfy { $0.hasPrefix("• ") })
-    }
-
-    @Test("Section titles are localized")
-    func sectionTitlesAreLocalized() {
-        let commits = ReleaseNotesBuilder.commits(from: ["feat: a"], includeTechnical: false)
-        let english = ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .appStore)
-        let russian = ReleaseNotesBuilder.draft(commits: commits, locale: .ru, store: .appStore)
-
-        #expect(english.contains("What's new"))
-        #expect(english != russian)
     }
 
     @Test("A description starts with a capital letter")
     func summaryIsCapitalized() {
         let commits = ReleaseNotesBuilder.commits(from: ["feat: add thing"], includeTechnical: false)
 
-        #expect(ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .googlePlay) == "• Add thing")
+        #expect(ReleaseNotesBuilder.draft(commits: commits) == "• Add thing")
     }
 
-    @Test("Section order: breaking, new, fixes")
-    func sectionOrderIsStable() throws {
+    @Test("Order: breaking, new, fixes")
+    func sectionOrderIsStable() {
         let commits = ReleaseNotesBuilder.commits(
             from: ["fix: b", "feat!: a", "feat: c"],
             includeTechnical: false
         )
-        let draft = ReleaseNotesBuilder.draft(commits: commits, locale: .en, store: .appStore)
 
-        let breaking = try #require(draft.range(of: "Important"))
-        let feature = try #require(draft.range(of: "What's new"))
-        let fix = try #require(draft.range(of: "Fixes"))
-
-        #expect(breaking.lowerBound < feature.lowerBound)
-        #expect(feature.lowerBound < fix.lowerBound)
+        #expect(ReleaseNotesBuilder.draft(commits: commits) == "• A\n• C\n• B")
     }
 }

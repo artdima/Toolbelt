@@ -2,7 +2,7 @@
 //  ReleaseNotesView.swift
 //  Toolbelt
 //
-//  Preparing What's New for the App Store and Google Play from repository commits.
+//  Preparing What's New from repository commits.
 //
 
 import SwiftUI
@@ -23,19 +23,10 @@ struct ReleaseNotesView: View {
 
             Divider()
 
-            Picker("", selection: $model.locale) {
-                ForEach(NoteLocale.allCases) { item in
-                    Text(item.title).tag(item)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-
-            editor(for: .appStore, minHeight: 200)
-            editor(for: .googlePlay, minHeight: 110)
+            editor
         }
         .padding(18)
-        .frame(minWidth: 560, minHeight: 600)
+        .frame(minWidth: 560, minHeight: 480)
         .task {
             await model.reloadTags()
         }
@@ -111,25 +102,25 @@ struct ReleaseNotesView: View {
         }
     }
 
-    private func editor(for store: StoreTarget, minHeight: CGFloat) -> some View {
-        let text = model.draft(for: store)
-        let isOverLimit = text.count > store.characterLimit
+    private var editor: some View {
+        let limit = ReleaseNotesBuilder.characterLimit
+        let isOverLimit = model.draft.count > limit
 
         return VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 8) {
-                Text(store.title)
+                Text("What's New")
                     .font(.system(size: 12, weight: .semibold))
 
                 Spacer()
 
-                Text("\(text.count) / \(store.characterLimit)")
+                Text("\(model.draft.count) / \(limit)")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(isOverLimit ? Color.red : Color.secondary)
 
-                CopyButton(value: text, help: "Copy text")
+                CopyButton(value: model.draft, help: "Copy text")
             }
 
-            TextEditor(text: binding(for: store))
+            TextEditor(text: $model.draft)
                 .font(.system(size: 12, design: .monospaced))
                 .scrollContentBackground(.hidden)
                 .padding(6)
@@ -142,15 +133,8 @@ struct ReleaseNotesView: View {
                             lineWidth: 1
                         )
                 }
-                .frame(minHeight: minHeight)
+                .frame(minHeight: 200, maxHeight: .infinity)
         }
-    }
-
-    private func binding(for store: StoreTarget) -> Binding<String> {
-        Binding(
-            get: { model.draft(for: store) },
-            set: { model.setDraft($0, for: store) }
-        )
     }
 
     private func chooseRepository() {

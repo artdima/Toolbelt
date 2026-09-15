@@ -99,8 +99,7 @@ parsing, argument quoting for `adb shell`, HTTP status mapping and pluralization
   of milliseconds. Moving it off requires marking the domain models `nonisolated`.
 - Worklog is fetched as a single 1000-entry page — hitting the limit logs a warning, but
   there is no pagination.
-- The UI is English only; there is no localization layer. Release notes are the exception:
-  they are generated content, so section titles come in both English and Russian.
+- The UI is English only; there is no localization layer.
 
 ## License
 

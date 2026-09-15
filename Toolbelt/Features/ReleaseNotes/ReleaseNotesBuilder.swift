@@ -8,6 +8,9 @@
 import Foundation
 
 enum ReleaseNotesBuilder {
+    /// Google Play caps What's New at 500 characters, the strictest of the stores.
+    static let characterLimit = 500
+
     private static let technicalTypes: Set<String> = [
         "chore", "refactor", "docs", "test", "tests", "ci", "build", "style"
     ]
@@ -84,31 +87,14 @@ enum ReleaseNotesBuilder {
             .filter { includeTechnical || !isTechnical($0) }
     }
 
-    static func draft(
-        commits: [ReleaseCommit],
-        locale: NoteLocale,
-        store: StoreTarget
-    ) -> String {
+    static func draft(commits: [ReleaseCommit]) -> String {
         var grouped: [ReleaseSection: [String]] = [:]
         for commit in commits {
-            let line = "• " + commit.summary.capitalizedFirst
-            grouped[section(for: commit), default: []].append(line)
+            grouped[section(for: commit), default: []].append("• " + commit.summary.capitalizedFirst)
         }
 
-        switch store {
-        case .appStore:
-            return ReleaseSection.allCases
-                .compactMap { section in
-                    guard let lines = grouped[section], !lines.isEmpty else { return nil }
-                    return ([section.title(locale)] + lines).joined(separator: "\n")
-                }
-                .joined(separator: "\n\n")
-
-        case .googlePlay:
-            // With a 500-character limit, section titles only eat into it.
-            return ReleaseSection.allCases
-                .flatMap { grouped[$0] ?? [] }
-                .joined(separator: "\n")
-        }
+        return ReleaseSection.allCases
+            .flatMap { grouped[$0] ?? [] }
+            .joined(separator: "\n")
     }
 }

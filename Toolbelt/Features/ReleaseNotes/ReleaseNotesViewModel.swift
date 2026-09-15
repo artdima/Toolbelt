@@ -9,11 +9,6 @@ import SwiftUI
 @Observable
 @MainActor
 final class ReleaseNotesViewModel {
-    struct DraftKey: Hashable {
-        let locale: NoteLocale
-        let store: StoreTarget
-    }
-
     private static let repositoryPathKey = "releaseNotes.repositoryPath"
 
     private let git: GitRepositoryReading
@@ -29,9 +24,8 @@ final class ReleaseNotesViewModel {
     var fromTag = ""
     var toRef = GitRepositoryService.headRef
     var includeTechnical = false
-    var locale: NoteLocale = .en
+    var draft = ""
 
-    private var drafts: [DraftKey: String] = [:]
     private var reloadTagsTask: Task<Void, Never>?
 
     convenience init() {
@@ -46,18 +40,10 @@ final class ReleaseNotesViewModel {
 
     var hasRepository: Bool { !repositoryPath.isEmpty }
 
-    func draft(for store: StoreTarget) -> String {
-        drafts[DraftKey(locale: locale, store: store)] ?? ""
-    }
-
-    func setDraft(_ text: String, for store: StoreTarget) {
-        drafts[DraftKey(locale: locale, store: store)] = text
-    }
-
     func selectRepository(at path: String) {
         repositoryPath = path
         defaults.set(path, forKey: Self.repositoryPathKey)
-        drafts.removeAll()
+        draft = ""
         status = nil
         isError = false
         reloadTagsTask?.cancel()
@@ -124,25 +110,15 @@ final class ReleaseNotesViewModel {
             return
         }
 
-        // Drafts are built for both locales at once: otherwise switching the language
-        // would show empty fields next to a non-empty status.
-        for noteLocale in NoteLocale.allCases {
-            for store in StoreTarget.allCases {
-                drafts[DraftKey(locale: noteLocale, store: store)] = ReleaseNotesBuilder.draft(
-                    commits: commits,
-                    locale: noteLocale,
-                    store: store
-                )
-            }
-        }
+        draft = ReleaseNotesBuilder.draft(commits: commits)
 
         report("\(commits.count) of \(subjects.count) commits in the draft", isError: false)
     }
 
-    /// A build failure clears the drafts: valid text from a previous range must not
+    /// A build failure clears the draft: valid text from a previous range must not
     /// sit next to a red status.
     private func fail(_ message: String) {
-        drafts.removeAll()
+        draft = ""
         report(message, isError: true)
     }
 
