@@ -97,4 +97,27 @@ enum ReleaseNotesBuilder {
             .flatMap { grouped[$0] ?? [] }
             .joined(separator: "\n")
     }
+
+    static func claudePrompt(for changes: String, language: ReleaseNotesLanguage) -> String {
+        """
+        Write the "What's New" text for a mobile app store release based on the changes below.
+
+        Rules:
+        - One paragraph of plain text in \(language.promptName): no lists, headings, markdown or quotes.
+        - Speak to end users, not developers. Describe what got better in general, slightly vague terms.
+        - Leave out internal names, libraries, APIs, ticket numbers and other technical details.
+        - Group related changes instead of listing each one.
+        - Stay under \(characterLimit) characters.
+        - Reply with the paragraph only, written in \(language.promptName).
+
+        Changes:
+        \(changes)
+        """
+    }
+
+    static func paragraph(from response: String) -> String {
+        response
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+    }
 }

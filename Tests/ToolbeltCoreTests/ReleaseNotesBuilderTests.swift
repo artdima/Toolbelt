@@ -130,3 +130,40 @@ struct ReleaseNotesDraftTests {
         #expect(ReleaseNotesBuilder.draft(commits: commits) == "• A\n• C\n• B")
     }
 }
+
+@Suite("Claude CLI release notes")
+struct ReleaseNotesClaudeTests {
+    @Test("The prompt ends with the list and names the limit")
+    func promptCarriesChanges() {
+        let prompt = ReleaseNotesBuilder.claudePrompt(for: "• Add thing\n• Fix crash", language: .english)
+
+        #expect(prompt.hasSuffix("Changes:\n• Add thing\n• Fix crash"))
+        #expect(prompt.contains("\(ReleaseNotesBuilder.characterLimit) characters"))
+    }
+
+    @Test("The prompt names the chosen language", arguments: ReleaseNotesLanguage.allCases)
+    func promptNamesLanguage(_ language: ReleaseNotesLanguage) {
+        let prompt = ReleaseNotesBuilder.claudePrompt(for: "• Add thing", language: language)
+
+        #expect(prompt.contains("plain text in \(language.promptName):"))
+        #expect(prompt.contains("written in \(language.promptName)."))
+    }
+
+    @Test("A saved language comes back as the same case", arguments: ReleaseNotesLanguage.allCases)
+    func languageSurvivesStorage(_ language: ReleaseNotesLanguage) {
+        #expect(ReleaseNotesLanguage.restored(from: language.rawValue) == language)
+    }
+
+    @Test("A missing or unknown saved language falls back to English")
+    func languageFallsBack() {
+        #expect(ReleaseNotesLanguage.restored(from: nil) == .english)
+        #expect(ReleaseNotesLanguage.restored(from: "klingon") == .english)
+    }
+
+    @Test("The response is folded into one paragraph")
+    func responseIsOneParagraph() {
+        let response = "\n  This update brings\nsmoother  sync.\n\n"
+
+        #expect(ReleaseNotesBuilder.paragraph(from: response) == "This update brings smoother sync.")
+    }
+}

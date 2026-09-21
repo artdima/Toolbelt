@@ -26,7 +26,7 @@ struct ReleaseNotesView: View {
             editor
         }
         .padding(18)
-        .frame(minWidth: 560, minHeight: 480)
+        .frame(minWidth: 600, minHeight: 480)
         .task {
             await model.reloadTags()
         }
@@ -47,6 +47,7 @@ struct ReleaseNotesView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Button("Choose…", action: chooseRepository)
+                    .disabled(model.isGenerating)
             }
         }
     }
@@ -73,6 +74,17 @@ struct ReleaseNotesView: View {
                 .labelsHidden()
             }
 
+            labeled("Language") {
+                Picker("", selection: $model.language) {
+                    ForEach(ReleaseNotesLanguage.allCases) { language in
+                        Text(language.title).tag(language)
+                    }
+                }
+                .labelsHidden()
+                .disabled(model.isGenerating)
+                .help("The language Claude writes the paragraph in")
+            }
+
             Toggle("Technical", isOn: $model.includeTechnical)
                 .toggleStyle(.checkbox)
                 .font(.system(size: 11))
@@ -86,7 +98,7 @@ struct ReleaseNotesView: View {
                 Task { await model.build() }
             }
             .keyboardShortcut(.defaultAction)
-            .disabled(!model.hasRepository || model.isBuilding)
+            .disabled(!model.hasRepository || model.isBuilding || model.isGenerating)
         }
     }
 
@@ -113,6 +125,19 @@ struct ReleaseNotesView: View {
 
                 Spacer()
 
+                if model.isGenerating {
+                    ProgressView().controlSize(.small)
+                }
+
+                Button {
+                    Task { await model.generateWithClaude() }
+                } label: {
+                    Label("Generate with Claude CLI", systemImage: "sparkles")
+                }
+                .controlSize(.small)
+                .disabled(!model.canGenerate)
+                .help("Rewrite the list as one paragraph for users")
+
                 Text("\(model.draft.count) / \(limit)")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(isOverLimit ? Color.red : Color.secondary)
@@ -134,6 +159,7 @@ struct ReleaseNotesView: View {
                         )
                 }
                 .frame(minHeight: 200, maxHeight: .infinity)
+                .disabled(model.isGenerating)
         }
     }
 

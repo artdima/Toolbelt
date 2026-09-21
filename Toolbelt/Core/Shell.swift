@@ -2,7 +2,7 @@
 //  Shell.swift
 //  Toolbelt
 //
-//  Running external commands: git, xcrun, adb.
+//  Running external commands: git, xcrun, adb, claude.
 //
 
 import Foundation
@@ -46,21 +46,38 @@ nonisolated enum Shell {
     nonisolated static func run(
         _ executable: String,
         _ arguments: [String],
-        timeout: TimeInterval = defaultTimeout
+        timeout: TimeInterval = defaultTimeout,
+        environment: [String: String]? = nil,
+        workingDirectory: String? = nil
     ) async throws -> ShellResult {
         try await Task.detached(priority: .userInitiated) {
-            try runBlocking(executable, arguments, timeout: timeout)
+            try runBlocking(
+                executable,
+                arguments,
+                timeout: timeout,
+                environment: environment,
+                workingDirectory: workingDirectory
+            )
         }.value
     }
 
     private nonisolated static func runBlocking(
         _ executable: String,
         _ arguments: [String],
-        timeout: TimeInterval
+        timeout: TimeInterval,
+        environment: [String: String]?,
+        workingDirectory: String?
     ) throws -> ShellResult {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
+        if let environment {
+            process.environment = environment
+        }
+        // Without this the child inherits the app's directory, which is `/` under launchd.
+        if let workingDirectory {
+            process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
+        }
         process.standardInput = FileHandle.nullDevice
 
         let outPipe = Pipe()

@@ -24,7 +24,7 @@
 | **Weekly report** | Pulls worklog from Yandex Tracker, totals by day and by issue |
 | **My issues** | A kanban of your Tracker issues, columns are statuses |
 | **Deep Link** | Opens a link on a booted iOS simulator or a connected Android device |
-| **Release Notes** | Builds "What's New" for the stores from your commits |
+| **Release Notes** | Builds "What's New" from your commits, optionally rewritten by Claude CLI into one paragraph |
 | **Derived Data** | Wipes the folder with one button |
 
 ## Build
@@ -48,7 +48,8 @@ Tests/              pure-logic tests
 
 The rule that shapes everything: **a view never knows about transport**. It talks to an
 `@Observable` view model, the view model talks to a protocol — `TrackerService`,
-`GitConfigService`, `GitRepositoryReading`, `DeepLinkOpening`, `DerivedDataCleaning` —
+`GitConfigService`, `GitRepositoryReading`, `ReleaseNotesGenerating`, `DeepLinkOpening`,
+`DerivedDataCleaning` —
 and the concrete implementation arrives through the initializer. That is also where
 testability comes from: tests swap in a stub instead of the network and the shell.
 
@@ -76,6 +77,15 @@ a hung `adb` must not freeze the window forever.
 plist is writable by any process running as the user. Without a directory allowlist a
 tampered preference would mean arbitrary code execution under a signed app.
 
+**Claude CLI runs without tools.** Commit subjects come from a repository you may not
+have written, and they go straight into the prompt. With `--disallowedTools "*"` the worst
+they can do is change the wording. The `claude` path is validated the same way as `adb`.
+
+**claude gets the login shell's environment.** An app started by launchd never sees what
+`~/.zshrc` exports — `PATH`, proxies, `CLAUDE_CONFIG_DIR`. Without them claude looks for
+credentials in the wrong place or cannot refresh its token, so `$SHELL -l -i` is asked once
+and its environment is cached.
+
 **git runs with `core.fsmonitor=false` and `core.hooksPath=/dev/null`.** git reads the
 config of whatever repository it opens, and both of those hooks can launch external
 commands — for a repository you did not write, that is code execution.
@@ -91,7 +101,7 @@ builds the same folder as a whole through `PBXFileSystemSynchronizedRootGroup`.
 
 Covered: Conventional Commits parsing, ISO 8601 durations in Tracker's "working" days,
 week boundaries, report aggregation, board column ordering, `simctl` and `adb` output
-parsing, argument quoting for `adb shell`, HTTP status mapping and pluralization.
+parsing, argument quoting for `adb shell`, the Claude prompt, HTTP status mapping and pluralization.
 
 ## Known limitations
 

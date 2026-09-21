@@ -10,8 +10,10 @@ import SwiftUI
 @MainActor
 final class ReleaseNotesViewModel {
     private static let repositoryPathKey = "releaseNotes.repositoryPath"
+    private static let languageKey = "releaseNotes.language"
 
     private let git: GitRepositoryReading
+    private let generator: ReleaseNotesGenerating
     private let defaults: UserDefaults
 
     private(set) var repositoryPath: String
@@ -20,25 +22,45 @@ final class ReleaseNotesViewModel {
     private(set) var isError = false
     private(set) var isLoadingTags = false
     private(set) var isBuilding = false
+    private(set) var isGenerating = false
 
     var fromTag = ""
     var toRef = GitRepositoryService.headRef
     var includeTechnical = false
     var draft = ""
 
+    private var storedLanguage: ReleaseNotesLanguage
+
+    var language: ReleaseNotesLanguage {
+        get { storedLanguage }
+        set {
+            storedLanguage = newValue
+            defaults.set(newValue.rawValue, forKey: Self.languageKey)
+        }
+    }
+
     private var reloadTagsTask: Task<Void, Never>?
 
     convenience init() {
-        self.init(git: GitRepositoryService(), defaults: .standard)
+        self.init(git: GitRepositoryService(), generator: ClaudeReleaseNotesGenerator(), defaults: .standard)
     }
 
-    init(git: GitRepositoryReading, defaults: UserDefaults) {
+    init(git: GitRepositoryReading, generator: ReleaseNotesGenerating, defaults: UserDefaults) {
         self.git = git
+        self.generator = generator
         self.defaults = defaults
         repositoryPath = defaults.string(forKey: Self.repositoryPathKey) ?? ""
+        storedLanguage = .restored(from: defaults.string(forKey: Self.languageKey))
     }
 
     var hasRepository: Bool { !repositoryPath.isEmpty }
+
+    var canGenerate: Bool {
+        hasRepository
+            && !isBuilding
+            && !isGenerating
+            && !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     func selectRepository(at path: String) {
         repositoryPath = path
@@ -113,6 +135,19 @@ final class ReleaseNotesViewModel {
         draft = ReleaseNotesBuilder.draft(commits: commits)
 
         report("\(commits.count) of \(subjects.count) commits in the draft", isError: false)
+    }
+
+    func generateWithClaude() async {
+        isGenerating = true
+        defer { isGenerating = false }
+        report("Claude is writing the release notes…", isError: false)
+
+        do {
+            draft = try await generator.paragraph(from: draft, language: language, in: repositoryPath)
+            report("Rewritten by Claude in \(language.title) — Build draft brings the list back", isError: false)
+        } catch {
+            report(error.localizedDescription, isError: true)
+        }
     }
 
     /// A build failure clears the draft: valid text from a previous range must not
