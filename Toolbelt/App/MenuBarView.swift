@@ -113,11 +113,13 @@ struct MenuBarView: View {
 
     private var tools: some View {
         VStack(spacing: 8) {
-            ToolButton(title: "Weekly Report", systemImage: "chart.bar.doc.horizontal") {
-                AppWindows.weeklyReport()
-            }
-            ToolButton(title: "My Issues", systemImage: "square.grid.3x2") {
-                AppWindows.issuesBoard()
+            ToolGroup(title: "Yandex Tracker", systemImage: "checklist") {
+                ToolButton(title: "Weekly Report", systemImage: "chart.bar.doc.horizontal") {
+                    AppWindows.weeklyReport()
+                }
+                ToolButton(title: "My Issues", systemImage: "square.grid.3x2") {
+                    AppWindows.issuesBoard()
+                }
             }
             ToolButton(title: "Deep Link", systemImage: "link") {
                 AppWindows.deepLink()
