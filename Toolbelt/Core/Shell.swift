@@ -133,6 +133,62 @@ nonisolated enum Shell {
         )
     }
 
+    /// Starts a process meant to outlive the call — the Android emulator runs for hours.
+    /// Returns nil once it has survived `gracePeriod`, and its result if it died within it:
+    /// a broken AVD or a system image of the wrong architecture fails in a moment.
+    nonisolated static func launch(
+        _ executable: String,
+        _ arguments: [String],
+        environment: [String: String]? = nil,
+        workingDirectory: String? = nil,
+        logFile: URL? = nil,
+        gracePeriod: TimeInterval = 0
+    ) async throws -> ShellResult? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: executable)
+        process.arguments = arguments
+        if let environment {
+            process.environment = environment
+        }
+        if let workingDirectory {
+            process.currentDirectoryURL = URL(fileURLWithPath: workingDirectory)
+        }
+        process.standardInput = FileHandle.nullDevice
+
+        // Output goes to a file, never to a pipe: nobody is left to drain one, and a child
+        // that fills it blocks on write and hangs for good.
+        var log: FileHandle?
+        if let logFile {
+            FileManager.default.createFile(atPath: logFile.path, contents: nil)
+            log = try? FileHandle(forWritingTo: logFile)
+        }
+        process.standardOutput = log ?? FileHandle.nullDevice
+        process.standardError = log ?? FileHandle.nullDevice
+
+        do {
+            try process.run()
+        } catch {
+            throw ShellError.launchFailed(
+                command: (executable as NSString).lastPathComponent,
+                reason: error.localizedDescription
+            )
+        }
+
+        let deadline = Date().addingTimeInterval(gracePeriod)
+        while Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !process.isRunning else { continue }
+
+            let output = logFile.flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
+            return ShellResult(
+                standardOutput: "",
+                standardError: output,
+                exitCode: process.terminationStatus
+            )
+        }
+        return nil
+    }
+
     /// An argument for `adb shell`: the command is reassembled on the device,
     /// so ampersands and spaces in a link have to stay inside quotes.
     static func singleQuoted(_ value: String) -> String {
@@ -156,4 +212,5 @@ nonisolated enum Shell {
 enum ExecutablePath {
     static let git = "/usr/bin/git"
     static let xcrun = "/usr/bin/xcrun"
+    static let open = "/usr/bin/open"
 }

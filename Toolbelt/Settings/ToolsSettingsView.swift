@@ -31,7 +31,7 @@ struct ToolsSettingsView: View {
                 notFoundHint: "Claude CLI was not found automatically. The native installer puts it in ~/.local/bin."
             )
 
-            Text("xcrun for iOS simulators comes from /usr/bin and needs no configuration.")
+            Text("xcrun for iOS simulators comes from /usr/bin and needs no configuration. The Android emulator is taken from the same SDK as adb.")
                 .font(.system(size: 10))
                 .foregroundStyle(.tertiary)
 

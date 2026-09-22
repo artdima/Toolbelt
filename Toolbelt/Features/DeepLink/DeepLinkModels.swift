@@ -5,20 +5,8 @@
 
 import Foundation
 
-enum DeepLinkPlatform: String, Hashable {
-    case ios
-    case android
-
-    var title: String {
-        switch self {
-        case .ios: return "iOS"
-        case .android: return "Android"
-        }
-    }
-}
-
 struct DeepLinkTarget: Identifiable, Hashable {
-    let platform: DeepLinkPlatform
+    let platform: MobilePlatform
     let identifier: String
     let name: String
 

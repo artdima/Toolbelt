@@ -77,6 +77,36 @@ enum AndroidTools {
         }
     }
 
+    /// The emulator has no setting of its own: it ships in the same SDK as adb, so the
+    /// path from Settings drives both.
+    static func resolvedEmulatorPath() -> String? {
+        var candidates: [String] = []
+
+        if let adb = resolvedPath() {
+            let sdk = URL(fileURLWithPath: adb)
+                .deletingLastPathComponent()
+                .deletingLastPathComponent()
+                .path
+            candidates.append("\(sdk)/emulator/emulator")
+        }
+
+        let environment = ProcessInfo.processInfo.environment
+        for key in ["ANDROID_HOME", "ANDROID_SDK_ROOT"] {
+            if let root = environment[key], !root.isEmpty {
+                candidates.append("\(root)/emulator/emulator")
+            }
+        }
+
+        candidates.append(contentsOf: [
+            "\(home)/Library/Android/sdk/emulator/emulator",
+            "\(home)/Android/Sdk/emulator/emulator"
+        ])
+
+        return candidates.first { path in
+            FileManager.default.isExecutableFile(atPath: path) && (try? validate(path)) != nil
+        }
+    }
+
     @discardableResult
     private static func validate(_ path: String) throws -> String {
         guard trustedPrefixes.contains(where: path.hasPrefix) else {
