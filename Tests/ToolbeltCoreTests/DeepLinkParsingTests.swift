@@ -22,7 +22,7 @@ struct DeepLinkParsingTests {
         #expect(targets.count == 1)
         #expect(target.platform == .ios)
         #expect(target.identifier == "AAA-111")
-        #expect(target.name == "iPhone 16 Pro · iOS 18 0")
+        #expect(target.name == "iPhone 16 Pro · iOS 18.0")
     }
 
     @Test("Multiple runtimes come back in a predictable order")

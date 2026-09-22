@@ -9,28 +9,15 @@ import OSLog
 /// Parsing tool output is kept apart from spawning processes: pure functions are
 /// tested against real captured output.
 enum DeepLinkParsing {
-    private struct SimctlList: Decodable {
-        struct Device: Decodable {
-            let udid: String
-            let name: String
-        }
-
-        let devices: [String: [Device]]
-    }
-
     static func simulators(fromSimctlJSON data: Data) -> [DeepLinkTarget] {
-        guard let list = try? JSONDecoder().decode(SimctlList.self, from: data) else { return [] }
-
-        return list.devices
-            .sorted { $0.key < $1.key }
-            .flatMap { pair in
-                pair.value.map { device in
-                    DeepLinkTarget(
-                        platform: .ios,
-                        identifier: device.udid,
-                        name: "\(device.name) · \(runtimeTitle(pair.key))"
-                    )
-                }
+        SimulatorParsing.simulators(fromSimctlJSON: data)
+            .filter { $0.state == .booted }
+            .map { device in
+                DeepLinkTarget(
+                    platform: .ios,
+                    identifier: device.identifier,
+                    name: "\(device.name) · \(device.detail)"
+                )
             }
     }
 
@@ -53,12 +40,6 @@ enum DeepLinkParsing {
                     name: model.map { "\($0) · \(fields[0])" } ?? fields[0]
                 )
             }
-    }
-
-    static func runtimeTitle(_ identifier: String) -> String {
-        identifier
-            .replacingOccurrences(of: "com.apple.CoreSimulator.SimRuntime.", with: "")
-            .replacingOccurrences(of: "-", with: " ")
     }
 }
 

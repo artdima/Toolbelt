@@ -23,6 +23,7 @@
 | **Git profiles** | Switches `user.name` and `user.email` in one click |
 | **Weekly report** | Pulls worklog from Yandex Tracker, totals by day and by issue |
 | **My issues** | A kanban of your Tracker issues, columns are statuses |
+| **Simulators** | Launches an iOS simulator or an Android emulator, and stops it |
 | **Deep Link** | Opens a link on a booted iOS simulator or a connected Android device |
 | **Release Notes** | Builds "What's New" from your commits, optionally rewritten by Claude CLI into one paragraph |
 | **Derived Data** | Wipes the folder with one button |
@@ -49,7 +50,7 @@ Tests/              pure-logic tests
 The rule that shapes everything: **a view never knows about transport**. It talks to an
 `@Observable` view model, the view model talks to a protocol — `TrackerService`,
 `GitConfigService`, `GitRepositoryReading`, `ReleaseNotesGenerating`, `DeepLinkOpening`,
-`DerivedDataCleaning` —
+`SimulatorControlling`, `DerivedDataCleaning` —
 and the concrete implementation arrives through the initializer. That is also where
 testability comes from: tests swap in a stub instead of the network and the shell.
 
@@ -72,6 +73,12 @@ on the main thread.
 **stdout and stderr are drained in parallel.** Read them one after the other and a child
 that fills the second pipe blocks on write and never exits. A watchdog covers the rest:
 a hung `adb` must not freeze the window forever.
+
+**The emulator is launched detached, with its output in a file.** `Shell.run` waits for
+the process and kills it on timeout — right for `simctl`, fatal for an emulator that runs
+for hours and would eventually fill a pipe nobody drains. `Shell.launch` starts it, sends
+stdout and stderr to a file, and watches the first seconds: a broken AVD or a system image
+of the wrong architecture dies at once, and that reason is worth showing.
 
 **The `adb` path is validated on every read.** It comes from `UserDefaults`, and that
 plist is writable by any process running as the user. Without a directory allowlist a
@@ -100,8 +107,8 @@ module and runs Swift Testing suites against it. The Xcode project is untouched 
 builds the same folder as a whole through `PBXFileSystemSynchronizedRootGroup`.
 
 Covered: Conventional Commits parsing, ISO 8601 durations in Tracker's "working" days,
-week boundaries, report aggregation, board column ordering, `simctl` and `adb` output
-parsing, argument quoting for `adb shell`, the Claude prompt, HTTP status mapping and pluralization.
+week boundaries, report aggregation, board column ordering, `simctl`, `emulator` and `adb`
+output parsing, argument quoting for `adb shell`, the Claude prompt, HTTP status mapping and pluralization.
 
 ## Known limitations
 

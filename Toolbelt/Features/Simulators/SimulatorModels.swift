@@ -24,13 +24,23 @@ struct SimulatorDevice: Identifiable, Hashable {
     /// A simulator udid or an AVD name.
     let identifier: String
     let name: String
-    /// The runtime for iOS, the AVD identifier for Android.
+    /// The runtime for iOS, empty for Android.
     let detail: String
     var state: SimulatorState
     /// The adb serial of a running emulator, the handle `emu kill` needs.
     var serial: String?
 
-    var id: String { "\(platform.rawValue):\(identifier)" }
+    var id: String { Self.id(platform: platform, identifier: identifier) }
+
+    static func id(platform: MobilePlatform, identifier: String) -> String {
+        "\(platform.rawValue):\(identifier)"
+    }
+}
+
+/// What a cheap poll can tell about a device without enumerating everything again.
+struct SimulatorStatus: Equatable {
+    let state: SimulatorState
+    let serial: String?
 }
 
 struct SimulatorActionResult: Equatable {

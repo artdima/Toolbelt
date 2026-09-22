@@ -19,6 +19,11 @@ extension WindowConfiguration {
         title: "My Issues",
         size: NSSize(width: 980, height: 640)
     )
+    static let simulators = WindowConfiguration(
+        id: "simulators",
+        title: "Simulators",
+        size: NSSize(width: 560, height: 620)
+    )
     static let deepLink = WindowConfiguration(
         id: "deep-link",
         title: "Deep Link",
@@ -50,6 +55,10 @@ enum AppWindows {
 
     static func issuesBoard() {
         WindowPresenter.show(.issuesBoard) { IssuesBoardView() }
+    }
+
+    static func simulators() {
+        WindowPresenter.show(.simulators) { SimulatorsView() }
     }
 
     static func deepLink() {

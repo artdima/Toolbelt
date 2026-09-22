@@ -121,6 +121,9 @@ struct MenuBarView: View {
                     AppWindows.issuesBoard()
                 }
             }
+            ToolButton(title: "Simulators", systemImage: "iphone") {
+                AppWindows.simulators()
+            }
             ToolButton(title: "Deep Link", systemImage: "link") {
                 AppWindows.deepLink()
             }
