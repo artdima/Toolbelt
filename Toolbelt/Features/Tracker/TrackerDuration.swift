@@ -11,6 +11,7 @@ enum TrackerDuration {
     /// Tracker counts a day and a week as working ones.
     static let hoursPerWorkday: Double = 8
     static let daysPerWorkweek: Double = 5
+    static let workdaySeconds: TimeInterval = hoursPerWorkday * secondsPerHour
 
     private static let secondsPerHour: TimeInterval = 3600
     private static let monthsPerYear: Double = 12
@@ -23,7 +24,7 @@ enum TrackerDuration {
         guard value.first == "P" else { return 0 }
         value = value.dropFirst()
 
-        let workday = hoursPerWorkday * secondsPerHour
+        let workday = workdaySeconds
         let workweek = daysPerWorkweek * workday
         let workmonth = weeksPerMonth * workweek
 

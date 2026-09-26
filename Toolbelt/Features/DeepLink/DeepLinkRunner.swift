@@ -16,7 +16,7 @@ enum DeepLinkParsing {
                 DeepLinkTarget(
                     platform: .ios,
                     identifier: device.identifier,
-                    name: "\(device.name) · \(device.detail)"
+                    name: "\(device.name) · \(device.platform.title) \(device.osVersion)"
                 )
             }
     }

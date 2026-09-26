@@ -124,30 +124,28 @@ struct WeeklyReportView: View {
     }
 
     private var daysSection: some View {
-        let days = model.report.days
-        let maxSeconds = max(days.map(\.seconds).max() ?? 0, 1)
-
-        return VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("By day")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
 
             VStack(spacing: 6) {
-                ForEach(days) { day in
+                ForEach(model.report.days) { day in
                     HStack(spacing: 10) {
                         Text(AppFormatters.weekdayAndDay.string(from: day.date))
                             .font(.system(size: 12, weight: isToday(day.date) ? .semibold : .regular))
                             .frame(width: 92, alignment: .leading)
 
-                        ZStack(alignment: .leading) {
-                            Capsule()
-                                .fill(Color.primary.opacity(0.06))
-                                .frame(height: 8)
-                            Capsule()
-                                .fill(day.seconds > 0 ? Color.accentColor : Color.clear)
-                                .frame(width: barWidth(day.seconds, relativeTo: maxSeconds), height: 8)
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                Capsule()
+                                    .fill(Color.primary.opacity(0.06))
+                                Capsule()
+                                    .fill(barColor(day.seconds))
+                                    .frame(width: barWidth(day.seconds, in: geometry.size.width))
+                            }
                         }
-                        .frame(maxWidth: .infinity)
+                        .frame(height: 8)
 
                         Text(day.seconds > 0 ? DurationFormatter.short(day.seconds) : "—")
                             .font(.system(size: 12))
@@ -262,9 +260,16 @@ struct WeeklyReportView: View {
         AppFormatters.calendar.isDateInToday(date)
     }
 
-    private func barWidth(_ seconds: TimeInterval, relativeTo maxSeconds: TimeInterval) -> CGFloat {
+    /// The full track is one workday; anything beyond it fills the track and turns red.
+    private func barWidth(_ seconds: TimeInterval, in trackWidth: CGFloat) -> CGFloat {
         guard seconds > 0 else { return 0 }
-        return max(6, CGFloat(seconds / maxSeconds) * 200)
+        let fraction = min(seconds / TrackerDuration.workdaySeconds, 1)
+        return max(6, CGFloat(fraction) * trackWidth)
+    }
+
+    private func barColor(_ seconds: TimeInterval) -> Color {
+        guard seconds > 0 else { return .clear }
+        return seconds > TrackerDuration.workdaySeconds ? .red : .accentColor
     }
 }
 
