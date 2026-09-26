@@ -35,9 +35,11 @@ final class SimulatorsViewModel {
         self.controller = controller
     }
 
-    var iosDevices: [SimulatorDevice] { visible(.ios) }
-    var androidDevices: [SimulatorDevice] { visible(.android) }
-    var hasVisibleDevices: Bool { !iosDevices.isEmpty || !androidDevices.isEmpty }
+    var groups: [SimulatorGroup] {
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let groups = SimulatorGroup.grouped(devices)
+        return query.isEmpty ? groups : groups.compactMap { $0.matching(query) }
+    }
 
     func isBusy(_ device: SimulatorDevice) -> Bool {
         busyIDs.contains(device.id)
@@ -143,15 +145,5 @@ final class SimulatorsViewModel {
         var booting = device
         booting.state = .booting
         return booting
-    }
-
-    private func visible(_ platform: MobilePlatform) -> [SimulatorDevice] {
-        let query = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return devices.filter { device in
-            guard device.platform == platform else { return false }
-            guard !query.isEmpty else { return true }
-            return device.name.lowercased().contains(query)
-                || device.detail.lowercased().contains(query)
-        }
     }
 }

@@ -22,7 +22,7 @@ struct SimulatorParsingTests {
         #expect(devices.count == 2)
         #expect(devices[0].identifier == "AAA-111")
         #expect(devices[0].state == .booted)
-        #expect(devices[0].detail == "iOS 18.0")
+        #expect(devices[0].osVersion == "18.0")
         #expect(devices[1].state == .shutdown)
         #expect(devices[1].platform == .ios)
     }
@@ -42,11 +42,54 @@ struct SimulatorParsingTests {
         #expect(SimulatorParsing.simulators(fromSimctlJSON: Data(json.utf8)).isEmpty)
     }
 
-    @Test("A runtime identifier turns into a readable name")
-    func runtimeTitleIsReadable() {
-        #expect(SimulatorParsing.runtimeTitle("com.apple.CoreSimulator.SimRuntime.iOS-18-0") == "iOS 18.0")
-        #expect(SimulatorParsing.runtimeTitle("com.apple.CoreSimulator.SimRuntime.watchOS-11-2") == "watchOS 11.2")
-        #expect(SimulatorParsing.runtimeTitle("iOS") == "iOS")
+    @Test("Runtimes of other platforms are skipped")
+    func otherPlatformsAreSkipped() {
+        let json = """
+        {
+          "devices": {
+            "com.apple.CoreSimulator.SimRuntime.watchOS-11-2": [
+              { "udid": "DDD-444", "name": "Apple Watch Series 10", "state": "Shutdown", "isAvailable": true }
+            ],
+            "com.apple.CoreSimulator.SimRuntime.iOS-18-0": [
+              { "udid": "AAA-111", "name": "iPhone 16", "state": "Shutdown", "isAvailable": true }
+            ]
+          }
+        }
+        """
+
+        #expect(SimulatorParsing.simulators(fromSimctlJSON: Data(json.utf8)).map(\.identifier) == ["AAA-111"])
+    }
+
+    @Test("A runtime identifier splits into platform and version")
+    func runtimeIsSplit() {
+        let ios = SimulatorParsing.runtime("com.apple.CoreSimulator.SimRuntime.iOS-18-0")
+        #expect(ios.platform == "iOS")
+        #expect(ios.version == "18.0")
+
+        let watch = SimulatorParsing.runtime("com.apple.CoreSimulator.SimRuntime.watchOS-11-2")
+        #expect(watch.platform == "watchOS")
+        #expect(watch.version == "11.2")
+
+        #expect(SimulatorParsing.runtime("iOS").version.isEmpty)
+    }
+
+    @Test("The API level comes from the AVD's target or its system image")
+    func androidAPILevel() {
+        let ini = """
+        avd.ini.encoding=UTF-8
+        path=/Users/me/.android/avd/Pixel_7_API_34.avd
+        target=android-34
+        """
+        #expect(SimulatorParsing.androidAPILevel(fromAvdIni: ini) == "34")
+
+        let config = """
+        AvdId=Pixel_8_API_35
+        image.sysdir.1=system-images/android-35/google_apis_playstore/arm64-v8a/
+        tag.id=google_apis_playstore
+        """
+        #expect(SimulatorParsing.androidAPILevel(fromAvdIni: config) == "35")
+
+        #expect(SimulatorParsing.androidAPILevel(fromAvdIni: "hw.lcd.density=420") == nil)
     }
 
     @Test("AVD names ignore the emulator's own chatter")

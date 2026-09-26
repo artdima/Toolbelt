@@ -57,7 +57,7 @@ struct SimulatorsView: View {
     private var content: some View {
         if model.isLoading && model.devices.isEmpty {
             LoadingState(text: "Looking for simulators…")
-        } else if !model.hasVisibleDevices {
+        } else if model.groups.isEmpty {
             EmptyState(
                 systemImage: "iphone.slash",
                 text: model.devices.isEmpty
@@ -67,26 +67,24 @@ struct SimulatorsView: View {
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    section(MobilePlatform.ios.title, devices: model.iosDevices)
-                    section(MobilePlatform.android.title, devices: model.androidDevices)
+                    ForEach(model.groups) { group in
+                        section(group)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 
-    @ViewBuilder
-    private func section(_ title: String, devices: [SimulatorDevice]) -> some View {
-        if !devices.isEmpty {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(title)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+    private func section(_ group: SimulatorGroup) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(group.title)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
 
-                VStack(spacing: 2) {
-                    ForEach(devices) { device in
-                        row(device)
-                    }
+            VStack(spacing: 2) {
+                ForEach(group.devices) { device in
+                    row(device)
                 }
             }
         }
@@ -99,18 +97,9 @@ struct SimulatorsView: View {
                 .frame(width: 7, height: 7)
                 .help(device.state.title)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(device.name)
-                    .font(.system(size: 12, weight: .medium))
-                    .lineLimit(1)
-
-                if !device.detail.isEmpty {
-                    Text(device.detail)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
+            Text(device.name)
+                .font(.system(size: 12, weight: .medium))
+                .lineLimit(1)
 
             Spacer()
 

@@ -177,11 +177,7 @@ struct SimulatorRunner: SimulatorControlling {
                 return ([], "simctl is unavailable: \(result.combinedOutput)")
             }
 
-            // simctl also answers for watchOS, tvOS and visionOS; this window is about phones.
-            let devices = SimulatorParsing
-                .simulators(fromSimctlJSON: Data(result.standardOutput.utf8))
-                .filter { $0.detail.hasPrefix(MobilePlatform.ios.title) }
-            return (devices, nil)
+            return (SimulatorParsing.simulators(fromSimctlJSON: Data(result.standardOutput.utf8)), nil)
         } catch {
             Log.shell.error("simctl is unavailable: \(error.localizedDescription, privacy: .public)")
             return ([], error.localizedDescription)
@@ -207,15 +203,17 @@ struct SimulatorRunner: SimulatorControlling {
             return ([], warning)
         }
 
+        // The same environment the emulator is launched with: ANDROID_AVD_HOME decides
+        // which AVDs exist at all, and it only lives in the login shell.
+        let environment = await LoginShellEnvironment.resolved()
+
         let names: [String]
         do {
-            // The same environment the emulator is launched with: ANDROID_AVD_HOME decides
-            // which AVDs exist at all, and it only lives in the login shell.
             let result = try await Shell.run(
                 emulator,
                 ["-list-avds"],
                 timeout: Self.listTimeout,
-                environment: await LoginShellEnvironment.resolved()
+                environment: environment
             )
             guard result.isSuccess else {
                 return ([], "emulator returned an error: \(result.combinedOutput)")
@@ -225,11 +223,36 @@ struct SimulatorRunner: SimulatorControlling {
             return ([], error.localizedDescription)
         }
 
+        let home = avdHome(environment)
         let running = await runningEmulators()
-        return (names.map { device(avd: $0, running: running[$0]) }, nil)
+        return (
+            names.map { device(avd: $0, apiLevel: apiLevel(avd: $0, home: home), running: running[$0]) },
+            nil
+        )
     }
 
-    private func device(avd name: String, running: RunningEmulator?) -> SimulatorDevice {
+    /// Where `-list-avds` found the names: the emulator's own lookup order.
+    private func avdHome(_ environment: [String: String]) -> String {
+        if let home = environment["ANDROID_AVD_HOME"], !home.isEmpty { return home }
+        for key in ["ANDROID_EMULATOR_HOME", "ANDROID_USER_HOME"] {
+            if let home = environment[key], !home.isEmpty { return "\(home)/avd" }
+        }
+        return "\(FileManager.default.homeDirectoryForCurrentUser.path)/.android/avd"
+    }
+
+    /// `<name>.ini` names the target; an AVD made by hand may only say which system
+    /// image it boots.
+    private func apiLevel(avd name: String, home: String) -> String? {
+        for path in ["\(home)/\(name).ini", "\(home)/\(name).avd/config.ini"] {
+            guard let text = try? String(contentsOfFile: path, encoding: .utf8),
+                  let level = SimulatorParsing.androidAPILevel(fromAvdIni: text)
+            else { continue }
+            return level
+        }
+        return nil
+    }
+
+    private func device(avd name: String, apiLevel: String?, running: RunningEmulator?) -> SimulatorDevice {
         let state: SimulatorState
         if let running {
             state = running.isBooted ? .booted : .booting
@@ -241,7 +264,7 @@ struct SimulatorRunner: SimulatorControlling {
             platform: .android,
             identifier: name,
             name: name,
-            detail: "",
+            osVersion: apiLevel.map { "API \($0)" } ?? "",
             state: state,
             serial: running?.serial
         )

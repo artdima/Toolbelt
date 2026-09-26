@@ -19,20 +19,24 @@ enum SimulatorParsing {
         let devices: [String: [Device]]
     }
 
+    /// Only iOS runtimes: simctl also answers for watchOS, tvOS and visionOS.
     static func simulators(fromSimctlJSON data: Data) -> [SimulatorDevice] {
         guard let list = try? JSONDecoder().decode(SimctlList.self, from: data) else { return [] }
 
         return list.devices
             .sorted { $0.key < $1.key }
-            .flatMap { pair in
-                pair.value
+            .flatMap { pair -> [SimulatorDevice] in
+                let os = runtime(pair.key)
+                guard os.platform == MobilePlatform.ios.title else { return [] }
+
+                return pair.value
                     .filter { $0.isAvailable ?? true }
                     .map { device in
                         SimulatorDevice(
                             platform: .ios,
                             identifier: device.udid,
                             name: device.name,
-                            detail: runtimeTitle(pair.key),
+                            osVersion: os.version,
                             state: state(fromSimctl: device.state),
                             serial: nil
                         )
@@ -48,16 +52,41 @@ enum SimulatorParsing {
         }
     }
 
-    static func runtimeTitle(_ identifier: String) -> String {
+    /// `com.apple.CoreSimulator.SimRuntime.iOS-18-0` is the iOS 18.0 runtime.
+    static func runtime(_ identifier: String) -> (platform: String, version: String) {
         let name = identifier.replacingOccurrences(
             of: "com.apple.CoreSimulator.SimRuntime.",
             with: ""
         )
         let parts = name.split(separator: "-").map(String.init)
-        guard let platform = parts.first else { return name }
+        return (parts.first ?? name, parts.dropFirst().joined(separator: "."))
+    }
 
-        let version = parts.dropFirst().joined(separator: ".")
-        return version.isEmpty ? platform : "\(platform) \(version)"
+    /// An AVD's `<name>.ini` names its target, `target=android-34`; its config.ini names
+    /// the system image, `image.sysdir.1=system-images/android-34/google_apis/arm64-v8a/`.
+    static func androidAPILevel(fromAvdIni text: String) -> String? {
+        let prefix = "android-"
+
+        for line in text.split(separator: "\n") {
+            guard let equals = line.firstIndex(of: "=") else { continue }
+            let key = line[..<equals].trimmingCharacters(in: .whitespaces)
+            let value = line[line.index(after: equals)...].trimmingCharacters(in: .whitespacesAndNewlines)
+
+            let target: String?
+            switch key {
+            case "target":
+                target = value
+            case "image.sysdir.1":
+                target = value.split(separator: "/").map(String.init).first { $0.hasPrefix(prefix) }
+            default:
+                continue
+            }
+
+            if let target, target.hasPrefix(prefix) {
+                return String(target.dropFirst(prefix.count))
+            }
+        }
+        return nil
     }
 
     /// `emulator -list-avds` prints one name per line and mixes in INFO and WARNING

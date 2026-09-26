@@ -24,8 +24,8 @@ struct SimulatorDevice: Identifiable, Hashable {
     /// A simulator udid or an AVD name.
     let identifier: String
     let name: String
-    /// The runtime for iOS, empty for Android.
-    let detail: String
+    /// "18.0" for iOS, "API 34" for Android; empty when unknown.
+    let osVersion: String
     var state: SimulatorState
     /// The adb serial of a running emulator, the handle `emu kill` needs.
     var serial: String?
@@ -34,6 +34,48 @@ struct SimulatorDevice: Identifiable, Hashable {
 
     static func id(platform: MobilePlatform, identifier: String) -> String {
         "\(platform.rawValue):\(identifier)"
+    }
+}
+
+/// Devices of one platform on the same OS version, the way the window lists them.
+struct SimulatorGroup: Identifiable, Equatable {
+    let platform: MobilePlatform
+    let osVersion: String
+    let devices: [SimulatorDevice]
+
+    var id: String { "\(platform.rawValue):\(osVersion)" }
+    var title: String { osVersion.isEmpty ? platform.title : "\(platform.title) \(osVersion)" }
+
+    /// iOS before Android, newest version first, devices in the order the SDK lists them.
+    static func grouped(_ devices: [SimulatorDevice]) -> [SimulatorGroup] {
+        MobilePlatform.allCases.flatMap { platform -> [SimulatorGroup] in
+            Dictionary(grouping: devices.filter { $0.platform == platform }, by: \.osVersion)
+                .sorted { isNewer($0.key, than: $1.key) }
+                .map { SimulatorGroup(platform: platform, osVersion: $0.key, devices: $0.value) }
+        }
+    }
+
+    /// The whole group when its title matches, otherwise the devices whose name does.
+    func matching(_ query: String) -> SimulatorGroup? {
+        guard !title.lowercased().contains(query) else { return self }
+
+        let matches = devices.filter { $0.name.lowercased().contains(query) }
+        return matches.isEmpty ? nil : SimulatorGroup(platform: platform, osVersion: osVersion, devices: matches)
+    }
+
+    /// A version without digits is a preview codename or nothing at all: those go after
+    /// the numbered ones, and an empty version last.
+    private static func isNewer(_ lhs: String, than rhs: String) -> Bool {
+        let left = numbers(in: lhs)
+        let right = numbers(in: rhs)
+        guard !left.isEmpty, !right.isEmpty else {
+            return left.isEmpty == right.isEmpty ? rhs < lhs : right.isEmpty
+        }
+        return right.lexicographicallyPrecedes(left)
+    }
+
+    private static func numbers(in version: String) -> [Int] {
+        version.split(whereSeparator: { !$0.isNumber }).compactMap { Int($0) }
     }
 }
 
