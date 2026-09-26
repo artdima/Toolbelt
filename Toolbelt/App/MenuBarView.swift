@@ -127,6 +127,9 @@ struct MenuBarView: View {
             ToolButton(title: "Deep Link", systemImage: "link") {
                 AppWindows.deepLink()
             }
+            ToolButton(title: "HTTP Request", systemImage: "network") {
+                AppWindows.httpRequest()
+            }
             ToolButton(title: "Release Notes", systemImage: "doc.text") {
                 AppWindows.releaseNotes()
             }

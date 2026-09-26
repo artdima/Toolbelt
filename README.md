@@ -25,6 +25,7 @@
 | **My issues** | A kanban of your Tracker issues, columns are statuses |
 | **Simulators** | Launches an iOS simulator or an Android emulator, and stops it |
 | **Deep Link** | Opens a link on a booted iOS simulator or a connected Android device |
+| **HTTP Request** | Turns a pasted `curl` command into an editable request, sends it and shows the response — a pocket Postman |
 | **Release Notes** | Builds "What's New" from your commits, optionally rewritten by Claude CLI into one paragraph |
 | **Derived Data** | Wipes the folder with one button |
 
@@ -50,13 +51,14 @@ Tests/              pure-logic tests
 The rule that shapes everything: **a view never knows about transport**. It talks to an
 `@Observable` view model, the view model talks to a protocol — `TrackerService`,
 `GitConfigService`, `GitRepositoryReading`, `ReleaseNotesGenerating`, `DeepLinkOpening`,
-`SimulatorControlling`, `DerivedDataCleaning` —
+`SimulatorControlling`, `DerivedDataCleaning`, `HTTPRequestSending` —
 and the concrete implementation arrives through the initializer. That is also where
 testability comes from: tests swap in a stub instead of the network and the shell.
 
 All arithmetic lives outside the views, in plain value types: `WeekReport` (week
 aggregation), `IssuesBoard` (status columns), `ReleaseNotesBuilder` (commit parsing),
-`TrackerDuration` (ISO 8601). They are computed once after a load rather than on
+`TrackerDuration` (ISO 8601), `CurlParser` and `CurlBuilder` (curl commands in and out),
+`JSONPretty` (response formatting). They are computed once after a load rather than on
 every redraw, and they are what the tests cover.
 
 ## Decisions worth explaining
@@ -100,6 +102,16 @@ commands — for a repository you did not write, that is code execution.
 **One source of truth for credentials.** `TrackerCredentialsStore` is the only place that
 knows about Keychain and `UserDefaults`; the UI and the network client both read from it.
 
+**HTTP requests go through an ephemeral session.** No cookie jar, no cache: the response
+on screen is the one the server sent for exactly the request in the form, and sending it
+twice gives the same answer. `-k` is deliberately not honoured — certificates are always
+verified. Request history keeps headers as they were, `Authorization` included, so a
+request can be replayed; it lives in `UserDefaults` like the deep link history.
+
+**JSON is pretty-printed by hand.** `JSONSerialization` would reorder keys, and a response
+with its keys shuffled is harder to compare with the docs. The formatter walks the text
+character by character instead, and only after `JSONSerialization` has confirmed it is JSON.
+
 ## Tests
 
 `swift test` compiles the SwiftUI-free files out of `Toolbelt/` into a `ToolbeltCore`
@@ -108,7 +120,10 @@ builds the same folder as a whole through `PBXFileSystemSynchronizedRootGroup`.
 
 Covered: Conventional Commits parsing, ISO 8601 durations in Tracker's "working" days,
 week boundaries, report aggregation, board column ordering, `simctl`, `emulator` and `adb`
-output parsing, argument quoting for `adb shell`, the Claude prompt, HTTP status mapping and pluralization.
+output parsing, argument quoting for `adb shell`, the Claude prompt, HTTP status mapping,
+pluralization, bash-style splitting of `curl` commands and their options, the exported
+`curl` command (including a parse → export → parse round trip), `URLRequest` building and
+JSON pretty-printing.
 
 ## Known limitations
 
@@ -117,6 +132,9 @@ output parsing, argument quoting for `adb shell`, the Claude prompt, HTTP status
 - Worklog is fetched as a single 1000-entry page — hitting the limit logs a warning, but
   there is no pagination.
 - The UI is English only; there is no localization layer.
+- HTTP Request understands the common `curl` options; `-F` multipart forms, `@file` bodies
+  and `-k` are reported as warnings rather than supported. Plain `http://` hosts other than
+  `localhost` need an App Transport Security exception in the target's Info.
 
 ## License
 

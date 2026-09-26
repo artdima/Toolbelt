@@ -34,6 +34,11 @@ extension WindowConfiguration {
         title: "Release Notes",
         size: NSSize(width: 620, height: 680)
     )
+    static let httpRequest = WindowConfiguration(
+        id: "http-request",
+        title: "HTTP Request",
+        size: NSSize(width: 900, height: 700)
+    )
     static let settings = WindowConfiguration(
         id: "settings",
         title: "Settings",
@@ -67,6 +72,10 @@ enum AppWindows {
 
     static func releaseNotes() {
         WindowPresenter.show(.releaseNotes) { ReleaseNotesView() }
+    }
+
+    static func httpRequest() {
+        WindowPresenter.show(.httpRequest) { HTTPRequestView() }
     }
 
     static func settings(tab: SettingsTab = .profiles) {

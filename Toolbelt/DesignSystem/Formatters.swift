@@ -54,6 +54,23 @@ enum DurationFormatter {
         if hours > 0 { return "\(hours)h" }
         return "\(minutes)m"
     }
+
+    /// Seconds to "184 ms" or "1.3 s".
+    static func milliseconds(_ seconds: TimeInterval) -> String {
+        if seconds < 1 { return "\(Int((seconds * 1000).rounded())) ms" }
+        return String(format: "%.1f s", seconds)
+    }
+}
+
+enum ByteFormatter {
+    /// Bytes to "512 B", "4.2 KB", "2.9 MB".
+    static func short(_ count: Int) -> String {
+        let kilobyte = 1024.0
+        let value = Double(count)
+        if value < kilobyte { return "\(count) B" }
+        if value < kilobyte * kilobyte { return String(format: "%.1f KB", value / kilobyte) }
+        return String(format: "%.1f MB", value / kilobyte / kilobyte)
+    }
 }
 
 enum Plural {
