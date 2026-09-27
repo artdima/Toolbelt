@@ -29,6 +29,11 @@ extension WindowConfiguration {
         title: "Deep Link",
         size: NSSize(width: 560, height: 560)
     )
+    static let userDefaults = WindowConfiguration(
+        id: "user-defaults",
+        title: "User Defaults",
+        size: NSSize(width: 720, height: 560)
+    )
     static let releaseNotes = WindowConfiguration(
         id: "release-notes",
         title: "Release Notes",
@@ -68,6 +73,10 @@ enum AppWindows {
 
     static func deepLink() {
         WindowPresenter.show(.deepLink) { DeepLinkView() }
+    }
+
+    static func userDefaults() {
+        WindowPresenter.show(.userDefaults) { UserDefaultsView() }
     }
 
     static func releaseNotes() {

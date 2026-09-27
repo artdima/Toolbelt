@@ -44,7 +44,10 @@ let package = Package(
                 "Features/Tracker/TrackerDuration.swift",
                 "Features/Tracker/TrackerError.swift",
                 "Features/Tracker/TrackerModels.swift",
-                "Features/Tracker/WeekReport.swift"
+                "Features/Tracker/WeekReport.swift",
+                "Features/UserDefaults/UserDefaultsModels.swift",
+                "Features/UserDefaults/UserDefaultsParsing.swift",
+                "Features/UserDefaults/UserDefaultsRunner.swift"
             ],
             // The same language mode as the Xcode project: otherwise the package would
             // check the very same files under strict Swift 6 concurrency while the app

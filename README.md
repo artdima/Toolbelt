@@ -25,6 +25,7 @@
 | **My issues** | A kanban of your Tracker issues, columns are statuses |
 | **Simulators** | Launches an iOS simulator or an Android emulator, and stops it |
 | **Deep Link** | Opens a link on a booted iOS simulator or a connected Android device |
+| **User Defaults** | Shows an app's UserDefaults on a booted simulator, live; strings, numbers and booleans can be edited in place |
 | **HTTP Request** | Turns a pasted `curl` command into an editable request, sends it and shows the response — a pocket Postman |
 | **Release Notes** | Builds "What's New" from your commits, optionally rewritten by Claude CLI into one paragraph |
 | **Derived Data** | Wipes the folder with one button |
@@ -51,14 +52,14 @@ Tests/              pure-logic tests
 The rule that shapes everything: **a view never knows about transport**. It talks to an
 `@Observable` view model, the view model talks to a protocol — `TrackerService`,
 `GitConfigService`, `GitRepositoryReading`, `ReleaseNotesGenerating`, `DeepLinkOpening`,
-`SimulatorControlling`, `DerivedDataCleaning`, `HTTPRequestSending` —
+`SimulatorControlling`, `UserDefaultsControlling`, `DerivedDataCleaning`, `HTTPRequestSending` —
 and the concrete implementation arrives through the initializer. That is also where
 testability comes from: tests swap in a stub instead of the network and the shell.
 
 All arithmetic lives outside the views, in plain value types: `WeekReport` (week
 aggregation), `IssuesBoard` (status columns), `ReleaseNotesBuilder` (commit parsing),
 `TrackerDuration` (ISO 8601), `CurlParser` and `CurlBuilder` (curl commands in and out),
-`JSONPretty` (response formatting). They are computed once after a load rather than on
+`JSONPretty` (response formatting), `UserDefaultsParsing` (`listapps` and exported domains). They are computed once after a load rather than on
 every redraw, and they are what the tests cover.
 
 ## Decisions worth explaining
@@ -122,8 +123,8 @@ Covered: Conventional Commits parsing, ISO 8601 durations in Tracker's "working"
 week boundaries, report aggregation, board column ordering, `simctl`, `emulator` and `adb`
 output parsing, argument quoting for `adb shell`, the Claude prompt, HTTP status mapping,
 pluralization, bash-style splitting of `curl` commands and their options, the exported
-`curl` command (including a parse → export → parse round trip), `URLRequest` building and
-JSON pretty-printing.
+`curl` command (including a parse → export → parse round trip), `URLRequest` building,
+JSON pretty-printing, `simctl listapps` and exported defaults domains with their plist types.
 
 ## Known limitations
 
