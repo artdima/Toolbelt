@@ -76,7 +76,7 @@ enum UserDefaultsParsing {
         case let data as Data:
             return "<\(data.count) bytes>"
         case let array as [Any]:
-            return "[" + array.map(describe).joined(separator: ", ") + "]"
+            return "[" + array.map { describe($0) }.joined(separator: ", ") + "]"
         case let dictionary as [String: Any]:
             let pairs = dictionary
                 .sorted { $0.key < $1.key }
