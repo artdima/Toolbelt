@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- **The installer.** The DMG opens over a picture of its own: Toolbelt on the
+  left, Applications on the right, an arrow between them.
+- The app declares its category, Developer Tools, so Launchpad files it where
+  it belongs.
+
 ## 0.1.0
 
 The first tagged build, signed with Developer ID and notarized by Apple. Toolbelt
