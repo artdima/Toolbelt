@@ -1,6 +1,6 @@
 #!/bin/sh
 # Packs the app into the installer DMG: Toolbelt beside Applications, over the
-# built-in arrow background. Usage: make-dmg.sh <Toolbelt.app> <out.dmg>
+# background in scripts/dmg. Usage: make-dmg.sh <Toolbelt.app> <out.dmg>
 set -eu
 
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -19,4 +19,6 @@ fi
     dmgbuild==1.6.7 ds_store==1.3.3 mac_alias==2.2.3
 
 rm -f "$dmg"
-"$venv/bin/dmgbuild" -s "$root/scripts/dmg/settings.py" -D app="$app" "Toolbelt" "$dmg"
+"$venv/bin/dmgbuild" -s "$root/scripts/dmg/settings.py" \
+    -D app="$app" -D background="$root/scripts/dmg/background.png" \
+    "Toolbelt" "$dmg"
