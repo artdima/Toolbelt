@@ -33,3 +33,6 @@ xcuserdata/
 .swiftpm/
 Packages/
 Package.resolved
+
+### Local
+release.log

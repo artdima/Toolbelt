@@ -30,12 +30,44 @@
 | **Release Notes** | Builds "What's New" from your commits, optionally rewritten by Claude CLI into one paragraph |
 | **Derived Data** | Wipes the folder with one button |
 
+## Install
+
+Download `Toolbelt-<version>.dmg` from the
+[latest release](https://github.com/artdima/Toolbelt/releases/latest), open it and drag
+Toolbelt to Applications. It needs macOS 26.3 or later, and it is signed with Developer ID
+and notarized by Apple.
+
 ## Build
 
 ```bash
 open Toolbelt.xcodeproj      # Xcode 26+, macOS 26.3+
 swift test                   # pure-logic tests, no Xcode needed
 ```
+
+## Release
+
+`scripts/release.sh` builds a release at `build/release`: the app signed with Developer ID
+and notarized, inside a signed and notarized `Toolbelt-<version>.dmg`. Once, on the Mac that
+builds:
+
+- a *Developer ID Application* certificate: Xcode → Settings → Accounts → Manage
+  Certificates → **+** → Developer ID Application;
+- a notarytool profile with an [app-specific password](https://account.apple.com):
+  `xcrun notarytool store-credentials toolbelt --apple-id <Apple ID> --team-id <Team ID>`
+  (`NOTARY_PROFILE` names another profile).
+
+Then, for every release:
+
+1. Add a `## X.Y.Z` section to `CHANGELOG.md`, set `MARKETING_VERSION` in the project to
+   `X.Y.Z`, commit.
+2. `scripts/release.sh` — the DMG and its SHA-256 are printed at the end.
+3. Tag the commit and publish the DMG with the changelog section as the notes:
+
+   ```bash
+   git tag -a vX.Y.Z -m "Toolbelt X.Y.Z" && git push origin vX.Y.Z
+   gh release create vX.Y.Z build/release/Toolbelt-X.Y.Z.dmg --title "Toolbelt X.Y.Z" \
+     --notes-file <(awk '/^## /{ p = ($0 == "## X.Y.Z") } p && !/^## /' CHANGELOG.md)
+   ```
 
 ## Architecture
 
