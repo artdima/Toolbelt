@@ -21,9 +21,7 @@ struct WorklogEntryRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 if !showsDate {
-                    Text(entry.issueKey)
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Color.accentColor)
+                    issue
                 }
                 comment
             }
@@ -36,6 +34,23 @@ struct WorklogEntryRow: View {
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 12)
+    }
+
+    private var issue: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(entry.issueKey)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundStyle(Color.accentColor)
+
+            if !entry.issueTitle.isEmpty {
+                Text(entry.issueTitle)
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(entry.issueTitle)
+            }
+        }
     }
 
     @ViewBuilder
