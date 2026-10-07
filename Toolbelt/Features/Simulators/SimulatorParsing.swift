@@ -67,7 +67,7 @@ enum SimulatorParsing {
     static func androidAPILevel(fromAvdIni text: String) -> String? {
         let prefix = "android-"
 
-        for line in text.split(separator: "\n") {
+        for line in text.split(whereSeparator: \.isNewline) {
             guard let equals = line.firstIndex(of: "=") else { continue }
             let key = line[..<equals].trimmingCharacters(in: .whitespaces)
             let value = line[line.index(after: equals)...].trimmingCharacters(in: .whitespacesAndNewlines)
@@ -93,14 +93,14 @@ enum SimulatorParsing {
     /// lines; an AVD name never contains whitespace.
     static func avdNames(fromEmulatorOutput output: String) -> [String] {
         output
-            .split(separator: "\n")
+            .split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty && !$0.contains(where: \.isWhitespace) }
     }
 
     static func runningEmulatorSerials(fromAdbOutput output: String) -> [String] {
         output
-            .split(separator: "\n")
+            .split(whereSeparator: \.isNewline)
             .compactMap { line in
                 let fields = line.split(whereSeparator: \.isWhitespace).map(String.init)
                 guard fields.count >= 2,
@@ -114,14 +114,14 @@ enum SimulatorParsing {
     /// `adb emu avd name` answers with the name and a trailing OK.
     static func avdName(fromEmuOutput output: String) -> String? {
         output
-            .split(separator: "\n")
+            .split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .first { !$0.isEmpty && $0 != "OK" }
     }
 
     static func lastLines(_ text: String, limit: Int = 8) -> String {
         text
-            .split(separator: "\n")
+            .split(whereSeparator: \.isNewline)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
             .suffix(limit)
