@@ -38,11 +38,24 @@ struct TrackerFailureTests {
         #expect(failure.message == failure.reason)
     }
 
+    @Test("An unlisted status falls back to the bare code")
+    func unlistedStatusFallsBackToCode() {
+        let failure = TrackerFailure(TrackerError.from(status: 520, body: ""))
+
+        #expect(failure.reason == "The server returned HTTP 520.")
+        #expect(failure.suggestion == "Please try again in a few moments.")
+    }
+
     @Test("Credential problems point to Settings", arguments: [
         TrackerError.unauthorized, .forbidden, .missingToken, .missingOrgId, .unknownUser
     ])
     func credentialProblemsNeedSettings(error: TrackerError) {
         #expect(TrackerFailure(error).needsSettings)
+    }
+
+    @Test("A malformed URL does not send the user to Settings")
+    func invalidURLDoesNotNeedSettings() {
+        #expect(!TrackerFailure(TrackerError.invalidURL).needsSettings)
     }
 
     @Test("Being offline is told apart from a server failure")

@@ -16,7 +16,7 @@ struct IssuesBoardView: View {
             Divider()
 
             if let failure = model.failure, model.hasLoadedIssues {
-                ErrorBanner(text: failure.reason)
+                ErrorBanner(text: failure.reason, details: failure.details)
             }
 
             content

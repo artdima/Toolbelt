@@ -41,16 +41,34 @@ struct EmptyState: View {
 
 struct ErrorBanner: View {
     let text: String
+    var details: String?
 
     var body: some View {
-        Text("⚠ \(text)")
+        HStack(spacing: 8) {
+            message
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let details {
+                CopyButton(value: details, help: "Copy technical details")
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color.red.opacity(0.1))
+    }
+
+    @ViewBuilder
+    private var message: some View {
+        let label = Text("⚠ \(text)")
             .font(.system(size: 11))
             .foregroundStyle(.red)
             .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(Color.red.opacity(0.1))
+
+        if let details {
+            label.help(details)
+        } else {
+            label
+        }
     }
 }
 

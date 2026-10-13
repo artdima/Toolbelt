@@ -16,7 +16,7 @@ struct WeeklyReportView: View {
             Divider()
 
             if let failure = model.failure, !model.report.isEmpty {
-                ErrorBanner(text: failure.reason)
+                ErrorBanner(text: failure.reason, details: failure.details)
             }
 
             content

@@ -64,12 +64,7 @@ struct TrackerFailure: Equatable {
                 needsSettings: true
             )
         case .invalidURL:
-            return TrackerFailure(
-                reason: "The request URL is malformed.",
-                suggestion: "Check the organization ID in Settings.",
-                details: details,
-                needsSettings: true
-            )
+            return TrackerFailure(reason: "Could not build the request URL.", details: details)
         case .unknownUser:
             return TrackerFailure(
                 reason: "Could not determine the current Tracker user.",
@@ -125,8 +120,23 @@ struct TrackerFailure: Equatable {
         }
     }
 
+    private static let statusPhrases: [Int: String] = [
+        400: "Bad Request",
+        404: "Not Found",
+        408: "Request Timeout",
+        409: "Conflict",
+        422: "Unprocessable Content",
+        429: "Too Many Requests",
+        500: "Internal Server Error",
+        502: "Bad Gateway",
+        503: "Service Unavailable",
+        504: "Gateway Timeout"
+    ]
+
     private static func statusReason(_ status: Int) -> String {
-        let phrase = HTTPURLResponse.localizedString(forStatusCode: status).capitalized
+        guard let phrase = statusPhrases[status] else {
+            return "The server returned HTTP \(status)."
+        }
         return "The server returned \(status) \(phrase)."
     }
 
