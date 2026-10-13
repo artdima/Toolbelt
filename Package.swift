@@ -43,6 +43,7 @@ let package = Package(
                 "Features/Tracker/IssuesBoard.swift",
                 "Features/Tracker/TrackerDuration.swift",
                 "Features/Tracker/TrackerError.swift",
+                "Features/Tracker/TrackerFailure.swift",
                 "Features/Tracker/TrackerModels.swift",
                 "Features/Tracker/WeekReport.swift",
                 "Features/UserDefaults/UserDefaultsModels.swift",

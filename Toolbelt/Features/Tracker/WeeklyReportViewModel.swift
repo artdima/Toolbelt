@@ -27,7 +27,7 @@ final class WeeklyReportViewModel {
     private let credentialsStore: TrackerCredentialsStore
 
     private(set) var report = WeekReport.empty
-    private(set) var errorMessage: String?
+    private(set) var failure: TrackerFailure?
 
     /// A counter rather than a Bool: a manual refresh and a week change can overlap,
     /// and whichever finishes first must not switch off the other one's spinner.
@@ -128,7 +128,7 @@ final class WeeklyReportViewModel {
         let end = WeekMath.weekEnd(from: start)
 
         inFlightCount += 1
-        errorMessage = nil
+        failure = nil
         defer { inFlightCount -= 1 }
 
         do {
@@ -141,9 +141,13 @@ final class WeeklyReportViewModel {
             // Superseded by a newer request — leave the state alone.
         } catch let error as URLError where error.code == .cancelled {
         } catch {
-            // Keep the data on screen: a banner over the previous report is more
-            // useful than an empty screen with an error.
-            errorMessage = error.localizedDescription
+            guard requestedOffset == weekOffset else { return }
+            // This week's data stays on screen under a banner; another week's
+            // would pass for this one, so it goes.
+            if report.weekStart != start {
+                report = .empty
+            }
+            failure = TrackerFailure(error)
         }
     }
 

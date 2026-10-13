@@ -15,8 +15,8 @@ struct WeeklyReportView: View {
             header
             Divider()
 
-            if let errorMessage = model.errorMessage {
-                ErrorBanner(text: errorMessage)
+            if let failure = model.failure, !model.report.isEmpty {
+                ErrorBanner(text: failure.reason)
             }
 
             content
@@ -39,6 +39,8 @@ struct WeeklyReportView: View {
             ) {
                 AppWindows.settings(tab: .tracker)
             }
+        } else if let failure = model.failure, model.report.isEmpty {
+            failureState(failure)
         } else if model.isLoading && model.report.isEmpty {
             LoadingState(text: "Loading entries from Tracker…")
         } else if model.report.isEmpty {
@@ -51,6 +53,30 @@ struct WeeklyReportView: View {
                     breakdownSection
                 }
                 .padding(16)
+            }
+        }
+    }
+
+    private func failureState(_ failure: TrackerFailure) -> some View {
+        ErrorState(
+            title: "Unable to load report",
+            message: failure.message,
+            details: failure.details,
+            retry: { Task { await model.reload() } }
+        ) {
+            if failure.needsSettings {
+                Button("Open Settings") { AppWindows.settings(tab: .tracker) }
+            } else {
+                Menu("Change week") {
+                    Button("Previous week") { model.changeWeek(by: -1) }
+                    if model.canShowNextWeek {
+                        Button("Next week") { model.changeWeek(by: 1) }
+                    }
+                    if model.weekOffset != 0 {
+                        Divider()
+                        Button("This week") { model.changeWeek(by: -model.weekOffset) }
+                    }
+                }
             }
         }
     }

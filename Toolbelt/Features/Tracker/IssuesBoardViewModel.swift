@@ -14,7 +14,7 @@ final class IssuesBoardViewModel {
 
     private(set) var issues: [Issue] = []
     private(set) var board = IssuesBoard.empty
-    private(set) var errorMessage: String?
+    private(set) var failure: TrackerFailure?
 
     private var inFlightCount = 0
     private var loadTask: Task<Void, Never>?
@@ -61,7 +61,7 @@ final class IssuesBoardViewModel {
         let requestedIncludeResolved = includeResolved
 
         inFlightCount += 1
-        errorMessage = nil
+        failure = nil
         defer { inFlightCount -= 1 }
 
         do {
@@ -74,7 +74,7 @@ final class IssuesBoardViewModel {
             // Superseded by a newer request.
         } catch let error as URLError where error.code == .cancelled {
         } catch {
-            errorMessage = error.localizedDescription
+            failure = TrackerFailure(error)
         }
     }
 

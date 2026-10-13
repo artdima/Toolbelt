@@ -15,8 +15,8 @@ struct IssuesBoardView: View {
             header
             Divider()
 
-            if let errorMessage = model.errorMessage {
-                ErrorBanner(text: errorMessage)
+            if let failure = model.failure, model.hasLoadedIssues {
+                ErrorBanner(text: failure.reason)
             }
 
             content
@@ -41,6 +41,17 @@ struct IssuesBoardView: View {
                 actionTitle: "Open Settings"
             ) {
                 AppWindows.settings(tab: .tracker)
+            }
+        } else if let failure = model.failure, !model.hasLoadedIssues {
+            ErrorState(
+                title: "Unable to load issues",
+                message: failure.message,
+                details: failure.details,
+                retry: { Task { await model.reload() } }
+            ) {
+                if failure.needsSettings {
+                    Button("Open Settings") { AppWindows.settings(tab: .tracker) }
+                }
             }
         } else if model.isLoading && !model.hasLoadedIssues {
             LoadingState(text: "Loading issues…")

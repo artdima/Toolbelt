@@ -50,6 +50,7 @@ struct WeekReport: Equatable {
         let entries: [Worklog]
     }
 
+    let weekStart: Date
     let totalSeconds: TimeInterval
     let entryCount: Int
     let days: [Day]
@@ -61,6 +62,7 @@ struct WeekReport: Equatable {
     static let empty = WeekReport(entries: [], weekStart: Date())
 
     init(entries: [Worklog], weekStart: Date, calendar: Calendar = AppFormatters.calendar) {
+        self.weekStart = weekStart
         totalSeconds = entries.reduce(0) { $0 + $1.seconds }
         entryCount = entries.count
 
