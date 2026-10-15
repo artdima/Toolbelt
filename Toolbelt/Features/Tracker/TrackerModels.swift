@@ -53,6 +53,19 @@ struct Issue: Identifiable, Hashable {
 
     var url: URL? { URL(string: "https://tracker.yandex.ru/\(key)") }
 
+    /// Priority as one to three bars, the way the board card draws it.
+    var priorityLevel: Int {
+        switch priorityKey {
+        case "blocker", "critical", "major": return 3
+        case "minor", "trivial": return 1
+        default: return 2
+        }
+    }
+
+    var isUrgent: Bool {
+        priorityKey == "blocker" || priorityKey == "critical"
+    }
+
     func isOverdue(now: Date = Date(), calendar: Calendar = AppFormatters.calendar) -> Bool {
         guard let deadline else { return false }
         return deadline < calendar.startOfDay(for: now)

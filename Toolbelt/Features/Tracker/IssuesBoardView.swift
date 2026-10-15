@@ -10,18 +10,26 @@ import SwiftUI
 struct IssuesBoardView: View {
     @State private var model = IssuesBoardViewModel()
 
+    private let boardPadding: CGFloat = 17
+    private let columnSpacing: CGFloat = 12
+    private let minColumnWidth: CGFloat = 220
+
     var body: some View {
         VStack(spacing: 0) {
-            header
-            Divider()
-
             if let failure = model.failure, model.hasLoadedIssues {
                 ErrorBanner(text: failure.reason, details: failure.details)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .padding(.horizontal, boardPadding)
+                    .padding(.top, 9)
             }
 
             content
         }
         .frame(minWidth: 640, minHeight: 420)
+        .navigationTitle("My Issues")
+        .navigationSubtitle(model.isConfigured && model.hasLoadedIssues ? model.summary : "")
+        .toolbar { boardToolbar }
+        .searchable(text: $model.searchQuery, placement: .toolbar, prompt: "Search by key or summary")
         .onChange(of: model.credentials) { _, _ in
             Task { await model.reload() }
         }
@@ -65,65 +73,93 @@ struct IssuesBoardView: View {
         }
     }
 
-    private var header: some View {
-        HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 1) {
-                Text("My Issues")
-                    .font(.system(size: 13, weight: .semibold))
-                Text(model.summary)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-            }
+    // MARK: Toolbar
 
-            Spacer()
-
-            TextField("Search by key or summary", text: $model.searchQuery)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 220)
-
-            Toggle("Resolved", isOn: $model.includeResolved)
-                .toggleStyle(.checkbox)
-                .font(.system(size: 11))
-
-            if model.isLoading {
-                ProgressView().controlSize(.small)
-            }
-
-            RefreshButton(isDisabled: model.isLoading) {
-                Task { await model.reload() }
-            }
-        }
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-    }
-
-    private var board: some View {
-        ScrollView(.horizontal) {
-            HStack(alignment: .top, spacing: 12) {
-                ForEach(model.board.columns) { column in
-                    columnView(column)
+    @ToolbarContentBuilder
+    private var boardToolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Toggle(isOn: $model.includeResolved) {
+                if model.includeResolved {
+                    Label("Resolved", systemImage: "checkmark")
+                } else {
+                    Text("Resolved")
                 }
             }
-            .padding(14)
+            .toggleStyle(.button)
+            .labelStyle(.titleAndIcon)
+            .disabled(!model.isConfigured)
+            .help(model.includeResolved ? "Hide resolved issues" : "Show resolved issues")
+        }
+
+        ToolbarSpacer(.fixed, placement: .primaryAction)
+
+        ToolbarItem(placement: .primaryAction) {
+            if model.isLoading {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Button {
+                    Task { await model.reload() }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .disabled(!model.isConfigured)
+                .keyboardShortcut("r")
+                .help("Refresh")
+            }
+        }
+        .sharedBackgroundVisibility(.hidden)
+    }
+
+    // MARK: Board
+
+    /// Columns share the window width and scroll sideways once they would get narrower
+    /// than `minColumnWidth`.
+    private var board: some View {
+        GeometryReader { geometry in
+            let columns = model.board.columns
+            let count = CGFloat(max(columns.count, 1))
+            let available = geometry.size.width - 2 * boardPadding - columnSpacing * (count - 1)
+            let width = max(minColumnWidth, available / count)
+
+            ScrollView(.horizontal) {
+                HStack(alignment: .top, spacing: columnSpacing) {
+                    ForEach(columns) { column in
+                        columnView(column)
+                            .frame(width: width)
+                    }
+                }
+                .padding(.horizontal, boardPadding)
+                .padding(.top, 9)
+                .padding(.bottom, boardPadding)
+                .frame(height: geometry.size.height)
+            }
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         }
     }
 
     private func columnView(_ column: IssuesBoard.Column) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 9) {
+                Circle()
+                    .fill(column.stage.color)
+                    .frame(width: 8, height: 8)
                 Text(column.name)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
-                Text("\(column.issues.count)")
-                    .font(.system(size: 10, weight: .medium))
+                Spacer(minLength: 8)
+                Text(verbatim: "\(column.issues.count)")
+                    .font(.system(size: 12, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.primary.opacity(0.08))
-                    .clipShape(Capsule())
-                Spacer()
+                    .frame(minWidth: 20, minHeight: 20)
+                    .background(Color.primary.opacity(0.07), in: Capsule())
             }
-            .padding(.horizontal, 4)
+            .padding(.leading, 14)
+            .padding(.trailing, 12)
+            .padding(.top, 12)
+            .padding(.bottom, 10)
 
             ScrollView {
                 VStack(spacing: 8) {
@@ -131,13 +167,28 @@ struct IssuesBoardView: View {
                         IssueCard(issue: issue)
                     }
                 }
+                .padding(.horizontal, 8)
                 .padding(.bottom, 8)
             }
+            .scrollBounceBehavior(.basedOnSize)
         }
-        .frame(width: 264)
-        .padding(10)
-        .background(Color.primary.opacity(0.04))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(
+            Color.primary.opacity(0.04),
+            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+        )
+    }
+}
+
+private extension IssuesBoard.Stage {
+    var color: Color {
+        switch self {
+        case .waiting: Color.gray
+        case .active: Color.blue
+        case .review: Color.purple
+        case .testing: Color.orange
+        case .done: Color.green
+        }
     }
 }
 
@@ -152,52 +203,37 @@ private struct IssueCard: View {
         Button {
             open()
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(priorityColor)
-                        .frame(width: 6, height: 6)
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(spacing: 8) {
                     Text(issue.key)
-                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 13, design: .monospaced))
                         .foregroundStyle(Color.accentColor)
-                    Spacer()
-                    if isHovered {
-                        Image(systemName: "arrow.up.forward.square")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                    }
+                    Spacer(minLength: 8)
+                    PriorityBars(level: issue.priorityLevel, isUrgent: issue.isUrgent)
+                        .help(issue.priorityName.isEmpty ? issue.priorityKey : issue.priorityName)
                 }
 
                 Text(issue.summary)
-                    .font(.system(size: 12))
+                    .font(.system(size: 14))
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
-                    .lineLimit(3)
+                    .lineLimit(5)
                     .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 6) {
-                    if !issue.queueName.isEmpty {
-                        Text(issue.queueName)
-                            .font(.system(size: 9))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    Spacer()
-                    if let deadline = issue.deadline {
-                        Label(AppFormatters.shortDay.string(from: deadline), systemImage: "flag")
-                            .font(.system(size: 9))
-                            .foregroundStyle(issue.isOverdue() ? Color.red : Color.secondary)
-                    }
+                if !issue.queueName.isEmpty || issue.deadline != nil {
+                    footer
+                        .padding(.top, 2)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(10)
-            .background(Color.primary.opacity(isHovered ? 0.09 : 0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(.horizontal, 13)
+            .padding(.vertical, 12)
+            .card()
             .overlay {
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(isHovered ? 0.16 : 0), lineWidth: 1)
             }
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
@@ -211,18 +247,53 @@ private struct IssueCard: View {
         }
     }
 
+    private var footer: some View {
+        HStack(spacing: 8) {
+            Text(issue.queueName)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+
+            Spacer(minLength: 0)
+
+            if let deadline = issue.deadline {
+                let tint = issue.isOverdue() ? Color.red : Color.secondary
+                Label(AppFormatters.shortDay.string(from: deadline), systemImage: "flag")
+                    .labelStyle(.titleAndIcon)
+                    .font(.system(size: 12))
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(tint.opacity(0.1), in: Capsule())
+                    .help(issue.isOverdue() ? "Overdue" : "Deadline")
+            }
+        }
+    }
+
     private func open() {
         guard let url = issue.url else { return }
         NSWorkspace.shared.open(url)
     }
+}
 
-    private var priorityColor: Color {
-        switch issue.priorityKey {
-        case "blocker", "critical": return .red
-        case "major": return .orange
-        case "minor", "trivial": return .gray
-        default: return .blue
+/// Three bars like a signal meter; urgent priorities are drawn in red.
+private struct PriorityBars: View {
+    let level: Int
+    let isUrgent: Bool
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 1.5) {
+            ForEach(1...3, id: \.self) { bar in
+                RoundedRectangle(cornerRadius: 0.75)
+                    .fill(bar <= level ? activeColor : Color.primary.opacity(0.15))
+                    .frame(width: 2.5, height: CGFloat(2 + bar * 2))
+            }
         }
+        .accessibilityHidden(true)
+    }
+
+    private var activeColor: Color {
+        isUrgent ? .red : Color.primary.opacity(0.6)
     }
 }
 

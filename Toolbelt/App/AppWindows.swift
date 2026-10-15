@@ -18,7 +18,8 @@ extension WindowConfiguration {
     static let issuesBoard = WindowConfiguration(
         id: "issues-board",
         title: "My Issues",
-        size: NSSize(width: 980, height: 640)
+        size: NSSize(width: 960, height: 590),
+        toolbarStyle: .unified
     )
     static let simulators = WindowConfiguration(
         id: "simulators",

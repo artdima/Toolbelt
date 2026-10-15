@@ -13,6 +13,7 @@ struct WeeklyReportView: View {
     var body: some View {
         content
             .frame(minWidth: 500, minHeight: 540)
+            .navigationTitle("Weekly Report")
             .toolbar { weekToolbar }
             .onChange(of: model.credentials) { _, _ in
                 Task { await model.reload() }

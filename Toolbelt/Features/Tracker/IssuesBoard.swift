@@ -14,6 +14,17 @@ struct IssuesBoard: Equatable {
         let key: String
         let name: String
         let issues: [Issue]
+
+        var stage: Stage { IssuesBoard.stage(ofStatus: key) }
+    }
+
+    /// Where a status sits in the process; the board marks each column with it.
+    enum Stage: Equatable {
+        case waiting
+        case active
+        case review
+        case testing
+        case done
     }
 
     /// Known statuses follow the order of the process, the rest go after them alphabetically.
@@ -36,6 +47,16 @@ struct IssuesBoard: Equatable {
         let matching = Self.filter(issues, by: searchQuery)
         issueCount = matching.count
         columns = Self.makeColumns(from: matching)
+    }
+
+    static func stage(ofStatus key: String) -> Stage {
+        switch key {
+        case "inProgress", "inDevelopment", "development": return .active
+        case "readyForReview", "review", "codeReview": return .review
+        case "readyForTest", "testing", "acceptance": return .testing
+        case "readyForRelease", "released", "resolved", "closed": return .done
+        default: return .waiting
+        }
     }
 
     static func filter(_ issues: [Issue], by searchQuery: String) -> [Issue] {

@@ -111,6 +111,54 @@ struct IssuesBoardTests {
     }
 }
 
+@Suite("Statuses and priorities")
+struct IssuesBoardStylingTests {
+    private func issue(priority: String) -> Issue {
+        Issue(
+            key: "A-1",
+            summary: "Issue",
+            statusKey: "open",
+            statusName: "Open",
+            priorityKey: priority,
+            priorityName: "",
+            queueName: "QUEUE",
+            updatedAt: nil,
+            deadline: nil
+        )
+    }
+
+    @Test("Statuses map to the stages of the process")
+    func statusStages() {
+        #expect(IssuesBoard.stage(ofStatus: "open") == .waiting)
+        #expect(IssuesBoard.stage(ofStatus: "inProgress") == .active)
+        #expect(IssuesBoard.stage(ofStatus: "codeReview") == .review)
+        #expect(IssuesBoard.stage(ofStatus: "readyForTest") == .testing)
+        #expect(IssuesBoard.stage(ofStatus: "resolved") == .done)
+    }
+
+    @Test("An unknown status waits")
+    func unknownStatusWaits() {
+        #expect(IssuesBoard.stage(ofStatus: "ourCustomStatus") == .waiting)
+    }
+
+    @Test("Priorities map to one to three bars")
+    func priorityLevels() {
+        #expect(issue(priority: "trivial").priorityLevel == 1)
+        #expect(issue(priority: "minor").priorityLevel == 1)
+        #expect(issue(priority: "normal").priorityLevel == 2)
+        #expect(issue(priority: "major").priorityLevel == 3)
+        #expect(issue(priority: "critical").priorityLevel == 3)
+    }
+
+    @Test("Only blocker and critical are urgent")
+    func urgentPriorities() {
+        #expect(issue(priority: "blocker").isUrgent)
+        #expect(issue(priority: "critical").isUrgent)
+        #expect(!issue(priority: "major").isUrgent)
+        #expect(!issue(priority: "normal").isUrgent)
+    }
+}
+
 @Suite("Overdue issues")
 struct IssueOverdueTests {
     private let calendar: Calendar = {

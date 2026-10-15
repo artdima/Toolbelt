@@ -48,6 +48,7 @@ struct UserDefaultsView: View {
             }
         }
         .frame(minWidth: 600, minHeight: 480)
+        .navigationTitle("User Defaults")
         .toolbar { refreshToolbar }
         .searchable(text: $model.search, placement: .toolbar, prompt: "Search keys and values")
         .task {

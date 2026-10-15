@@ -30,8 +30,9 @@ enum WindowPresenter {
         show(configuration, controller: {
             let controller = NSHostingController(rootView: content())
             if configuration.toolbarStyle != nil {
-                // A SwiftUI `.toolbar` reaches an AppKit-made window only through scene bridging.
-                controller.sceneBridgingOptions = [.toolbars]
+                // A SwiftUI `.toolbar` and `.navigationSubtitle` reach an AppKit-made
+                // window only through scene bridging.
+                controller.sceneBridgingOptions = [.toolbars, .title]
             }
             return controller
         })
