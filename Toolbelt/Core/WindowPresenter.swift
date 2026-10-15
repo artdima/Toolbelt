@@ -12,7 +12,7 @@ struct WindowConfiguration {
     let title: String
     let size: NSSize
     var isResizable = true
-    var usesToolbar = false
+    var toolbarStyle: NSWindow.ToolbarStyle?
 
     var autosaveName: NSWindow.FrameAutosaveName { "window.\(id)" }
 }
@@ -23,10 +23,25 @@ enum WindowPresenter {
     private static var closeObservers: [String: NSObjectProtocol] = [:]
 
     /// Opens a window, or raises the one already open.
-    /// The menu bar panel is dismissed first: otherwise it hangs over the new window.
     static func show<Content: View>(
         _ configuration: WindowConfiguration,
         @ViewBuilder content: () -> Content
+    ) {
+        show(configuration, controller: {
+            let controller = NSHostingController(rootView: content())
+            if configuration.toolbarStyle != nil {
+                // A SwiftUI `.toolbar` reaches an AppKit-made window only through scene bridging.
+                controller.sceneBridgingOptions = [.toolbars]
+            }
+            return controller
+        })
+    }
+
+    /// The menu bar panel is dismissed first: otherwise it hangs over the new window.
+    /// `controller` is called only when the window is not open yet.
+    static func show(
+        _ configuration: WindowConfiguration,
+        controller makeController: () -> NSViewController
     ) {
         MenuBarPanel.dismiss()
 
@@ -38,26 +53,24 @@ enum WindowPresenter {
 
         DockPresence.retain()
 
-        let controller = NSHostingController(rootView: content())
-        if configuration.usesToolbar {
-            // A SwiftUI `.toolbar` reaches an AppKit-made window only through scene bridging.
-            controller.sceneBridgingOptions = [.toolbars]
-        }
-
-        let window = NSWindow(contentViewController: controller)
+        let window = NSWindow(contentViewController: makeController())
         window.title = configuration.title
         window.styleMask = configuration.isResizable
             ? [.titled, .closable, .miniaturizable, .resizable]
             : [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
-        if configuration.usesToolbar {
-            window.toolbarStyle = .unified
+        if let toolbarStyle = configuration.toolbarStyle {
+            window.toolbarStyle = toolbarStyle
         }
         window.setContentSize(configuration.size)
 
         window.setFrameAutosaveName(configuration.autosaveName)
         if !window.setFrameUsingName(configuration.autosaveName) {
             window.center()
+        }
+        if !configuration.isResizable {
+            // A saved frame may come from an older layout; a fixed window keeps its design size.
+            window.setContentSize(configuration.size)
         }
 
         windows[configuration.id] = window

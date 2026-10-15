@@ -13,7 +13,7 @@ extension WindowConfiguration {
         id: "weekly-report",
         title: "Weekly Report",
         size: NSSize(width: 560, height: 640),
-        usesToolbar: true
+        toolbarStyle: .unified
     )
     static let issuesBoard = WindowConfiguration(
         id: "issues-board",
@@ -48,17 +48,17 @@ extension WindowConfiguration {
     static let settings = WindowConfiguration(
         id: "settings",
         title: "Settings",
-        size: NSSize(width: 460, height: 470),
-        isResizable: false
+        size: SettingsMetrics.paneSize,
+        isResizable: false,
+        toolbarStyle: .preference
     )
 }
 
 @MainActor
 enum AppWindows {
-    /// The selected tab outlives the window: opening settings "on a given section"
-    /// has to switch an already open window too. The router is created once here and
-    /// handed to the view explicitly instead of being read from a global singleton.
-    private static let settingsRouter = SettingsRouter()
+    /// Weak: the window owns the controller, and opening settings "on a given section"
+    /// has to switch the tab of a window that is already open.
+    private static weak var settingsController: SettingsTabViewController?
 
     static func weeklyReport() {
         WindowPresenter.show(.weeklyReport) { WeeklyReportView() }
@@ -89,8 +89,12 @@ enum AppWindows {
     }
 
     static func settings(tab: SettingsTab = .profiles) {
-        settingsRouter.tab = tab
-        WindowPresenter.show(.settings) { SettingsView(router: settingsRouter) }
+        WindowPresenter.show(.settings, controller: {
+            let controller = SettingsTabViewController()
+            settingsController = controller
+            return controller
+        })
+        settingsController?.select(tab)
     }
 
     static func closeSettings() {

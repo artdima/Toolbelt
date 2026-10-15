@@ -15,6 +15,16 @@ struct GitProfile: Identifiable, Codable, Equatable {
 
     var title: String { displayName.isEmpty ? name : displayName }
 
+    /// "Медянник Дмитрий" → "МД".
+    var initials: String {
+        title
+            .split(whereSeparator: \.isWhitespace)
+            .prefix(2)
+            .compactMap(\.first)
+            .map { String($0).uppercased() }
+            .joined()
+    }
+
     var identity: GitIdentity { GitIdentity(name: name, email: email) }
 
     var isComplete: Bool { !name.isEmpty && !email.isEmpty }
