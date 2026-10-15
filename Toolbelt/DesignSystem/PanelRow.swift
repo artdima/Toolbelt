@@ -44,6 +44,45 @@ struct PanelRow: View {
     }
 }
 
+struct PanelConfirmation: View {
+    let title: String
+    let message: String
+    let systemImage: String
+    let confirmTitle: String
+    let onCancel: () -> Void
+    let onConfirm: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                PanelRowIcon(systemImage: systemImage, role: .destructive, isBusy: false)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 13, weight: .medium))
+                    Text(message)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                Button("Cancel", action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+                Button(confirmTitle, role: .destructive, action: onConfirm)
+                    .buttonStyle(.borderedProminent)
+                    .tint(.red)
+            }
+            .controlSize(.small)
+        }
+        .padding(5)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color.red.opacity(0.08))
+        )
+    }
+}
+
 private struct PanelRowIcon: View {
     let systemImage: String
     let role: PanelRowRole

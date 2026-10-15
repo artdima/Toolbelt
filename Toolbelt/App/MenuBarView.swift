@@ -19,15 +19,29 @@ struct MenuBarView: View {
             tools
             PanelDivider()
                 .padding(.vertical, 6)
-            PanelRow(
-                title: "Delete Derived Data…",
-                systemImage: "trash",
-                role: .destructive,
-                isBusy: model.isWorking
-            ) {
-                isConfirmingDerivedDataCleanup = true
+            if isConfirmingDerivedDataCleanup {
+                PanelConfirmation(
+                    title: "Delete Derived Data?",
+                    message: "Every project will have to be rebuilt from scratch.",
+                    systemImage: "trash",
+                    confirmTitle: "Delete",
+                    onCancel: { isConfirmingDerivedDataCleanup = false },
+                    onConfirm: {
+                        isConfirmingDerivedDataCleanup = false
+                        Task { await model.cleanDerivedData() }
+                    }
+                )
+            } else {
+                PanelRow(
+                    title: "Delete Derived Data…",
+                    systemImage: "trash",
+                    role: .destructive,
+                    isBusy: model.isWorking
+                ) {
+                    isConfirmingDerivedDataCleanup = true
+                }
+                .disabled(model.isWorking)
             }
-            .disabled(model.isWorking)
             PanelDivider()
                 .padding(.vertical, 6)
             footer
@@ -41,17 +55,6 @@ struct MenuBarView: View {
         }
         .onChange(of: model.profiles) { _, _ in
             Task { await model.refreshActiveProfile() }
-        }
-        .confirmationDialog(
-            "Delete Derived Data?",
-            isPresented: $isConfirmingDerivedDataCleanup
-        ) {
-            Button("Delete", role: .destructive) {
-                Task { await model.cleanDerivedData() }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Every project will have to be rebuilt from scratch.")
         }
     }
 
