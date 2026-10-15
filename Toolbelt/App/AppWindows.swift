@@ -12,7 +12,8 @@ extension WindowConfiguration {
     static let weeklyReport = WindowConfiguration(
         id: "weekly-report",
         title: "Weekly Report",
-        size: NSSize(width: 520, height: 660)
+        size: NSSize(width: 560, height: 640),
+        usesToolbar: true
     )
     static let issuesBoard = WindowConfiguration(
         id: "issues-board",

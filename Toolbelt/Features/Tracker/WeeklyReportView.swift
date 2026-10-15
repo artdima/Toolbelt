@@ -11,23 +11,15 @@ struct WeeklyReportView: View {
     @State private var model = WeeklyReportViewModel()
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
-            Divider()
-
-            if let failure = model.failure, !model.report.isEmpty {
-                ErrorBanner(text: failure.reason, details: failure.details)
+        content
+            .frame(minWidth: 500, minHeight: 540)
+            .toolbar { weekToolbar }
+            .onChange(of: model.credentials) { _, _ in
+                Task { await model.reload() }
             }
-
-            content
-        }
-        .frame(minWidth: 460, minHeight: 480)
-        .onChange(of: model.credentials) { _, _ in
-            Task { await model.reload() }
-        }
-        .task(id: model.weekOffset) {
-            await model.reload()
-        }
+            .task(id: model.weekOffset) {
+                await model.reload()
+            }
     }
 
     @ViewBuilder
@@ -39,21 +31,39 @@ struct WeeklyReportView: View {
             ) {
                 AppWindows.settings(tab: .tracker)
             }
-        } else if let failure = model.failure, model.report.isEmpty {
+        } else {
+            VStack(alignment: .leading, spacing: 0) {
+                summary
+                    .padding(.bottom, 16)
+
+                if let failure = model.failure, !model.report.isEmpty {
+                    ErrorBanner(text: failure.reason, details: failure.details)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .padding(.bottom, 12)
+                }
+
+                report
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 20)
+        }
+    }
+
+    @ViewBuilder
+    private var report: some View {
+        if let failure = model.failure, model.report.isEmpty {
             failureState(failure)
         } else if model.isLoading && model.report.isEmpty {
             LoadingState(text: "Loading entries from Tracker…")
         } else if model.report.isEmpty {
             EmptyState(systemImage: "clock.badge.questionmark", text: "No entries this week")
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    totalCard
-                    daysSection
-                    breakdownSection
-                }
-                .padding(16)
-            }
+            chartCard
+                .padding(.bottom, 16)
+            breakdownControls
+                .padding(.bottom, 8)
+            breakdownList
         }
     }
 
@@ -66,150 +76,131 @@ struct WeeklyReportView: View {
         ) {
             if failure.needsSettings {
                 Button("Open Settings") { AppWindows.settings(tab: .tracker) }
-            } else {
-                Menu("Change week") {
-                    Button("Previous week") { model.changeWeek(by: -1) }
-                    if model.canShowNextWeek {
-                        Button("Next week") { model.changeWeek(by: 1) }
-                    }
-                    if model.weekOffset != 0 {
-                        Divider()
-                        Button("This week") { model.changeWeek(by: -model.weekOffset) }
-                    }
-                }
+            } else if model.weekOffset != 0 {
+                Button("This week") { model.changeWeek(by: -model.weekOffset) }
             }
         }
     }
 
-    // MARK: Header
+    // MARK: Toolbar
 
-    private var header: some View {
-        HStack(spacing: 8) {
+    @ToolbarContentBuilder
+    private var weekToolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .primaryAction) {
             Button { model.changeWeek(by: -1) } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 12, weight: .semibold))
+                Label("Previous Week", systemImage: "chevron.left")
             }
-            .buttonStyle(.plain)
+            .disabled(!model.isConfigured)
             .help("Previous week")
 
             Button { model.changeWeek(by: 1) } label: {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 12, weight: .semibold))
+                Label("Next Week", systemImage: "chevron.right")
             }
-            .buttonStyle(.plain)
-            .disabled(!model.canShowNextWeek)
+            .disabled(!model.isConfigured || !model.canShowNextWeek)
             .help("Next week")
+        }
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(model.weekRangeTitle)
-                    .font(.system(size: 13, weight: .semibold))
-                Text(model.relativeWeekTitle)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.leading, 4)
+        ToolbarSpacer(.fixed, placement: .primaryAction)
 
-            Spacer()
-
+        ToolbarItem(placement: .primaryAction) {
             if model.isLoading {
-                ProgressView().controlSize(.small)
-            }
-
-            RefreshButton(isDisabled: model.isLoading) {
-                Task { await model.reload() }
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Button { Task { await model.reload() } } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .disabled(!model.isConfigured)
+                .keyboardShortcut("r")
+                .help("Refresh")
             }
         }
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .sharedBackgroundVisibility(.hidden)
     }
 
-    // MARK: Sections
+    // MARK: Summary
 
-    private var totalCard: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+    private var summary: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 16) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("Total this week")
-                    .font(.system(size: 11))
+                Text(model.weekRangeTitle)
+                    .font(.system(size: 20, weight: .bold))
+                Text(model.relativeWeekTitle)
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
-                Text(DurationFormatter.short(model.report.totalSeconds))
-                    .font(.system(size: 24, weight: .semibold))
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(Plural.counted(model.report.entryCount, "entry", "entries"))
-                Text(Plural.counted(model.report.issues.count, "issue", "issues"))
+
+            Spacer(minLength: 0)
+
+            if !model.report.isEmpty {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(DurationFormatter.short(model.report.totalSeconds))
+                        .font(.system(size: 26, weight: .semibold))
+                    Text(verbatim: "\(entriesCount) · \(issuesCount)")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                .monospacedDigit()
             }
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
         }
-        .padding(14)
-        .frame(maxWidth: .infinity)
-        .background(Color.primary.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 2)
     }
 
-    private var daysSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private var entriesCount: String {
+        Plural.counted(model.report.entryCount, "entry", "entries")
+    }
+
+    private var issuesCount: String {
+        Plural.counted(model.report.issues.count, "issue", "issues")
+    }
+
+    // MARK: Chart
+
+    private var chartCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
             Text("By day")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.secondary)
+            WeekChart(days: model.report.days)
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
+        .card()
+    }
 
-            VStack(spacing: 6) {
-                ForEach(model.report.days) { day in
-                    HStack(spacing: 10) {
-                        Text(AppFormatters.weekdayAndDay.string(from: day.date))
-                            .font(.system(size: 12, weight: isToday(day.date) ? .semibold : .regular))
-                            .frame(width: 92, alignment: .leading)
+    // MARK: Breakdown
 
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                Capsule()
-                                    .fill(Color.primary.opacity(0.06))
-                                Capsule()
-                                    .fill(barColor(day.seconds))
-                                    .frame(width: barWidth(day.seconds, in: geometry.size.width))
-                            }
-                        }
-                        .frame(height: 8)
+    private var breakdownControls: some View {
+        HStack(spacing: 8) {
+            Picker("Breakdown", selection: $model.breakdownMode) {
+                ForEach(BreakdownMode.allCases) { mode in
+                    Text(mode.title).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .controlSize(.large)
+            .fixedSize()
 
-                        Text(day.seconds > 0 ? DurationFormatter.short(day.seconds) : "—")
-                            .font(.system(size: 12))
-                            .foregroundStyle(day.seconds > 0 ? Color.primary : Color.secondary)
-                            .frame(width: 76, alignment: .trailing)
+            Spacer()
+
+            if !model.isBreakdownEmpty {
+                Button(model.isBreakdownCollapsed ? "Expand all" : "Collapse all") {
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        model.toggleExpandAll()
                     }
                 }
+                .buttonStyle(.plain)
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
+                .padding(.trailing, 8)
             }
         }
     }
 
-    private var breakdownSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                Picker("", selection: $model.breakdownMode) {
-                    ForEach(BreakdownMode.allCases) { mode in
-                        Text(mode.title).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .controlSize(.small)
-                .fixedSize()
-
-                Spacer()
-
-                if !model.isBreakdownEmpty {
-                    Button(model.isBreakdownCollapsed ? "Expand all" : "Collapse all") {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            model.toggleExpandAll()
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .font(.system(size: 10))
-                    .foregroundStyle(.secondary)
-                }
-            }
-
+    private var breakdownList: some View {
+        ScrollView {
             VStack(spacing: 0) {
                 switch model.breakdownMode {
                 case .issues:
@@ -218,9 +209,9 @@ struct WeeklyReportView: View {
                     separated(model.report.dayGroups) { dayRow($0) }
                 }
             }
-            .background(Color.primary.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .card()
     }
 
     /// Dividers between rows, but not above the first one.
@@ -235,67 +226,45 @@ struct WeeklyReportView: View {
     }
 
     private func issueRow(_ issue: WeekReport.IssueTotal) -> some View {
-        ExpandableRow(
+        BreakdownRow(
             isExpanded: model.expandedIssues.contains(issue.key),
-            toggle: { model.toggleIssue(issue.key) }
+            toggle: { model.toggleIssue(issue.key) },
+            seconds: issue.seconds,
+            share: model.report.share(of: issue.seconds),
+            count: Plural.counted(issue.entries.count, "entry", "entries")
         ) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(issue.key)
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(Color.accentColor)
-                Text(issue.title)
-                    .font(.system(size: 12))
-                    .lineLimit(2)
-                    .textSelection(.enabled)
-            }
-        } trailing: {
-            RowTotals(
-                value: DurationFormatter.short(issue.seconds),
-                caption: Plural.counted(issue.entries.count, "entry", "entries")
-            )
+            Text(issue.key)
+                .font(.system(size: 13, design: .monospaced))
+                .foregroundStyle(Color.accentColor)
+            Text(issue.title)
+                .font(.system(size: 14))
+                .lineLimit(2)
+                .textSelection(.enabled)
         } details: {
             WorklogEntryList(entries: issue.entries, showsDate: true)
         }
     }
 
     private func dayRow(_ group: WeekReport.DayGroup) -> some View {
-        ExpandableRow(
+        BreakdownRow(
             isExpanded: model.expandedDays.contains(group.date),
-            toggle: { model.toggleDay(group.date) }
+            toggle: { model.toggleDay(group.date) },
+            seconds: group.seconds,
+            share: model.report.share(of: group.seconds),
+            count: Plural.counted(group.entries.count, "entry", "entries")
         ) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(AppFormatters.weekdayAndDay.string(from: group.date))
-                    .font(.system(size: 12, weight: isToday(group.date) ? .semibold : .regular))
-                Text(Plural.counted(group.issueCount, "issue", "issues"))
-                    .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
-            }
-        } trailing: {
-            RowTotals(
-                value: DurationFormatter.short(group.seconds),
-                caption: Plural.counted(group.entries.count, "entry", "entries")
-            )
+            Text(AppFormatters.weekdayAndDay.string(from: group.date))
+                .font(.system(size: 14, weight: isToday(group.date) ? .semibold : .regular))
+            Text(Plural.counted(group.issueCount, "issue", "issues"))
+                .font(.system(size: 13))
+                .foregroundStyle(.secondary)
         } details: {
             WorklogEntryList(entries: group.entries, showsDate: false)
         }
     }
 
-    // MARK: Helpers
-
     private func isToday(_ date: Date) -> Bool {
         AppFormatters.calendar.isDateInToday(date)
-    }
-
-    /// The full track is one workday; anything beyond it fills the track and turns red.
-    private func barWidth(_ seconds: TimeInterval, in trackWidth: CGFloat) -> CGFloat {
-        guard seconds > 0 else { return 0 }
-        let fraction = min(seconds / TrackerDuration.workdaySeconds, 1)
-        return max(6, CGFloat(fraction) * trackWidth)
-    }
-
-    private func barColor(_ seconds: TimeInterval) -> Color {
-        guard seconds > 0 else { return .clear }
-        return seconds > TrackerDuration.workdaySeconds ? .red : .accentColor
     }
 }
 

@@ -59,6 +59,12 @@ struct WeekReport: Equatable {
 
     var isEmpty: Bool { entryCount == 0 }
 
+    /// The part of the week's total that `seconds` make up, from 0 to 1.
+    func share(of seconds: TimeInterval) -> Double {
+        guard totalSeconds > 0 else { return 0 }
+        return seconds / totalSeconds
+    }
+
     static let empty = WeekReport(entries: [], weekStart: Date())
 
     init(entries: [Worklog], weekStart: Date, calendar: Calendar = AppFormatters.calendar) {

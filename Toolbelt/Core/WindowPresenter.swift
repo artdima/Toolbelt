@@ -12,6 +12,7 @@ struct WindowConfiguration {
     let title: String
     let size: NSSize
     var isResizable = true
+    var usesToolbar = false
 
     var autosaveName: NSWindow.FrameAutosaveName { "window.\(id)" }
 }
@@ -37,12 +38,21 @@ enum WindowPresenter {
 
         DockPresence.retain()
 
-        let window = NSWindow(contentViewController: NSHostingController(rootView: content()))
+        let controller = NSHostingController(rootView: content())
+        if configuration.usesToolbar {
+            // A SwiftUI `.toolbar` reaches an AppKit-made window only through scene bridging.
+            controller.sceneBridgingOptions = [.toolbars]
+        }
+
+        let window = NSWindow(contentViewController: controller)
         window.title = configuration.title
         window.styleMask = configuration.isResizable
             ? [.titled, .closable, .miniaturizable, .resizable]
             : [.titled, .closable, .miniaturizable]
         window.isReleasedWhenClosed = false
+        if configuration.usesToolbar {
+            window.toolbarStyle = .unified
+        }
         window.setContentSize(configuration.size)
 
         window.setFrameAutosaveName(configuration.autosaveName)

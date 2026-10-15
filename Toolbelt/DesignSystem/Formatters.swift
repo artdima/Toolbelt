@@ -26,6 +26,10 @@ enum AppFormatters {
 
     /// "Mon, 18 Aug"
     static let weekdayAndDay = dateFormatter("EEE, d MMM")
+    /// "Mon"
+    static let weekday = dateFormatter("EEE")
+    /// "18"
+    static let dayOfMonth = dateFormatter("d")
     /// "10:30"
     static let time = dateFormatter("HH:mm")
     /// "September 18"

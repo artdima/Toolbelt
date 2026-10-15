@@ -66,6 +66,28 @@ struct WeekReportTests {
         #expect(report.entryCount == 2)
     }
 
+    @Test("A share of the week's total")
+    func shareOfTotal() {
+        let report = WeekReport(
+            entries: [
+                worklog(id: 1, issue: "A-1", day: 7, seconds: 3 * 3600),
+                worklog(id: 2, issue: "A-2", day: 8, seconds: 3600)
+            ],
+            weekStart: monday,
+            calendar: calendar
+        )
+
+        #expect(report.share(of: 3 * 3600) == 0.75)
+        #expect(report.share(of: 3600) == 0.25)
+    }
+
+    @Test("An empty week has no shares")
+    func shareOfEmptyWeek() {
+        let report = WeekReport(entries: [], weekStart: monday, calendar: calendar)
+
+        #expect(report.share(of: 3600) == 0)
+    }
+
     @Test("Always seven days, empty ones included")
     func alwaysSevenDays() {
         let report = WeekReport(
