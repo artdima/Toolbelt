@@ -33,7 +33,8 @@ extension WindowConfiguration {
     static let userDefaults = WindowConfiguration(
         id: "user-defaults",
         title: "User Defaults",
-        size: NSSize(width: 720, height: 560)
+        size: NSSize(width: 720, height: 610),
+        toolbarStyle: .unified
     )
     static let releaseNotes = WindowConfiguration(
         id: "release-notes",

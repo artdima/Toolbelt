@@ -111,10 +111,3 @@ struct SettingsRow<RowLabel: View, Content: View>: View {
         .frame(minHeight: 41)
     }
 }
-
-extension Text {
-    /// Code inside a sentence: monospaced, at the size of the surrounding text.
-    static func code(_ value: String) -> Text {
-        Text(verbatim: value).monospaced()
-    }
-}
