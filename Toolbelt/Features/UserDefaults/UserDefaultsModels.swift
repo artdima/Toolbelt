@@ -20,6 +20,10 @@ struct InstalledApp: Identifiable, Hashable {
     var preferencesPlistPath: String? {
         dataContainer.map { "\($0)/Library/Preferences/\(bundleID).plist" }
     }
+
+    var defaultsDomain: String {
+        preferencesPlistPath.map { ($0 as NSString).deletingPathExtension } ?? bundleID
+    }
 }
 
 enum UserDefaultsValue: Equatable {

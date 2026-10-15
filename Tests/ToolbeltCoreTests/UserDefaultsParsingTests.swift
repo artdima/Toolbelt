@@ -60,12 +60,17 @@ struct UserDefaultsParsingTests {
             counter.preferencesPlistPath
                 == "/Users/me/Library/Developer/CoreSimulator/Devices/AAA-111/data/Containers/Data/Application/5B7A Space/Library/Preferences/com.example.counter.plist"
         )
+        #expect(
+            counter.defaultsDomain
+                == "/Users/me/Library/Developer/CoreSimulator/Devices/AAA-111/data/Containers/Data/Application/5B7A Space/Library/Preferences/com.example.counter"
+        )
 
         let nameless = apps[0]
         #expect(nameless.name == "com.example.nameless")
         #expect(nameless.title == "com.example.nameless")
         #expect(nameless.dataContainer == nil)
         #expect(nameless.preferencesPlistPath == nil)
+        #expect(nameless.defaultsDomain == "com.example.nameless")
     }
 
     @Test("Garbage is not a list of apps")

@@ -55,10 +55,11 @@ struct UserDefaultsRunner: UserDefaultsControlling {
     func entries(of app: InstalledApp, on device: SimulatorDevice) async -> (entries: [UserDefaultsEntry], error: String?) {
         let exported = try? await Shell.run(
             ExecutablePath.xcrun,
-            ["simctl", "spawn", device.identifier, "defaults", "export", app.bundleID, "-"]
+            ["simctl", "spawn", device.identifier, "defaults", "export", app.defaultsDomain, "-"]
         )
         if let exported, exported.isSuccess,
-           let entries = UserDefaultsParsing.entries(fromPlist: Data(exported.standardOutput.utf8)) {
+           let entries = UserDefaultsParsing.entries(fromPlist: Data(exported.standardOutput.utf8)),
+           !entries.isEmpty {
             return (entries, nil)
         }
 
@@ -86,11 +87,11 @@ struct UserDefaultsRunner: UserDefaultsControlling {
                 isSuccess: false
             )
         }
-        return await execute(["simctl", "spawn", device.identifier, "defaults", "write", app.bundleID, key] + typed)
+        return await execute(["simctl", "spawn", device.identifier, "defaults", "write", app.defaultsDomain, key] + typed)
     }
 
     func delete(key: String, of app: InstalledApp, on device: SimulatorDevice) async -> UserDefaultsActionResult {
-        await execute(["simctl", "spawn", device.identifier, "defaults", "delete", app.bundleID, key])
+        await execute(["simctl", "spawn", device.identifier, "defaults", "delete", app.defaultsDomain, key])
     }
 
     /// Selects the plist in Finder, or opens the Preferences folder while there is no plist yet.
