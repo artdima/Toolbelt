@@ -11,21 +11,30 @@ struct MenuBarView: View {
     @State private var model = MenuBarViewModel()
     @State private var isConfirmingDerivedDataCleanup = false
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
-    ]
-
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 0) {
             header
-            profiles
+            PanelDivider()
+            gitProfiles
             tools
+            PanelDivider()
+                .padding(.vertical, 6)
+            PanelRow(
+                title: "Delete Derived Data…",
+                systemImage: "trash",
+                role: .destructive,
+                isBusy: model.isWorking
+            ) {
+                isConfirmingDerivedDataCleanup = true
+            }
+            .disabled(model.isWorking)
+            PanelDivider()
+                .padding(.vertical, 6)
             footer
         }
-        .padding(16)
-        .frame(width: 330)
-        .environment(\.colorScheme, .dark)
+        .padding(.horizontal, 8)
+        .padding(.bottom, 6)
+        .frame(width: 340)
         .background(MenuBarPanelReader().frame(width: 0, height: 0))
         .task {
             await model.refreshActiveProfile()
@@ -47,128 +56,95 @@ struct MenuBarView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "arrow.triangle.branch")
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.78))
+        HStack(spacing: 10) {
+            Image(.toolbeltMark)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 28, height: 28)
             Text("Toolbelt")
-                .font(.system(size: 15, weight: .semibold))
-            Spacer()
-            Button {
-                AppWindows.settings()
-            } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
+            Spacer(minLength: 12)
+            if !model.status.isEmpty {
+                Text(model.status)
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .help(model.status)
+                    .transition(.opacity)
             }
-            .buttonStyle(.plain)
-            .help("Settings")
         }
+        .padding(.horizontal, 9)
+        .padding(.top, 15)
+        .padding(.bottom, 10)
+    }
+
+    private var gitProfiles: some View {
+        PanelSection("Git profile", id: "git-profile") {
+            if model.profiles.isEmpty {
+                PanelRow(title: "Add a Git profile…", systemImage: "plus", role: .prominent) {
+                    AppWindows.settings(tab: .profiles)
+                }
+            } else {
+                ForEach(model.profiles) { profile in
+                    profileRow(profile)
+                }
+            }
+        }
+    }
+
+    private func profileRow(_ profile: GitProfile) -> some View {
+        let isActive = model.activeProfileID == profile.id
+
+        return PanelRow(
+            title: profile.title,
+            systemImage: isActive ? "checkmark" : "person",
+            role: isActive ? .prominent : .standard,
+            detail: profile.email
+        ) {
+            Task { await model.apply(profile) }
+        }
+        .accessibilityAddTraits(isActive ? .isSelected : [])
     }
 
     @ViewBuilder
-    private var profiles: some View {
-        if model.profiles.isEmpty {
-            ToolButton(title: "Add a Git profile", systemImage: "person.crop.circle.badge.plus") {
-                AppWindows.settings(tab: .profiles)
-            }
-        } else {
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(model.profiles) { profile in
-                    Button {
-                        Task { await model.apply(profile) }
-                    } label: {
-                        profileCard(profile)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private func profileCard(_ profile: GitProfile) -> some View {
-        let isActive = model.activeProfileID == profile.id
-
-        return VStack(alignment: .leading, spacing: 6) {
-            Text(profile.title)
-                .font(.system(size: 14, weight: .semibold))
-                .lineLimit(1)
-            Text(profile.email)
-                .font(.system(size: 11))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .foregroundStyle(isActive ? .white.opacity(0.72) : .secondary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 12)
-        .padding(.horizontal, 14)
-        .background(isActive ? Color.accentColor.opacity(0.88) : Color.white.opacity(0.07))
-        .foregroundStyle(isActive ? Color.white : Color.primary)
-        .overlay {
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-    }
-
     private var tools: some View {
-        VStack(spacing: 8) {
-            ToolGroup(title: "Yandex Tracker", systemImage: "checklist") {
-                ToolButton(title: "Weekly Report", systemImage: "chart.bar.doc.horizontal") {
-                    AppWindows.weeklyReport()
-                }
-                ToolButton(title: "My Issues", systemImage: "square.grid.3x2") {
-                    AppWindows.issuesBoard()
-                }
+        PanelSection("Yandex Tracker", id: "tracker") {
+            PanelRow(title: "Weekly Report", systemImage: "doc.plaintext") {
+                AppWindows.weeklyReport()
             }
-            ToolButton(title: "Simulators", systemImage: "iphone") {
+            PanelRow(title: "My Issues", systemImage: "square.grid.2x2") {
+                AppWindows.issuesBoard()
+            }
+        }
+        PanelSection("Xcode", id: "xcode") {
+            PanelRow(title: "Simulators", systemImage: "iphone") {
                 AppWindows.simulators()
             }
-            ToolButton(title: "Deep Link", systemImage: "link") {
+            PanelRow(title: "Deep Link", systemImage: "link") {
                 AppWindows.deepLink()
             }
-            ToolButton(title: "User Defaults", systemImage: "list.bullet.rectangle") {
+            PanelRow(title: "User Defaults", systemImage: "list.bullet.rectangle") {
                 AppWindows.userDefaults()
             }
-            ToolButton(title: "HTTP Request", systemImage: "network") {
+        }
+        PanelSection("Utilities", id: "utilities") {
+            PanelRow(title: "HTTP Request", systemImage: "globe") {
                 AppWindows.httpRequest()
             }
-            ToolButton(title: "Release Notes", systemImage: "doc.text") {
+            PanelRow(title: "Release Notes", systemImage: "doc.text") {
                 AppWindows.releaseNotes()
             }
-            ToolButton(title: "Delete Derived Data", systemImage: "trash", isDestructive: true) {
-                isConfirmingDerivedDataCleanup = true
-            }
-            .disabled(model.isWorking)
         }
     }
 
     private var footer: some View {
-        HStack(alignment: .bottom, spacing: 10) {
-            if model.status.isEmpty {
-                Spacer(minLength: 0)
-            } else {
-                Text(model.status)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.white.opacity(0.62))
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .transition(.opacity)
+        HStack(spacing: 6) {
+            PanelCommand(title: "Settings…", key: ",") {
+                AppWindows.settings()
             }
-
-            Button {
+            PanelCommand(title: "Quit Toolbelt", key: "q") {
                 NSApplication.shared.terminate(nil)
-            } label: {
-                Image(systemName: "power")
-                    .font(.system(size: 12, weight: .semibold))
-                    .frame(width: 28, height: 28)
-                    .background(Color.white.opacity(0.07))
-                    .foregroundStyle(.secondary)
-                    .overlay { Circle().strokeBorder(Color.white.opacity(0.08), lineWidth: 1) }
-                    .clipShape(Circle())
             }
-            .buttonStyle(.plain)
-            .help("Quit Toolbelt")
         }
     }
 }
