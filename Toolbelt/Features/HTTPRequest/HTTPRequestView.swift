@@ -11,19 +11,21 @@ struct HTTPRequestView: View {
     @State private var model = HTTPRequestViewModel()
 
     var body: some View {
-        HSplitView {
-            historySidebar
-                .frame(minWidth: 180, idealWidth: 220, maxWidth: 340)
-
+        NavigationSplitView {
+            sidebar
+                .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 360)
+        } detail: {
             VSplitView {
                 requestPane
-                    .frame(minHeight: 300, idealHeight: 380)
-                responsePane
-                    .frame(minHeight: 180, idealHeight: 300)
+                    .frame(minHeight: 230, idealHeight: 290)
+                HTTPResponsePane(model: model)
+                    .frame(minHeight: 200)
             }
-            .frame(minWidth: 500, maxWidth: .infinity)
+            .navigationTitle("HTTP Request")
+            .toolbar { copyToolbar }
         }
-        .frame(minWidth: 720, minHeight: 560)
+        .toolbar(removing: .sidebarToggle)
+        .frame(minWidth: 760, minHeight: 520)
         .onChange(of: model.curlText) { _, _ in
             model.parseCurl()
         }
@@ -32,100 +34,170 @@ struct HTTPRequestView: View {
         }
     }
 
+    @ToolbarContentBuilder
+    private var copyToolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                copyToPasteboard(model.curlCommand)
+            } label: {
+                Label("Copy as cURL", systemImage: "doc.on.doc")
+            }
+            .labelStyle(.titleAndIcon)
+            .disabled(model.draft.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .help("Copy the request as a curl command")
+        }
+    }
+
+    // MARK: History
+
+    private var sidebar: some View {
+        List(selection: historySelection) {
+            Section {
+                ForEach(model.history.sorted) { entry in
+                    historyRow(entry)
+                        .tag(entry.id)
+                }
+            } header: {
+                HStack {
+                    Text("History")
+                    Spacer()
+                    if model.history.hasUnpinned {
+                        Button("Clear") {
+                            model.clearHistory()
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .help("Remove every request that is not pinned")
+                    }
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .overlay {
+            if model.history.entries.isEmpty {
+                Text("Requests you send will be kept here")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(20)
+            }
+        }
+    }
+
+    private var historySelection: Binding<HTTPRequestEntry.ID?> {
+        Binding(
+            get: { model.selectedHistoryID },
+            set: { id in
+                guard let id, let entry = model.history.entries.first(where: { $0.id == id }) else { return }
+                model.load(entry)
+            }
+        )
+    }
+
+    private func historyRow(_ entry: HTTPRequestEntry) -> some View {
+        HStack(spacing: 10) {
+            Text(entry.draft.method)
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .foregroundStyle(methodColor(entry.draft.method))
+                .frame(width: 52, alignment: .leading)
+
+            Text("\(Text(entry.draft.displayHost).foregroundStyle(.secondary))\(Text(entry.draft.displayPath))")
+                .font(.system(size: 14))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if entry.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 9))
+                    .foregroundStyle(.orange)
+            }
+        }
+        .padding(.vertical, 4)
+        .help(entry.draft.url)
+        .contextMenu {
+            Button(entry.isPinned ? "Unpin" : "Pin") { model.history.togglePin(entry) }
+            Button("Copy as cURL") { copyToPasteboard(CurlBuilder.command(for: entry.draft)) }
+            Divider()
+            Button("Remove", role: .destructive) { model.history.remove(entry) }
+        }
+    }
+
     // MARK: Request
 
     private var requestPane: some View {
         VStack(alignment: .leading, spacing: 12) {
-            curlSection
             requestLine
-            requestTabs
 
-            switch model.requestTab {
-            case .headers: headersEditor
-            case .body: bodyEditor
+            Picker("Request", selection: $model.requestTab) {
+                Text(model.headersTabTitle).tag(HTTPRequestViewModel.RequestTab.headers)
+                Text(model.bodyTabTitle).tag(HTTPRequestViewModel.RequestTab.body)
+                Text("cURL").tag(HTTPRequestViewModel.RequestTab.curl)
             }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .controlSize(.large)
+            .fixedSize()
 
-    private var curlSection: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack {
-                Text("cURL")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                if !model.curlText.isEmpty {
-                    Button("Clear") { model.clearCurl() }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.secondary)
+            Group {
+                switch model.requestTab {
+                case .headers: headersEditor
+                case .body: bodyEditor
+                case .curl: curlEditor
                 }
             }
-
-            ZStack(alignment: .topLeading) {
-                TextEditor(text: $model.curlText)
-                    .font(.system(size: 12, design: .monospaced))
-                    .scrollContentBackground(.hidden)
-                    .padding(4)
-                if model.curlText.isEmpty {
-                    Text("Paste a curl command — the form below follows it as you type")
-                        .font(.system(size: 12, design: .monospaced))
-                        .foregroundStyle(.tertiary)
-                        .padding(.top, 4)
-                        .padding(.leading, 9)
-                        .allowsHitTesting(false)
-                }
-            }
-            .frame(height: 84)
-            .editorChrome()
-
-            if let error = model.parseError {
-                Text("⚠ \(error)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.red)
-            }
-            ForEach(Array(model.warnings.enumerated()), id: \.offset) { _, warning in
-                Text("⚠ \(warning)")
-                    .font(.system(size: 10))
-                    .foregroundStyle(.orange)
-            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .padding(.horizontal, 19)
+        .padding(.top, 4)
+        .padding(.bottom, 16)
     }
 
     private var requestLine: some View {
-        HStack(spacing: 8) {
-            Picker("", selection: $model.draft.method) {
+        HStack(spacing: 0) {
+            methodMenu
+                .padding(.horizontal, 14)
+
+            Divider()
+                .frame(height: 20)
+
+            TextField("https://api.example.com/v1/users", text: $model.draft.url)
+                .textFieldStyle(.plain)
+                .font(.system(size: 14, design: .monospaced))
+                .padding(.horizontal, 12)
+                .onSubmit { Task { await model.send() } }
+
+            sendControls
+                .padding(.trailing, 5)
+        }
+        .frame(height: 38)
+        .card()
+    }
+
+    private var methodMenu: some View {
+        Menu {
+            Picker("Method", selection: $model.draft.method) {
                 ForEach(methodOptions, id: \.self) { method in
                     Text(method).tag(method)
                 }
             }
+            .pickerStyle(.inline)
             .labelsHidden()
-            .fixedSize()
-
-            TextField("https://api.example.com/v1/users", text: $model.draft.url)
-                .textFieldStyle(.roundedBorder)
-                .font(.system(size: 13, design: .monospaced))
-                .onSubmit { Task { await model.send() } }
-
-            if model.isSending {
-                ProgressView().controlSize(.small)
-
-                Button("Cancel") {
-                    model.cancelSend()
-                }
-                .keyboardShortcut(".", modifiers: .command)
-                .help("Stop the request (⌘.)")
-            } else {
-                Button("Send") {
-                    Task { await model.send() }
-                }
-                .keyboardShortcut(.return, modifiers: .command)
-                .disabled(!model.canSend)
-                .help("Send the request (⌘↩)")
+        } label: {
+            HStack(spacing: 6) {
+                Text(model.draft.method)
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .foregroundStyle(methodColor(model.draft.method))
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
             }
+            .contentShape(Rectangle())
         }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
     }
 
     /// A parsed command may carry a method that is not in the list; it is shown too.
@@ -137,340 +209,190 @@ struct HTTPRequestView: View {
         return HTTPMethod.common + [method]
     }
 
-    private var requestTabs: some View {
-        HStack(spacing: 8) {
-            Picker("", selection: $model.requestTab) {
-                Text(model.headersTabTitle).tag(HTTPRequestViewModel.RequestTab.headers)
-                Text(model.bodyTabTitle).tag(HTTPRequestViewModel.RequestTab.body)
+    @ViewBuilder
+    private var sendControls: some View {
+        if model.isSending {
+            HStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Button("Cancel") {
+                    model.cancelSend()
+                }
+                .buttonBorderShape(.capsule)
+                .controlSize(.large)
+                .keyboardShortcut(".", modifiers: .command)
+                .help("Stop the request (⌘.)")
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.small)
-            .fixedSize()
-
-            Spacer()
-
+        } else {
             Button {
-                copy(model.curlCommand)
+                Task { await model.send() }
             } label: {
-                Label("Copy as cURL", systemImage: "doc.on.doc")
+                Text("Send")
+                    .font(.system(size: 14, weight: .semibold))
+                    .padding(.horizontal, 8)
             }
-            .controlSize(.small)
-            .disabled(model.draft.url.isEmpty)
-            .help("Copy the request as a curl command")
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
+            .keyboardShortcut(.return, modifiers: .command)
+            .disabled(!model.canSend)
+            .help("Send the request (⌘↩)")
         }
     }
 
     private var headersEditor: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             if model.draft.headers.isEmpty {
                 Text("No headers")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 12)
+                Spacer(minLength: 0)
             } else {
                 ScrollView {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 0) {
                         ForEach($model.draft.headers) { $header in
+                            if header.id != model.draft.headers.first?.id {
+                                Divider()
+                            }
                             headerRow($header)
                         }
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
             Button {
                 model.addHeader()
             } label: {
-                Label("Add header", systemImage: "plus")
+                Label {
+                    Text("Add Header")
+                } icon: {
+                    Image(systemName: "plus")
+                        .foregroundStyle(Color.accentColor)
+                }
             }
             .buttonStyle(.plain)
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
+            .font(.system(size: 14))
+            .padding(12)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .card()
     }
 
     private func headerRow(_ header: Binding<HTTPHeader>) -> some View {
-        HStack(spacing: 6) {
-            Toggle("", isOn: header.isEnabled)
+        HStack(spacing: 10) {
+            Toggle("Send this header", isOn: header.isEnabled)
                 .toggleStyle(.checkbox)
                 .labelsHidden()
                 .help(header.wrappedValue.isEnabled ? "Sent" : "Not sent")
 
             TextField("Name", text: header.name)
-                .textFieldStyle(.roundedBorder)
-                .font(.system(size: 12, design: .monospaced))
+                .textFieldStyle(.plain)
+                .font(.system(size: 13, weight: .medium, design: .monospaced))
                 .frame(width: 200)
 
             TextField("Value", text: header.value)
-                .textFieldStyle(.roundedBorder)
-                .font(.system(size: 12, design: .monospaced))
+                .textFieldStyle(.plain)
+                .font(.system(size: 13, design: .monospaced))
+                .foregroundStyle(.secondary)
 
             Button {
                 model.removeHeader(id: header.wrappedValue.id)
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 10))
+                    .font(.system(size: 10, weight: .semibold))
             }
-            .buttonStyle(.plain)
-            .foregroundStyle(.tertiary)
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
             .help("Remove header")
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .opacity(header.wrappedValue.isEnabled ? 1 : 0.55)
     }
 
     private var bodyEditor: some View {
         VStack(alignment: .leading, spacing: 6) {
-            TextEditor(text: $model.draft.body)
-                .font(.system(size: 12, design: .monospaced))
-                .scrollContentBackground(.hidden)
-                .padding(4)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .editorChrome()
+            codeEditor(text: $model.draft.body, placeholder: "Request body")
 
             if !model.draft.body.isEmpty, !model.draft.hasHeader(named: "Content-Type") {
-                Text("No Content-Type header — the server will have to guess")
-                    .font(.system(size: 10))
+                Text("No \(Text.code("Content-Type")) header — the server will have to guess")
+                    .font(.system(size: 12))
                     .foregroundStyle(.orange)
+                    .padding(.horizontal, 3)
             }
         }
     }
 
-    // MARK: Response
-
-    private var responsePane: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if let error = model.sendError {
-                ErrorBanner(text: error)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-            } else if model.wasCancelled {
-                Label(
-                    model.response == nil ? "Request cancelled" : "Request cancelled — showing the previous response",
-                    systemImage: "xmark.circle"
-                )
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
-            }
-
-            if let response = model.response {
-                statusLine(response)
-
-                switch model.responseTab {
-                case .body: responseBody
-                case .headers: responseHeaders(response)
-                }
-            } else if model.isSending {
-                LoadingState(text: "Sending…")
-            } else if model.sendError == nil {
-                EmptyState(systemImage: "arrow.down.circle", text: "Send a request to see the response here")
-            }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-    }
-
-    private func statusLine(_ response: HTTPResponseSummary) -> some View {
-        HStack(spacing: 8) {
-            Text(String(response.statusCode))
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 7)
-                .padding(.vertical, 2)
-                .background(statusColor(response.statusClass))
-                .clipShape(RoundedRectangle(cornerRadius: 5))
-
-            Text(response.statusText)
-                .font(.system(size: 12, weight: .medium))
-
-            Text(DurationFormatter.milliseconds(response.duration))
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-
-            Text(ByteFormatter.short(response.body.count))
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-
-            Spacer()
-
-            if model.responseTab == .body {
-                Toggle("Pretty", isOn: $model.isPrettyPrinted)
-                    .toggleStyle(.checkbox)
-                    .font(.system(size: 11))
-                    .disabled(!model.canPrettyPrint)
-
-                CopyButton(value: model.displayedBody ?? "", help: "Copy body")
-            }
-
-            Picker("", selection: $model.responseTab) {
-                ForEach(HTTPRequestViewModel.ResponseTab.allCases) { tab in
-                    Text(tab.rawValue).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.small)
-            .fixedSize()
-        }
-    }
-
-    @ViewBuilder
-    private var responseBody: some View {
-        if let body = model.displayedBody {
-            if body.isEmpty {
-                EmptyState(systemImage: "doc", text: "Empty body")
-            } else {
-                VStack(alignment: .leading, spacing: 4) {
-                    TextEditor(text: .constant(body))
-                        .font(.system(size: 11, design: .monospaced))
-                        .scrollContentBackground(.hidden)
-                        .padding(4)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .editorChrome()
-
-                    if model.isBodyTruncated {
-                        Text("Showing the first \(ByteFormatter.short(HTTPRequestViewModel.bodyDisplayLimit)) of \(ByteFormatter.short(model.response?.body.count ?? 0))")
-                            .font(.system(size: 10))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        } else {
-            EmptyState(
-                systemImage: "doc.zipper",
-                text: "Binary body, \(ByteFormatter.short(model.response?.body.count ?? 0))"
-            )
-        }
-    }
-
-    private func responseHeaders(_ response: HTTPResponseSummary) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(Array(response.headers.enumerated()), id: \.element.id) { index, header in
-                    if index > 0 { Divider() }
-                    HStack(alignment: .top, spacing: 8) {
-                        Text(header.name)
-                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                            .frame(width: 200, alignment: .leading)
-                        Text(header.value)
-                            .font(.system(size: 11, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.vertical, 5)
-                    .padding(.horizontal, 10)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .editorChrome()
-    }
-
-    // MARK: History
-
-    private var historySidebar: some View {
+    private var curlEditor: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("History")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 14)
-                .padding(.top, 14)
-
-            if model.history.entries.isEmpty {
-                Text("Requests you send will be kept here")
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 14)
-            } else {
-                ScrollView {
-                    VStack(spacing: 2) {
-                        ForEach(model.history.sorted) { entry in
-                            historyRow(entry)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
+            codeEditor(
+                text: $model.curlText,
+                placeholder: "Paste a curl command — the request follows it as you type"
+            )
+            .overlay(alignment: .topTrailing) {
+                if !model.curlText.isEmpty {
+                    Button("Clear") { model.clearCurl() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                        .padding(10)
                 }
             }
+
+            if let error = model.parseError {
+                Text(error)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.red)
+                    .padding(.horizontal, 3)
+            }
+            ForEach(Array(model.warnings.enumerated()), id: \.offset) { _, warning in
+                Text(warning)
+                    .font(.system(size: 12))
+                    .foregroundStyle(.orange)
+                    .padding(.horizontal, 3)
+            }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color.primary.opacity(0.03))
     }
 
-    private func historyRow(_ entry: HTTPRequestEntry) -> some View {
-        Button {
-            model.load(entry)
-        } label: {
-            HStack(spacing: 6) {
-                Text(entry.draft.method)
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .foregroundStyle(methodColor(entry.draft.method))
-                    .frame(width: 44, alignment: .leading)
-                Text(entry.draft.displayURL)
-                    .font(.system(size: 11))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if entry.isPinned {
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(Color.yellow)
+    private func codeEditor(text: Binding<String>, placeholder: String) -> some View {
+        TextEditor(text: text)
+            .font(.system(size: 13, design: .monospaced))
+            .scrollContentBackground(.hidden)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 10)
+            .overlay(alignment: .topLeading) {
+                if text.wrappedValue.isEmpty {
+                    Text(placeholder)
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundStyle(.tertiary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .allowsHitTesting(false)
                 }
             }
-            .padding(.vertical, 5)
-            .padding(.horizontal, 6)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .background(Color.primary.opacity(0.03))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .help(entry.draft.url)
-        .contextMenu {
-            Button(entry.isPinned ? "Unpin" : "Pin") { model.history.togglePin(entry) }
-            Button("Copy as cURL") { copy(CurlBuilder.command(for: entry.draft)) }
-            Divider()
-            Button("Remove", role: .destructive) { model.history.remove(entry) }
-        }
-    }
-
-    // MARK: Helpers
-
-    private func statusColor(_ statusClass: HTTPResponseSummary.StatusClass) -> Color {
-        switch statusClass {
-        case .success: return .green
-        case .redirect: return .blue
-        case .clientError: return .orange
-        case .serverError: return .red
-        case .other: return .gray
-        }
-    }
-
-    private func methodColor(_ method: String) -> Color {
-        switch method {
-        case "GET": return .green
-        case "POST": return .orange
-        case "PUT": return .blue
-        case "PATCH": return .purple
-        case "DELETE": return .red
-        default: return .secondary
-        }
-    }
-
-    private func copy(_ value: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(value, forType: .string)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .card()
     }
 }
 
-private extension View {
-    func editorChrome() -> some View {
-        background(Color.primary.opacity(0.04))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-            }
+// MARK: - Helpers
+
+private func methodColor(_ method: String) -> Color {
+    switch method {
+    case "GET": .green
+    case "POST": .orange
+    case "PUT": .blue
+    case "PATCH": .purple
+    case "DELETE": .red
+    default: .secondary
     }
+}
+
+private func copyToPasteboard(_ value: String) {
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(value, forType: .string)
 }
 
 #Preview {

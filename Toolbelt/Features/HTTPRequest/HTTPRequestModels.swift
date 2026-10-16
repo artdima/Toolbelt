@@ -44,6 +44,17 @@ struct HTTPRequestDraft: Codable, Equatable {
         guard let range = trimmed.range(of: "://") else { return trimmed }
         return String(trimmed[range.upperBound...])
     }
+
+    /// The host apart from the rest, so a list can dim it: "httpbin.org" and "/status/400".
+    var displayHost: String {
+        let display = displayURL
+        guard let end = display.firstIndex(where: { $0 == "/" || $0 == "?" }) else { return display }
+        return String(display[..<end])
+    }
+
+    var displayPath: String {
+        String(displayURL.dropFirst(displayHost.count))
+    }
 }
 
 struct HTTPRequestEntry: Identifiable, Codable, Equatable {

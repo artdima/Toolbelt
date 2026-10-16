@@ -10,7 +10,7 @@ import SwiftUI
 @MainActor
 final class HTTPRequestViewModel {
     enum RequestTab: String, CaseIterable, Identifiable {
-        case headers, body
+        case headers, body, curl
         var id: String { rawValue }
     }
 
@@ -41,6 +41,8 @@ final class HTTPRequestViewModel {
     private(set) var sendError: String?
     private(set) var isSending = false
     private(set) var wasCancelled = false
+    /// The history entry the form came from or was last sent as.
+    private(set) var selectedHistoryID: HTTPRequestEntry.ID?
 
     private var sendTask: Task<Void, Never>?
 
@@ -133,7 +135,7 @@ final class HTTPRequestViewModel {
             // The response may land right after Cancel was pressed; it is dropped all the same.
             try Task.checkCancellation()
             present(received)
-            history.record(request)
+            selectedHistoryID = history.record(request)
         } catch is CancellationError {
             wasCancelled = true
         } catch let error as URLError where error.code == .cancelled {
@@ -149,6 +151,14 @@ final class HTTPRequestViewModel {
     func load(_ entry: HTTPRequestEntry) {
         clearCurl()
         draft = entry.draft
+        selectedHistoryID = entry.id
+    }
+
+    func clearHistory() {
+        history.clearUnpinned()
+        if let id = selectedHistoryID, !history.entries.contains(where: { $0.id == id }) {
+            selectedHistoryID = nil
+        }
     }
 
     func addHeader() {

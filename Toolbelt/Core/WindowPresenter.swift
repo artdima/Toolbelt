@@ -17,6 +17,8 @@ struct WindowConfiguration {
     /// still gets the tall unified one its layout is designed around. SwiftUI is left out of
     /// it on purpose, so it has no toolbar of its own to replace this one with.
     var usesEmptyToolbar = false
+    /// Lets a sidebar run the full height of the window, under the title bar.
+    var usesFullSizeContent = false
 
     var autosaveName: NSWindow.FrameAutosaveName { "window.\(id)" }
 }
@@ -63,6 +65,9 @@ enum WindowPresenter {
         window.styleMask = configuration.isResizable
             ? [.titled, .closable, .miniaturizable, .resizable]
             : [.titled, .closable, .miniaturizable]
+        if configuration.usesFullSizeContent {
+            window.styleMask.insert(.fullSizeContentView)
+        }
         window.isReleasedWhenClosed = false
         if let toolbarStyle = configuration.toolbarStyle {
             window.toolbarStyle = toolbarStyle

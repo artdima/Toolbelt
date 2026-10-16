@@ -86,3 +86,34 @@ struct HTTPResponseSummaryTests {
         #expect(DurationFormatter.milliseconds(1.34) == "1.3 s")
     }
 }
+
+@Suite("Request display")
+struct HTTPRequestDisplayTests {
+    private func draft(_ url: String) -> HTTPRequestDraft {
+        HTTPRequestDraft(url: url)
+    }
+
+    @Test("The host and the path are split apart")
+    func hostAndPath() {
+        let request = draft("https://httpbin.org/status/400")
+
+        #expect(request.displayHost == "httpbin.org")
+        #expect(request.displayPath == "/status/400")
+    }
+
+    @Test("A query right after the host belongs to the path")
+    func queryAfterHost() {
+        let request = draft("https://example.com?ref=push")
+
+        #expect(request.displayHost == "example.com")
+        #expect(request.displayPath == "?ref=push")
+    }
+
+    @Test("A bare host has no path")
+    func bareHost() {
+        let request = draft("httpbin.org")
+
+        #expect(request.displayHost == "httpbin.org")
+        #expect(request.displayPath.isEmpty)
+    }
+}

@@ -48,7 +48,9 @@ extension WindowConfiguration {
     static let httpRequest = WindowConfiguration(
         id: "http-request",
         title: "HTTP Request",
-        size: NSSize(width: 900, height: 700)
+        size: NSSize(width: 940, height: 590),
+        toolbarStyle: .unified,
+        usesFullSizeContent: true
     )
     static let settings = WindowConfiguration(
         id: "settings",

@@ -29,14 +29,15 @@ final class HTTPRequestHistoryStore {
         entries.filter(\.isPinned) + entries.filter { !$0.isPinned }
     }
 
-    func record(_ draft: HTTPRequestDraft) {
+    /// Returns the id of the entry, new or moved to the top, so the sidebar can select it.
+    @discardableResult
+    func record(_ draft: HTTPRequestDraft) -> HTTPRequestEntry.ID {
         var updated = entries
+        var entry = HTTPRequestEntry(draft: draft)
         if let index = updated.firstIndex(where: { $0.draft == draft }) {
-            let existing = updated.remove(at: index)
-            updated.insert(existing, at: 0)
-        } else {
-            updated.insert(HTTPRequestEntry(draft: draft), at: 0)
+            entry = updated.remove(at: index)
         }
+        updated.insert(entry, at: 0)
 
         // The limit counts unpinned entries only: a star protects from eviction.
         var unpinned = 0
@@ -47,6 +48,7 @@ final class HTTPRequestHistoryStore {
         }
 
         apply(updated)
+        return entry.id
     }
 
     func togglePin(_ entry: HTTPRequestEntry) {
@@ -58,6 +60,15 @@ final class HTTPRequestHistoryStore {
 
     func remove(_ entry: HTTPRequestEntry) {
         apply(entries.filter { $0.id != entry.id })
+    }
+
+    /// Pinned requests stay: pinning is how a request is kept on purpose.
+    func clearUnpinned() {
+        apply(entries.filter(\.isPinned))
+    }
+
+    var hasUnpinned: Bool {
+        entries.contains { !$0.isPinned }
     }
 
     private func apply(_ newEntries: [HTTPRequestEntry]) {
