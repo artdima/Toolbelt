@@ -27,6 +27,9 @@ struct HTTPRequestView: View {
         .onChange(of: model.curlText) { _, _ in
             model.parseCurl()
         }
+        .onDisappear {
+            model.cancelSend()
+        }
     }
 
     // MARK: Request
@@ -108,14 +111,20 @@ struct HTTPRequestView: View {
 
             if model.isSending {
                 ProgressView().controlSize(.small)
-            }
 
-            Button("Send") {
-                Task { await model.send() }
+                Button("Cancel") {
+                    model.cancelSend()
+                }
+                .keyboardShortcut(".", modifiers: .command)
+                .help("Stop the request (⌘.)")
+            } else {
+                Button("Send") {
+                    Task { await model.send() }
+                }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(!model.canSend)
+                .help("Send the request (⌘↩)")
             }
-            .keyboardShortcut(.return, modifiers: .command)
-            .disabled(!model.canSend)
-            .help("Send the request (⌘↩)")
         }
     }
 
@@ -234,6 +243,13 @@ struct HTTPRequestView: View {
             if let error = model.sendError {
                 ErrorBanner(text: error)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
+            } else if model.wasCancelled {
+                Label(
+                    model.response == nil ? "Request cancelled" : "Request cancelled — showing the previous response",
+                    systemImage: "xmark.circle"
+                )
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
             }
 
             if let response = model.response {

@@ -40,6 +40,9 @@ final class HTTPRequestViewModel {
     private(set) var isBodyTruncated = false
     private(set) var sendError: String?
     private(set) var isSending = false
+    private(set) var wasCancelled = false
+
+    private var sendTask: Task<Void, Never>?
 
     convenience init() {
         self.init(client: URLSessionHTTPClient(), history: .shared)
@@ -106,12 +109,35 @@ final class HTTPRequestViewModel {
 
         isSending = true
         sendError = nil
-        defer { isSending = false }
+        wasCancelled = false
+        defer {
+            isSending = false
+            sendTask = nil
+        }
 
+        // A task of its own, so Cancel can stop it: URLSession drops the connection
+        // when the task awaiting it is cancelled.
+        let task = Task { await perform(request) }
+        sendTask = task
+        await task.value
+    }
+
+    /// The previous response stays on screen: the cancelled request never replaced it.
+    func cancelSend() {
+        sendTask?.cancel()
+    }
+
+    private func perform(_ request: HTTPRequestDraft) async {
         do {
             let received = try await client.send(request)
+            // The response may land right after Cancel was pressed; it is dropped all the same.
+            try Task.checkCancellation()
             present(received)
             history.record(request)
+        } catch is CancellationError {
+            wasCancelled = true
+        } catch let error as URLError where error.code == .cancelled {
+            wasCancelled = true
         } catch {
             response = nil
             bodyText = nil
