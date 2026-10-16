@@ -23,6 +23,7 @@ struct HTTPRequestView: View {
             }
             .navigationTitle("HTTP Request")
             .toolbar { copyToolbar }
+            .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         }
         .toolbar(removing: .sidebarToggle)
         .frame(minWidth: 760, minHeight: 520)
@@ -37,12 +38,17 @@ struct HTTPRequestView: View {
     @ToolbarContentBuilder
     private var copyToolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
+            // A custom label: a Label in the toolbar gets its icon blown up to toolbar size.
             Button {
                 copyToPasteboard(model.curlCommand)
             } label: {
-                Label("Copy as cURL", systemImage: "doc.on.doc")
+                HStack(spacing: 6) {
+                    Image(systemName: "doc.on.doc")
+                        .font(.system(size: 12, weight: .medium))
+                    Text("Copy as cURL")
+                        .font(.system(size: 13))
+                }
             }
-            .labelStyle(.titleAndIcon)
             .disabled(model.draft.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             .help("Copy the request as a curl command")
         }
@@ -50,51 +56,75 @@ struct HTTPRequestView: View {
 
     // MARK: History
 
+    /// Plain rows rather than a selectable List: the system selection fills the row with
+    /// the accent color and turns the colored methods white.
     private var sidebar: some View {
-        List(selection: historySelection) {
-            Section {
-                ForEach(model.history.sorted) { entry in
-                    historyRow(entry)
-                        .tag(entry.id)
-                }
-            } header: {
-                HStack {
-                    Text("History")
-                    Spacer()
-                    if model.history.hasUnpinned {
-                        Button("Clear") {
-                            model.clearHistory()
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
-                        .help("Remove every request that is not pinned")
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("History")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                if model.history.hasUnpinned {
+                    Button("Clear") {
+                        model.clearHistory()
                     }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .help("Remove every request that is not pinned")
                 }
             }
-        }
-        .listStyle(.sidebar)
-        .overlay {
+            .padding(.horizontal, 17)
+            .padding(.top, 8)
+
             if model.history.entries.isEmpty {
                 Text("Requests you send will be kept here")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(20)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollView {
+                    VStack(spacing: 2) {
+                        ForEach(model.history.sorted) { entry in
+                            historyRow(entry)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 8)
+                }
+                .scrollBounceBehavior(.basedOnSize)
             }
         }
-    }
-
-    private var historySelection: Binding<HTTPRequestEntry.ID?> {
-        Binding(
-            get: { model.selectedHistoryID },
-            set: { id in
-                guard let id, let entry = model.history.entries.first(where: { $0.id == id }) else { return }
-                model.load(entry)
-            }
-        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     private func historyRow(_ entry: HTTPRequestEntry) -> some View {
+        let isSelected = model.selectedHistoryID == entry.id
+
+        return Button {
+            model.load(entry)
+        } label: {
+            historyRowLabel(entry)
+                .background(
+                    Color.accentColor.opacity(isSelected ? 0.25 : 0),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
+        }
+        .buttonStyle(PanelButtonStyle())
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .help(entry.draft.url)
+        .contextMenu {
+            Button(entry.isPinned ? "Unpin" : "Pin") { model.history.togglePin(entry) }
+            Button("Copy as cURL") { copyToPasteboard(CurlBuilder.command(for: entry.draft)) }
+            Divider()
+            Button("Remove", role: .destructive) { model.history.remove(entry) }
+        }
+    }
+
+    private func historyRowLabel(_ entry: HTTPRequestEntry) -> some View {
         HStack(spacing: 10) {
             Text(entry.draft.method)
                 .font(.system(size: 12, weight: .bold, design: .monospaced))
@@ -113,14 +143,9 @@ struct HTTPRequestView: View {
                     .foregroundStyle(.orange)
             }
         }
-        .padding(.vertical, 4)
-        .help(entry.draft.url)
-        .contextMenu {
-            Button(entry.isPinned ? "Unpin" : "Pin") { model.history.togglePin(entry) }
-            Button("Copy as cURL") { copyToPasteboard(CurlBuilder.command(for: entry.draft)) }
-            Divider()
-            Button("Remove", role: .destructive) { model.history.remove(entry) }
-        }
+        .padding(.horizontal, 10)
+        .frame(height: 31)
+        .contentShape(Rectangle())
     }
 
     // MARK: Request
@@ -129,15 +154,16 @@ struct HTTPRequestView: View {
         VStack(alignment: .leading, spacing: 12) {
             requestLine
 
-            Picker("Request", selection: $model.requestTab) {
-                Text(model.headersTabTitle).tag(HTTPRequestViewModel.RequestTab.headers)
-                Text(model.bodyTabTitle).tag(HTTPRequestViewModel.RequestTab.body)
-                Text("cURL").tag(HTTPRequestViewModel.RequestTab.curl)
+            PillPicker(
+                selection: $model.requestTab,
+                options: HTTPRequestViewModel.RequestTab.allCases
+            ) { tab in
+                switch tab {
+                case .headers: model.headersTabTitle
+                case .body: model.bodyTabTitle
+                case .curl: "cURL"
+                }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.large)
-            .fixedSize()
 
             Group {
                 switch model.requestTab {

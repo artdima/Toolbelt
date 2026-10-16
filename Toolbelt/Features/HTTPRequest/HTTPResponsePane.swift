@@ -99,15 +99,10 @@ struct HTTPResponsePane: View {
                 .help("Copy body")
             }
 
-            Picker("Response", selection: $model.responseTab) {
-                ForEach(HTTPRequestViewModel.ResponseTab.allCases) { tab in
-                    Text(tab.rawValue).tag(tab)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.large)
-            .fixedSize()
+            PillPicker(
+                selection: $model.responseTab,
+                options: HTTPRequestViewModel.ResponseTab.allCases
+            ) { $0.rawValue }
         }
     }
 

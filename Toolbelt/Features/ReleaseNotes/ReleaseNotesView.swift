@@ -38,10 +38,15 @@ struct ReleaseNotesView: View {
     @ToolbarContentBuilder
     private var repositoryToolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
+            // A custom label: a Label in the toolbar gets its icon blown up to toolbar size.
             Button(action: chooseRepository) {
-                Label("Choose…", systemImage: "folder")
+                HStack(spacing: 6) {
+                    Image(systemName: "folder")
+                        .font(.system(size: 12, weight: .medium))
+                    Text("Choose…")
+                        .font(.system(size: 13))
+                }
             }
-            .labelStyle(.titleAndIcon)
             .disabled(model.isGenerating)
             .help("Choose the repository")
         }
