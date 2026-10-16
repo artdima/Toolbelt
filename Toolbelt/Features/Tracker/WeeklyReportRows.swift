@@ -82,6 +82,7 @@ struct BreakdownRow<Title: View, Details: View>: View {
 
 struct ShareBar: View {
     let fraction: Double
+    var tint: Color = .accentColor
 
     var body: some View {
         GeometryReader { geometry in
@@ -89,7 +90,7 @@ struct ShareBar: View {
                 Capsule()
                     .fill(Color.primary.opacity(0.07))
                 Capsule()
-                    .fill(Color.accentColor)
+                    .fill(tint)
                     .frame(width: geometry.size.width * min(max(fraction, 0), 1))
             }
         }

@@ -42,7 +42,8 @@ extension WindowConfiguration {
     static let releaseNotes = WindowConfiguration(
         id: "release-notes",
         title: "Release Notes",
-        size: NSSize(width: 620, height: 680)
+        size: NSSize(width: 840, height: 550),
+        toolbarStyle: .unified
     )
     static let httpRequest = WindowConfiguration(
         id: "http-request",

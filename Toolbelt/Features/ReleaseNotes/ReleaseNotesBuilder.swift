@@ -87,6 +87,15 @@ enum ReleaseNotesBuilder {
             .filter { includeTechnical || !isTechnical($0) }
     }
 
+    /// The commits the window lists, in the order git returned them.
+    static func items(from subjects: [String], includeTechnical: Bool) -> [ReleaseCommitItem] {
+        subjects.enumerated().compactMap { index, subject in
+            let commit = parse(subject: subject)
+            guard includeTechnical || !isTechnical(commit) else { return nil }
+            return ReleaseCommitItem(id: index, subject: subject, commit: commit)
+        }
+    }
+
     static func draft(commits: [ReleaseCommit]) -> String {
         var grouped: [ReleaseSection: [String]] = [:]
         for commit in commits {

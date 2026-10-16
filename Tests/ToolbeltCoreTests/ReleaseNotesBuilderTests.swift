@@ -120,6 +120,15 @@ struct ReleaseNotesDraftTests {
         #expect(ReleaseNotesBuilder.draft(commits: commits) == "• Add thing")
     }
 
+    @Test("Listed commits keep their place in the range")
+    func listedCommitsKeepTheirPlace() {
+        let items = ReleaseNotesBuilder.items(from: subjects, includeTechnical: false)
+
+        #expect(items.map(\.id) == [0, 1, 3])
+        #expect(items.map(\.subject) == [subjects[0], subjects[1], subjects[3]])
+        #expect(ReleaseNotesBuilder.items(from: subjects, includeTechnical: true).count == 4)
+    }
+
     @Test("Order: breaking, new, fixes")
     func sectionOrderIsStable() {
         let commits = ReleaseNotesBuilder.commits(

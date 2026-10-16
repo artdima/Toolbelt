@@ -11,6 +11,14 @@ struct ReleaseCommit: Equatable {
     let summary: String
 }
 
+/// A commit as the list offers it. The id is its place in the range: two commits may
+/// share a subject.
+struct ReleaseCommitItem: Identifiable, Equatable {
+    let id: Int
+    let subject: String
+    let commit: ReleaseCommit
+}
+
 enum ReleaseSection: CaseIterable {
     case breaking
     case feature
