@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.2.0
+
+A new look for every window, in Light and Dark appearance alike.
+
+- **Menu bar panel.** Tools are grouped into sections that fold away, with
+  Settings… (⌘,) and Quit (⌘Q) at the bottom. It is readable in Light
+  appearance again: the panel used to force light text over a light
+  background. Delete Derived Data asks for confirmation inside the panel.
+- **Settings.** Sections switch from the toolbar, the way macOS settings do,
+  and changes are saved as you go — no Save buttons. Tool paths can be picked
+  in Finder.
+- **Weekly Report.** Hours per day as bars on an 8-hour scale; every issue
+  shows its share of the week.
+- **My Issues.** Search and the Resolved toggle moved to the toolbar; columns
+  are marked by stage, cards show the priority and the deadline.
+- **Tracker errors.** Weekly Report and My Issues explain what went wrong, with
+  Retry and the technical details to copy, instead of the raw response.
+- **Simulators.** An All / iPhone / iPad / Android filter; OS versions fold
+  away and stay folded.
+- **Deep Link.** The history remembers which device a link was opened on and
+  when, and opens it again in one click.
+- **User Defaults.** Works with the plist inside the app's own data container,
+  the one the app actually reads. Copy and Delete show up on hover.
+- **HTTP Request.** The history is a sidebar, a pasted `curl` command has a tab
+  of its own, and a request in flight can be cancelled with ⌘.
+- **Release Notes.** Commits are listed with checkboxes, and the draft is built
+  from the ticked ones only.
+
 ## 0.1.1
 
 - **The installer.** The DMG opens over a picture of its own: Toolbelt on the
