@@ -15,6 +15,7 @@ final class SimulatorsViewModel {
     private let controller: SimulatorControlling
 
     var search = ""
+    var filter: SimulatorFilter = .all
 
     private(set) var devices: [SimulatorDevice] = []
     private(set) var warning: String?
@@ -37,7 +38,7 @@ final class SimulatorsViewModel {
 
     var groups: [SimulatorGroup] {
         let query = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let groups = SimulatorGroup.grouped(devices)
+        let groups = SimulatorGroup.grouped(devices.filter(filter.includes))
         return query.isEmpty ? groups : groups.compactMap { $0.matching(query) }
     }
 

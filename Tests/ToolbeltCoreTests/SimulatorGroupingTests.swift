@@ -42,6 +42,20 @@ struct SimulatorGroupingTests {
         #expect(group.matching("pixel") == nil)
     }
 
+    @Test("Filters split iPhones, iPads and Android devices")
+    func filtersSplitDeviceKinds() {
+        let devices = [
+            device(.ios, "iPhone 17", "26.0"),
+            device(.ios, "iPad Air 11-inch (M3)", "26.0"),
+            device(.android, "Pixel 9", "API 36")
+        ]
+
+        #expect(devices.filter(SimulatorFilter.all.includes).count == 3)
+        #expect(devices.filter(SimulatorFilter.iPhone.includes).map(\.name) == ["iPhone 17"])
+        #expect(devices.filter(SimulatorFilter.iPad.includes).map(\.name) == ["iPad Air 11-inch (M3)"])
+        #expect(devices.filter(SimulatorFilter.android.includes).map(\.name) == ["Pixel 9"])
+    }
+
     private func device(_ platform: MobilePlatform, _ name: String, _ osVersion: String) -> SimulatorDevice {
         SimulatorDevice(
             platform: platform,

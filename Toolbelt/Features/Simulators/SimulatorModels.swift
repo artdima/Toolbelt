@@ -37,6 +37,38 @@ struct SimulatorDevice: Identifiable, Hashable {
     }
 }
 
+extension SimulatorDevice {
+    var isTablet: Bool { platform == .ios && name.contains("iPad") }
+}
+
+/// The kinds of devices the window can narrow the list to.
+enum SimulatorFilter: String, CaseIterable, Identifiable {
+    case all
+    case iPhone
+    case iPad
+    case android
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .all: "All"
+        case .iPhone: "iPhone"
+        case .iPad: "iPad"
+        case .android: "Android"
+        }
+    }
+
+    func includes(_ device: SimulatorDevice) -> Bool {
+        switch self {
+        case .all: true
+        case .iPhone: device.platform == .ios && !device.isTablet
+        case .iPad: device.isTablet
+        case .android: device.platform == .android
+        }
+    }
+}
+
 /// Devices of one platform on the same OS version, the way the window lists them.
 struct SimulatorGroup: Identifiable, Equatable {
     let platform: MobilePlatform

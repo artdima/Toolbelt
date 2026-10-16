@@ -24,7 +24,8 @@ extension WindowConfiguration {
     static let simulators = WindowConfiguration(
         id: "simulators",
         title: "Simulators",
-        size: NSSize(width: 560, height: 620)
+        size: NSSize(width: 560, height: 660),
+        toolbarStyle: .unified
     )
     static let deepLink = WindowConfiguration(
         id: "deep-link",
