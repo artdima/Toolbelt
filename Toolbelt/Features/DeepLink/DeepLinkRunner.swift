@@ -16,7 +16,9 @@ enum DeepLinkParsing {
                 DeepLinkTarget(
                     platform: .ios,
                     identifier: device.identifier,
-                    name: "\(device.name) · \(device.platform.title) \(device.osVersion)"
+                    name: device.name,
+                    detail: "\(device.platform.title) \(device.osVersion)"
+                        .trimmingCharacters(in: .whitespaces)
                 )
             }
     }
@@ -37,7 +39,8 @@ enum DeepLinkParsing {
                 return DeepLinkTarget(
                     platform: .android,
                     identifier: fields[0],
-                    name: model.map { "\($0) · \(fields[0])" } ?? fields[0]
+                    name: model ?? fields[0],
+                    detail: model == nil ? "" : fields[0]
                 )
             }
     }

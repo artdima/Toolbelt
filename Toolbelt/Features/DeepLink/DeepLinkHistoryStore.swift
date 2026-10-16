@@ -29,14 +29,15 @@ final class DeepLinkHistoryStore {
         entries.filter(\.isPinned) + entries.filter { !$0.isPinned }
     }
 
-    func record(_ url: String) {
+    func record(_ url: String, on deviceName: String, at date: Date = Date()) {
         var updated = entries
+        var entry = DeepLinkEntry(url: url)
         if let index = updated.firstIndex(where: { $0.url == url }) {
-            let existing = updated.remove(at: index)
-            updated.insert(existing, at: 0)
-        } else {
-            updated.insert(DeepLinkEntry(url: url), at: 0)
+            entry = updated.remove(at: index)
         }
+        entry.deviceName = deviceName
+        entry.openedAt = date
+        updated.insert(entry, at: 0)
 
         // The limit counts unpinned entries only: a star protects from eviction.
         var unpinned = 0
@@ -58,6 +59,15 @@ final class DeepLinkHistoryStore {
 
     func remove(_ entry: DeepLinkEntry) {
         apply(entries.filter { $0.id != entry.id })
+    }
+
+    /// Pinned links stay: pinning is how a link is kept on purpose.
+    func clearUnpinned() {
+        apply(entries.filter(\.isPinned))
+    }
+
+    var hasUnpinned: Bool {
+        entries.contains { !$0.isPinned }
     }
 
     private func apply(_ newEntries: [DeepLinkEntry]) {

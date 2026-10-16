@@ -66,6 +66,25 @@ enum DurationFormatter {
     }
 }
 
+enum RelativeTimeFormatter {
+    /// "Just now", "12 min ago", "3 h ago", "Yesterday", then "Sep 18".
+    static func short(
+        _ date: Date,
+        now: Date = Date(),
+        calendar: Calendar = AppFormatters.calendar
+    ) -> String {
+        let seconds = max(0, now.timeIntervalSince(date))
+        if seconds < 60 { return "Just now" }
+        if seconds < 3600 { return "\(Int(seconds / 60)) min ago" }
+        if calendar.isDate(date, inSameDayAs: now) { return "\(Int(seconds / 3600)) h ago" }
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: now),
+           calendar.isDate(date, inSameDayAs: yesterday) {
+            return "Yesterday"
+        }
+        return AppFormatters.shortDay.string(from: date)
+    }
+}
+
 enum ByteFormatter {
     /// Bytes to "512 B", "4.2 KB", "2.9 MB".
     static func short(_ count: Int) -> String {

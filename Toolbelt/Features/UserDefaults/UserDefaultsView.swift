@@ -134,18 +134,11 @@ struct UserDefaultsView: View {
     @ViewBuilder
     private var deviceLabel: some View {
         if let device = model.selectedDevice {
-            HStack(spacing: 14) {
-                Circle()
-                    .fill(device.state == .booted ? Color.green : Color.secondary)
-                    .frame(width: 8, height: 8)
-                Image(systemName: "iphone")
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    Text(device.name)
-                    Text(verbatim: "\(device.platform.title) \(device.osVersion)")
-                        .foregroundStyle(.secondary)
-                }
-            }
+            DeviceLabel(
+                name: device.name,
+                detail: "\(device.platform.title) \(device.osVersion)",
+                isRunning: device.state == .booted
+            )
         } else {
             Text(model.isLoadingDevices ? "Looking for simulators…" : "No booted simulators")
                 .foregroundStyle(.secondary)
@@ -326,32 +319,6 @@ struct UserDefaultsView: View {
         }
         .padding(12)
         .card()
-    }
-}
-
-/// A picker that looks like a field: the current choice and the up-down chevrons.
-private struct PickerCard<Content: View>: View {
-    private let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        HStack(spacing: 8) {
-            content
-                .lineLimit(1)
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
-        }
-        .font(.system(size: 14))
-        .padding(.leading, 12)
-        .padding(.trailing, 14)
-        .frame(height: 36)
-        .card(cornerRadius: 10)
-        .contentShape(Rectangle())
     }
 }
 

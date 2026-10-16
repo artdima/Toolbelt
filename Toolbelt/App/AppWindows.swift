@@ -29,7 +29,8 @@ extension WindowConfiguration {
     static let deepLink = WindowConfiguration(
         id: "deep-link",
         title: "Deep Link",
-        size: NSSize(width: 560, height: 560)
+        size: NSSize(width: 560, height: 550),
+        usesEmptyToolbar: true
     )
     static let userDefaults = WindowConfiguration(
         id: "user-defaults",

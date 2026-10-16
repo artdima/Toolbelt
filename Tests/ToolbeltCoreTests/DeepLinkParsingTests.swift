@@ -22,7 +22,9 @@ struct DeepLinkParsingTests {
         #expect(targets.count == 1)
         #expect(target.platform == .ios)
         #expect(target.identifier == "AAA-111")
-        #expect(target.name == "iPhone 16 Pro · iOS 18.0")
+        #expect(target.name == "iPhone 16 Pro")
+        #expect(target.detail == "iOS 18.0")
+        #expect(target.title == "iPhone 16 Pro · iOS 18.0")
     }
 
     @Test("Multiple runtimes come back in a predictable order")
@@ -61,7 +63,8 @@ struct DeepLinkParsingTests {
         #expect(targets.count == 1)
         #expect(target.platform == .android)
         #expect(target.identifier == "emulator-5554")
-        #expect(target.name == "sdk gphone64 arm64 · emulator-5554")
+        #expect(target.name == "sdk gphone64 arm64")
+        #expect(target.detail == "emulator-5554")
     }
 
     /// Only devices in the "device" state make the list.

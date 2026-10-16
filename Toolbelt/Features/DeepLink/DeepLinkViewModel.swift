@@ -70,7 +70,18 @@ final class DeepLinkViewModel {
         result = outcome
 
         if outcome.isSuccess {
-            history.record(link)
+            history.record(link, on: target.name)
         }
+    }
+
+    /// Opens a link from the history on the device picked now, not the one it was used on.
+    func reopen(_ entry: DeepLinkEntry) async {
+        url = entry.url
+        await open()
+    }
+
+    /// The result describes the link that was sent; once the field changes it is stale.
+    func clearResult() {
+        result = nil
     }
 }
