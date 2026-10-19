@@ -6,8 +6,39 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		7A1C00012FB000010000000A /* toolbelt-mcp in Embed MCP Helper */ = {isa = PBXBuildFile; fileRef = 7A1C00012FB0000100000001 /* toolbelt-mcp */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		7A1C00012FB0000100000011 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 7A1C00012FB000010000000F /* MCP */; };
+		7A1C00012FB0000100000012 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7A1C00012FB0000100000010 /* Logging */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7A1C00012FB000010000000B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 32D62D412FAE0163009FBCC6 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7A1C00012FB0000100000003;
+			remoteInfo = "toolbelt-mcp";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		7A1C00012FB0000100000009 /* Embed MCP Helper */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				7A1C00012FB000010000000A /* toolbelt-mcp in Embed MCP Helper */,
+			);
+			name = "Embed MCP Helper";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		32D62D492FAE0164009FBCC6 /* Toolbelt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Toolbelt.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A1C00012FB0000100000001 /* toolbelt-mcp */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "toolbelt-mcp"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -16,10 +47,24 @@
 			path = Toolbelt;
 			sourceTree = "<group>";
 		};
+		7A1C00012FB0000100000002 /* toolbelt-mcp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "toolbelt-mcp";
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		32D62D462FAE0163009FBCC6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7A1C00012FB0000100000011 /* MCP in Frameworks */,
+				7A1C00012FB0000100000012 /* Logging in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7A1C00012FB0000100000005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -33,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				32D62D4B2FAE0164009FBCC6 /* Toolbelt */,
+				7A1C00012FB0000100000002 /* toolbelt-mcp */,
 				32D62D4A2FAE0164009FBCC6 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +87,7 @@
 			isa = PBXGroup;
 			children = (
 				32D62D492FAE0164009FBCC6 /* Toolbelt.app */,
+				7A1C00012FB0000100000001 /* toolbelt-mcp */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,20 +102,45 @@
 				32D62D452FAE0163009FBCC6 /* Sources */,
 				32D62D462FAE0163009FBCC6 /* Frameworks */,
 				32D62D472FAE0163009FBCC6 /* Resources */,
+				7A1C00012FB0000100000009 /* Embed MCP Helper */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				7A1C00012FB000010000000C /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				32D62D4B2FAE0164009FBCC6 /* Toolbelt */,
 			);
 			name = Toolbelt;
 			packageProductDependencies = (
+				7A1C00012FB000010000000F /* MCP */,
+				7A1C00012FB0000100000010 /* Logging */,
 			);
 			productName = Toolbelt;
 			productReference = 32D62D492FAE0164009FBCC6 /* Toolbelt.app */;
 			productType = "com.apple.product-type.application";
+		};
+		7A1C00012FB0000100000003 /* toolbelt-mcp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7A1C00012FB0000100000008 /* Build configuration list for PBXNativeTarget "toolbelt-mcp" */;
+			buildPhases = (
+				7A1C00012FB0000100000004 /* Sources */,
+				7A1C00012FB0000100000005 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				7A1C00012FB0000100000002 /* toolbelt-mcp */,
+			);
+			name = "toolbelt-mcp";
+			packageProductDependencies = (
+			);
+			productName = "toolbelt-mcp";
+			productReference = 7A1C00012FB0000100000001 /* toolbelt-mcp */;
+			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
 
@@ -83,6 +155,9 @@
 					32D62D482FAE0163009FBCC6 = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
+					7A1C00012FB0000100000003 = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
 				};
 			};
 			buildConfigurationList = 32D62D442FAE0163009FBCC6 /* Build configuration list for PBXProject "Toolbelt" */;
@@ -94,12 +169,17 @@
 			);
 			mainGroup = 32D62D402FAE0163009FBCC6;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7A1C00012FB000010000000D /* XCRemoteSwiftPackageReference "swift-sdk" */,
+				7A1C00012FB000010000000E /* XCRemoteSwiftPackageReference "swift-log" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 32D62D4A2FAE0164009FBCC6 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				32D62D482FAE0163009FBCC6 /* Toolbelt */,
+				7A1C00012FB0000100000003 /* toolbelt-mcp */,
 			);
 		};
 /* End PBXProject section */
@@ -122,7 +202,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7A1C00012FB0000100000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7A1C00012FB000010000000C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7A1C00012FB0000100000003 /* toolbelt-mcp */;
+			targetProxy = 7A1C00012FB000010000000B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		32D62D522FAE0165009FBCC6 /* Debug */ = {
@@ -309,6 +404,32 @@
 			};
 			name = Release;
 		};
+		7A1C00012FB0000100000006 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8Q6S7RTHBY;
+				ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.artdima.Toolbelt.mcp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		7A1C00012FB0000100000007 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 8Q6S7RTHBY;
+				ENABLE_HARDENED_RUNTIME = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = app.artdima.Toolbelt.mcp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -330,7 +451,48 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		7A1C00012FB0000100000008 /* Build configuration list for PBXNativeTarget "toolbelt-mcp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A1C00012FB0000100000006 /* Debug */,
+				7A1C00012FB0000100000007 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7A1C00012FB000010000000D /* XCRemoteSwiftPackageReference "swift-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/modelcontextprotocol/swift-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.12.0;
+			};
+		};
+		7A1C00012FB000010000000E /* XCRemoteSwiftPackageReference "swift-log" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-log.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		7A1C00012FB000010000000F /* MCP */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A1C00012FB000010000000D /* XCRemoteSwiftPackageReference "swift-sdk" */;
+			productName = MCP;
+		};
+		7A1C00012FB0000100000010 /* Logging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A1C00012FB000010000000E /* XCRemoteSwiftPackageReference "swift-log" */;
+			productName = Logging;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 32D62D412FAE0163009FBCC6 /* Project object */;
 }

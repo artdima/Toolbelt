@@ -44,6 +44,29 @@ struct PanelRow: View {
     }
 }
 
+struct PanelToggleRow: View {
+    let title: String
+    let systemImage: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            PanelRowIcon(systemImage: systemImage, role: isOn ? .prominent : .standard, isBusy: false)
+            Text(title)
+                .font(.system(size: 13))
+                .lineLimit(1)
+            Spacer(minLength: 8)
+            Toggle(title, isOn: $isOn)
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .labelsHidden()
+        }
+        .padding(5)
+        .contentShape(Rectangle())
+        .onTapGesture { isOn.toggle() }
+    }
+}
+
 struct PanelConfirmation: View {
     let title: String
     let message: String

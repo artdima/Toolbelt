@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/macOS-26.3+-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 26.3+">
   <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.0">
   <img src="https://img.shields.io/badge/UI-SwiftUI-1575F9?style=flat-square" alt="SwiftUI">
-  <img src="https://img.shields.io/badge/dependencies-none-2EA043?style=flat-square" alt="No dependencies">
+  <img src="https://img.shields.io/badge/dependencies-MCP%20Swift%20SDK-2EA043?style=flat-square" alt="One dependency: the MCP Swift SDK">
   <img src="https://img.shields.io/badge/license-MIT-8A8A8A?style=flat-square" alt="MIT">
 </p>
 
@@ -29,6 +29,7 @@
 | **HTTP Request** | Turns a pasted `curl` command into an editable request, sends it and shows the response — a pocket Postman |
 | **Release Notes** | Builds "What's New" from your commits, optionally rewritten by Claude CLI into one paragraph |
 | **Derived Data** | Wipes the folder with one button |
+| **MCP** | A local MCP server for Claude: it keeps your GitLab tokens in Keychain and lets Claude read pipelines, job logs and merge requests |
 
 ## Install
 
@@ -78,6 +79,7 @@ Toolbelt/
 ├── DesignSystem/   reusable views and formatters
 ├── Features/       one folder per tool: model → service → view model → view
 └── Settings/       shared settings screen
+toolbelt-mcp/       the stdio relay Claude starts; copied into Toolbelt.app/Contents/MacOS
 Tests/              pure-logic tests
 ```
 
@@ -93,6 +95,30 @@ aggregation), `IssuesBoard` (status columns), `ReleaseNotesBuilder` (commit pars
 `TrackerDuration` (ISO 8601), `CurlParser` and `CurlBuilder` (curl commands in and out),
 `JSONPretty` (response formatting), `UserDefaultsParsing` (`listapps` and exported domains). They are computed once after a load rather than on
 every redraw, and they are what the tests cover.
+
+## MCP for Claude
+
+Toolbelt is a local MCP server. Claude Desktop and Claude Code start
+`Toolbelt.app/Contents/MacOS/toolbelt-mcp` over stdio; the helper relays the JSON-RPC lines
+to `~/Library/Application Support/Toolbelt/mcp.sock`, where the app answers. If Toolbelt is
+not running, the helper starts it in the background and waits up to 10 seconds for the socket.
+
+1. Menu bar → **MCP** → **Add Resource**: a name, the GitLab address (`https://gitlab.com` by
+   default) and a legacy personal access token with the `read_api` scope. **Check** shows the
+   user, the scopes and when the token expires; **Save** stores it.
+2. **Connect to Claude Desktop** adds the server to `claude_desktop_config.json` next to the
+   ones already there, with a backup of the old file. Restart Claude Desktop afterwards.
+   For Claude Code, **Copy Command** gives
+   `claude mcp add --scope user toolbelt -- <path to toolbelt-mcp>`.
+
+The tools are read-only: `gitlab_instances`, `gitlab_resolve_url` (any pasted pipeline, job,
+merge request or commit link), `gitlab_pipelines`, `gitlab_pipeline` (every job and trigger,
+failed first, with the downstream pipeline or a note that none was created), `gitlab_job_log`
+(ANSI and section markers stripped, the last lines or `grep` with context),
+`gitlab_merge_requests` and `gitlab_merge_request` (changed files with line counts; one file's
+diff on request). Answers are compact text with web links, at most 20,000 characters.
+Turning a resource off removes its tools and notifies the connected clients
+(`tools/list_changed`); the MCP window shows the clients and the last 200 calls.
 
 ## Decisions worth explaining
 
@@ -141,6 +167,17 @@ twice gives the same answer. `-k` is deliberately not honoured — certificates 
 verified. Request history keeps headers as they were, `Authorization` included, so a
 request can be replayed; it lives in `UserDefaults` like the deep link history.
 
+**The MCP server lives in the app, the helper only relays.** Tokens, HTTP and the call log
+are in one process, so a switch in the window applies to the very next call, and the helper
+never touches Keychain — no ACL prompts, no second signature to keep in sync. Each socket
+connection is a session with an MCP `Server` of its own, so Claude Desktop, Claude Code and a
+cloud session linked to this Mac can be connected at once.
+
+**The socket admits the user only.** It sits in a 0700 directory with mode 0600, and every
+connection's peer is checked with `getpeereid`. GitLab is called over https only (plain http
+just for `localhost`), redirects to another host are refused so the token never follows them,
+and every tool answer and log entry is scrubbed of the tokens in use.
+
 **JSON is pretty-printed by hand.** `JSONSerialization` would reorder keys, and a response
 with its keys shuffled is harder to compare with the docs. The formatter walks the text
 character by character instead, and only after `JSONSerialization` has confirmed it is JSON.
@@ -156,7 +193,10 @@ week boundaries, report aggregation, board column ordering, `simctl`, `emulator`
 output parsing, argument quoting for `adb shell`, the Claude prompt, HTTP status mapping,
 pluralization, bash-style splitting of `curl` commands and their options, the exported
 `curl` command (including a parse → export → parse round trip), `URLRequest` building,
-JSON pretty-printing, `simctl listapps` and exported defaults domains with their plist types.
+JSON pretty-printing, `simctl listapps` and exported defaults domains with their plist types,
+GitLab link parsing, job log cleanup with `tail` and `grep`, the pipeline and merge request
+text Claude gets, response truncation, newline framing on the MCP socket, the socket's
+permissions, and merging `claude_desktop_config.json`.
 
 ## Known limitations
 

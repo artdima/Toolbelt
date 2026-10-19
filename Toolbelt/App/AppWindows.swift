@@ -52,6 +52,12 @@ extension WindowConfiguration {
         toolbarStyle: .unified,
         usesFullSizeContent: true
     )
+    static let mcp = WindowConfiguration(
+        id: "mcp",
+        title: "MCP",
+        size: NSSize(width: 640, height: 640),
+        toolbarStyle: .unified
+    )
     static let settings = WindowConfiguration(
         id: "settings",
         title: "Settings",
@@ -93,6 +99,10 @@ enum AppWindows {
 
     static func httpRequest() {
         WindowPresenter.show(.httpRequest) { HTTPRequestView() }
+    }
+
+    static func mcp() {
+        WindowPresenter.show(.mcp) { MCPView() }
     }
 
     static func settings(tab: SettingsTab = .profiles) {

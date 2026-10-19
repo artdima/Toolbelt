@@ -138,6 +138,7 @@ struct MenuBarView: View {
                 AppWindows.releaseNotes()
             }
         }
+        MCPPanelSection()
     }
 
     private var footer: some View {
