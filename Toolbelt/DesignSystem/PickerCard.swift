@@ -11,25 +11,24 @@ struct PickerCard<Content: View>: View {
     private let height: CGFloat
     private let content: Content
 
-    init(height: CGFloat = 36, @ViewBuilder content: () -> Content) {
+    init(height: CGFloat = 30, @ViewBuilder content: () -> Content) {
         self.height = height
         self.content = content()
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             content
                 .lineLimit(1)
             Spacer(minLength: 0)
             Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.secondary)
         }
-        .font(.system(size: 14))
-        .padding(.leading, 12)
-        .padding(.trailing, 14)
+        .font(.system(size: 13))
+        .padding(.horizontal, 10)
         .frame(height: height)
-        .card(cornerRadius: 10)
+        .card(cornerRadius: 8)
         .contentShape(Rectangle())
     }
 }
@@ -42,13 +41,13 @@ struct DeviceLabel: View {
     var isRunning = true
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             Circle()
                 .fill(isRunning ? Color.green : Color.secondary)
-                .frame(width: 8, height: 8)
+                .frame(width: 7, height: 7)
             Image(systemName: systemImage)
                 .foregroundStyle(.secondary)
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Text(name)
                 if !detail.isEmpty {
                     Text(detail)

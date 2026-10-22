@@ -10,22 +10,21 @@ import SwiftUI
 struct IssuesBoardView: View {
     @State private var model = IssuesBoardViewModel()
 
-    private let boardPadding: CGFloat = 17
-    private let columnSpacing: CGFloat = 12
-    private let minColumnWidth: CGFloat = 220
+    private let boardPadding: CGFloat = 12
+    private let columnSpacing: CGFloat = 10
+    private let minColumnWidth: CGFloat = 190
 
     var body: some View {
         VStack(spacing: 0) {
             if let failure = model.failure, model.hasLoadedIssues {
                 ErrorBanner(text: failure.reason, details: failure.details)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .padding(.horizontal, boardPadding)
-                    .padding(.top, 9)
+                    .padding(.top, 8)
             }
 
             content
         }
-        .frame(minWidth: 640, minHeight: 420)
+        .frame(minWidth: 560, minHeight: 380)
         .navigationTitle("My Issues")
         .navigationSubtitle(model.isConfigured && model.hasLoadedIssues ? model.summary : "")
         .toolbar { boardToolbar }
@@ -130,7 +129,7 @@ struct IssuesBoardView: View {
                     }
                 }
                 .padding(.horizontal, boardPadding)
-                .padding(.top, 9)
+                .padding(.top, 4)
                 .padding(.bottom, boardPadding)
                 .frame(height: geometry.size.height)
             }
@@ -140,42 +139,42 @@ struct IssuesBoardView: View {
 
     private func columnView(_ column: IssuesBoard.Column) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 9) {
+            HStack(spacing: 7) {
                 Circle()
                     .fill(column.stage.color)
-                    .frame(width: 8, height: 8)
+                    .frame(width: 7, height: 7)
                 Text(column.name)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 12, weight: .semibold))
                     .lineLimit(1)
                 Spacer(minLength: 8)
                 Text(verbatim: "\(column.issues.count)")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 11, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 6)
-                    .frame(minWidth: 20, minHeight: 20)
+                    .padding(.horizontal, 5)
+                    .frame(minWidth: 18, minHeight: 18)
                     .background(Color.primary.opacity(0.07), in: Capsule())
             }
-            .padding(.leading, 14)
-            .padding(.trailing, 12)
-            .padding(.top, 12)
-            .padding(.bottom, 10)
+            .padding(.leading, 10)
+            .padding(.trailing, 9)
+            .padding(.top, 9)
+            .padding(.bottom, 8)
 
             ScrollView {
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
                     ForEach(column.issues) { issue in
                         IssueCard(issue: issue)
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 8)
+                .padding(.horizontal, 6)
+                .padding(.bottom, 6)
             }
             .scrollBounceBehavior(.basedOnSize)
         }
         .frame(maxHeight: .infinity, alignment: .top)
         .background(
             Color.primary.opacity(0.04),
-            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
     }
 }
@@ -203,10 +202,10 @@ private struct IssueCard: View {
         Button {
             open()
         } label: {
-            VStack(alignment: .leading, spacing: 7) {
-                HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 6) {
                     Text(issue.key)
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(Color.accentColor)
                     Spacer(minLength: 8)
                     PriorityBars(level: issue.priorityLevel, isUrgent: issue.isUrgent)
@@ -214,7 +213,7 @@ private struct IssueCard: View {
                 }
 
                 Text(issue.summary)
-                    .font(.system(size: 14))
+                    .font(.system(size: 12))
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.leading)
                     .lineLimit(5)
@@ -226,14 +225,14 @@ private struct IssueCard: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 13)
-            .padding(.vertical, 12)
-            .card()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .card(cornerRadius: 9)
             .overlay {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
                     .strokeBorder(Color.primary.opacity(isHovered ? 0.16 : 0), lineWidth: 1)
             }
-            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
@@ -248,9 +247,9 @@ private struct IssueCard: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Text(issue.queueName)
-                .font(.system(size: 11))
+                .font(.system(size: 10))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
 
@@ -260,10 +259,10 @@ private struct IssueCard: View {
                 let tint = issue.isOverdue() ? Color.red : Color.secondary
                 Label(AppFormatters.shortDay.string(from: deadline), systemImage: "flag")
                     .labelStyle(.titleAndIcon)
-                    .font(.system(size: 12))
+                    .font(.system(size: 10))
                     .foregroundStyle(tint)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
                     .background(tint.opacity(0.1), in: Capsule())
                     .help(issue.isOverdue() ? "Overdue" : "Deadline")
             }

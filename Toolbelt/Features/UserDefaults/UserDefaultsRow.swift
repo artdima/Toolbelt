@@ -14,23 +14,23 @@ struct UserDefaultsRow: View {
 
     @State private var isHovered = false
 
-    private let valueFont = Font.system(size: 13, design: .monospaced)
+    private let valueFont = Font.system(size: 12, design: .monospaced)
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             UserDefaultsTypeBadge(value: entry.value)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(entry.key)
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(.system(size: 12, design: .monospaced))
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .help(entry.key)
                 Text(entry.value.typeName)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
-            .frame(width: 248, alignment: .leading)
+            .frame(width: 220, alignment: .leading)
 
             valueCell
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -39,8 +39,8 @@ struct UserDefaultsRow: View {
                 .opacity(isHovered ? 1 : 0)
                 .allowsHitTesting(isHovered)
         }
-        .padding(.horizontal, 12)
-        .frame(minHeight: 52)
+        .padding(.horizontal, 10)
+        .frame(minHeight: 42)
         .contentShape(Rectangle())
         .onHover { isHovered = $0 }
         .contextMenu {
@@ -62,6 +62,7 @@ struct UserDefaultsRow: View {
                 set: { newValue in Task { await model.set(entry, to: .bool(newValue)) } }
             ))
             .toggleStyle(.switch)
+            .controlSize(.small)
             .labelsHidden()
 
         case .string, .integer, .double:
@@ -100,14 +101,14 @@ struct UserDefaultsRow: View {
     }
 
     private var actions: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             CopyButton(value: entry.value.display, help: "Copy value")
 
             Button {
                 Task { await model.delete(entry) }
             } label: {
                 Image(systemName: "trash")
-                    .font(.system(size: 11))
+                    .font(.system(size: 10))
             }
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
@@ -131,7 +132,7 @@ struct UserDefaultsTypeBadge: View {
             glyph
                 .foregroundStyle(.secondary)
         }
-        .frame(width: 28, height: 28)
+        .frame(width: 24, height: 24)
         .accessibilityHidden(true)
     }
 
@@ -140,7 +141,7 @@ struct UserDefaultsTypeBadge: View {
         switch value {
         case .data:
             Text(verbatim: "101")
-                .font(.system(size: 8, weight: .bold, design: .monospaced))
+                .font(.system(size: 7, weight: .bold, design: .monospaced))
         case .string:
             symbol("quote.closing")
         case .integer, .double:
@@ -158,6 +159,6 @@ struct UserDefaultsTypeBadge: View {
 
     private func symbol(_ name: String) -> some View {
         Image(systemName: name)
-            .font(.system(size: 12, weight: .medium))
+            .font(.system(size: 10, weight: .medium))
     }
 }

@@ -14,12 +14,12 @@ struct UserDefaultsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 10) {
                 pickers
                 content
 
                 if let result = model.result, !result.isSuccess {
-                    failureCard(result)
+                    CommandFailureCard(title: "Command failed", command: result.command, output: result.output)
                 }
 
                 if let warning = model.warning {
@@ -38,16 +38,16 @@ struct UserDefaultsView: View {
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 6)
-            .padding(.bottom, 16)
+            .padding(.horizontal, 12)
+            .padding(.top, 4)
+            .padding(.bottom, 12)
 
             if model.selectedApp != nil {
                 Divider()
                 footer
             }
         }
-        .frame(minWidth: 600, minHeight: 480)
+        .frame(minWidth: 540, minHeight: 420)
         .navigationTitle("User Defaults")
         .toolbar { refreshToolbar }
         .searchable(text: $model.search, placement: .toolbar, prompt: "Search keys and values")
@@ -91,7 +91,7 @@ struct UserDefaultsView: View {
     // MARK: Pickers
 
     private var pickers: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 8) {
             labeled("Device") {
                 Menu {
                     Picker("Device", selection: deviceSelection) {
@@ -107,7 +107,7 @@ struct UserDefaultsView: View {
                 }
                 .disabled(model.devices.isEmpty)
             }
-            .frame(width: 268)
+            .frame(width: 240)
 
             labeled("App") {
                 Menu {
@@ -148,7 +148,7 @@ struct UserDefaultsView: View {
     @ViewBuilder
     private var appLabel: some View {
         if let app = model.selectedApp {
-            HStack(spacing: 12) {
+            HStack(spacing: 8) {
                 Image(systemName: "app")
                     .foregroundStyle(.secondary)
                 Text(app.name)
@@ -186,10 +186,7 @@ struct UserDefaultsView: View {
 
     private func labeled<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .padding(.leading, 3)
+            SectionLabel(title: title)
             content()
         }
     }
@@ -200,7 +197,6 @@ struct UserDefaultsView: View {
     private var content: some View {
         if let error = model.readError {
             ErrorBanner(text: error)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
 
         if model.isLoadingDevices && model.devices.isEmpty {
@@ -268,7 +264,7 @@ struct UserDefaultsView: View {
             Button {
                 model.reveal()
             } label: {
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Image(systemName: "folder")
                         .foregroundStyle(.secondary)
                     Text("Reveal plist in Finder")
@@ -277,9 +273,9 @@ struct UserDefaultsView: View {
             .buttonStyle(.plain)
             .disabled(!model.canReveal)
         }
-        .font(.system(size: 13))
-        .padding(.horizontal, 20)
-        .frame(height: 41)
+        .font(.system(size: 12))
+        .padding(.horizontal, 12)
+        .frame(height: 34)
     }
 
     private var keysSummary: String {
@@ -287,38 +283,6 @@ struct UserDefaultsView: View {
         let shown = model.visibleEntries.count
         let keys = Plural.counted(total, "key", "keys")
         return shown == total ? keys : "\(shown) of \(keys)"
-    }
-
-    private func failureCard(_ result: UserDefaultsActionResult) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(Color.red)
-                Text("Command failed")
-                    .font(.system(size: 13, weight: .medium))
-                Spacer()
-                if !result.command.isEmpty {
-                    CopyButton(value: result.command, help: "Copy command")
-                }
-            }
-
-            if !result.command.isEmpty {
-                Text(result.command)
-                    .font(.system(size: 12, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if !result.output.isEmpty {
-                Text(result.output)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(12)
-        .card()
     }
 }
 

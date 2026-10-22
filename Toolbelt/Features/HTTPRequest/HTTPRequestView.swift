@@ -17,16 +17,16 @@ struct HTTPRequestView: View {
         } detail: {
             VSplitView {
                 requestPane
-                    .frame(minHeight: 230, idealHeight: 290)
+                    .frame(minHeight: 200, idealHeight: 250)
                 HTTPResponsePane(model: model)
-                    .frame(minHeight: 200)
+                    .frame(minHeight: 170)
             }
             .navigationTitle("HTTP Request")
             .toolbar { copyToolbar }
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         }
         .toolbar(removing: .sidebarToggle)
-        .frame(minWidth: 760, minHeight: 520)
+        .frame(minWidth: 680, minHeight: 460)
         .onChange(of: model.curlText) { _, _ in
             model.parseCurl()
         }
@@ -42,11 +42,11 @@ struct HTTPRequestView: View {
             Button {
                 copyToPasteboard(model.curlCommand)
             } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Image(systemName: "doc.on.doc")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                     Text("Copy as cURL")
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                 }
             }
             .disabled(model.draft.url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -59,10 +59,10 @@ struct HTTPRequestView: View {
     /// Plain rows rather than a selectable List: the system selection fills the row with
     /// the accent color and turns the colored methods white.
     private var sidebar: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
             HStack {
                 Text("History")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                 Spacer()
                 if model.history.hasUnpinned {
@@ -70,21 +70,16 @@ struct HTTPRequestView: View {
                         model.clearHistory()
                     }
                     .buttonStyle(.plain)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .help("Remove every request that is not pinned")
                 }
             }
-            .padding(.horizontal, 17)
-            .padding(.top, 8)
+            .padding(.horizontal, 14)
+            .padding(.top, 6)
 
             if model.history.entries.isEmpty {
-                Text("Requests you send will be kept here")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(20)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyState(systemImage: "clock.arrow.circlepath", text: "Requests you send will be kept here")
             } else {
                 ScrollView {
                     VStack(spacing: 2) {
@@ -92,8 +87,8 @@ struct HTTPRequestView: View {
                             historyRow(entry)
                         }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.bottom, 8)
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 6)
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
@@ -125,33 +120,33 @@ struct HTTPRequestView: View {
     }
 
     private func historyRowLabel(_ entry: HTTPRequestEntry) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Text(entry.draft.method)
-                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
                 .foregroundStyle(methodColor(entry.draft.method))
-                .frame(width: 52, alignment: .leading)
+                .frame(width: 46, alignment: .leading)
 
             Text("\(Text(entry.draft.displayHost).foregroundStyle(.secondary))\(Text(entry.draft.displayPath))")
-                .font(.system(size: 14))
+                .font(.system(size: 12))
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if entry.isPinned {
                 Image(systemName: "pin.fill")
-                    .font(.system(size: 9))
+                    .font(.system(size: 8))
                     .foregroundStyle(.orange)
             }
         }
-        .padding(.horizontal, 10)
-        .frame(height: 31)
+        .padding(.horizontal, 8)
+        .frame(height: 26)
         .contentShape(Rectangle())
     }
 
     // MARK: Request
 
     private var requestPane: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             requestLine
 
             PillPicker(
@@ -174,29 +169,29 @@ struct HTTPRequestView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, 19)
+        .padding(.horizontal, 12)
         .padding(.top, 4)
-        .padding(.bottom, 16)
+        .padding(.bottom, 12)
     }
 
     private var requestLine: some View {
         HStack(spacing: 0) {
             methodMenu
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 10)
 
             Divider()
-                .frame(height: 20)
+                .frame(height: 16)
 
             TextField("https://api.example.com/v1/users", text: $model.draft.url)
                 .textFieldStyle(.plain)
-                .font(.system(size: 14, design: .monospaced))
-                .padding(.horizontal, 12)
+                .font(.system(size: 12, design: .monospaced))
+                .padding(.horizontal, 10)
                 .onSubmit { Task { await model.send() } }
 
             sendControls
-                .padding(.trailing, 5)
+                .padding(.trailing, 4)
         }
-        .frame(height: 38)
+        .frame(height: 32)
         .card()
     }
 
@@ -210,12 +205,12 @@ struct HTTPRequestView: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Text(model.draft.method)
-                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
                     .foregroundStyle(methodColor(model.draft.method))
                 Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(.secondary)
             }
             .contentShape(Rectangle())
@@ -245,7 +240,6 @@ struct HTTPRequestView: View {
                     model.cancelSend()
                 }
                 .buttonBorderShape(.capsule)
-                .controlSize(.large)
                 .keyboardShortcut(".", modifiers: .command)
                 .help("Stop the request (⌘.)")
             }
@@ -254,12 +248,11 @@ struct HTTPRequestView: View {
                 Task { await model.send() }
             } label: {
                 Text("Send")
-                    .font(.system(size: 14, weight: .semibold))
-                    .padding(.horizontal, 8)
+                    .font(.system(size: 13, weight: .semibold))
+                    .padding(.horizontal, 4)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
-            .controlSize(.large)
             .keyboardShortcut(.return, modifiers: .command)
             .disabled(!model.canSend)
             .help("Send the request (⌘↩)")
@@ -270,10 +263,10 @@ struct HTTPRequestView: View {
         VStack(alignment: .leading, spacing: 0) {
             if model.draft.headers.isEmpty {
                 Text("No headers")
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
-                    .padding(.horizontal, 12)
-                    .padding(.top, 12)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 10)
                 Spacer(minLength: 0)
             } else {
                 ScrollView {
@@ -299,15 +292,15 @@ struct HTTPRequestView: View {
                 }
             }
             .buttonStyle(.plain)
-            .font(.system(size: 14))
-            .padding(12)
+            .font(.system(size: 12))
+            .padding(10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .card()
     }
 
     private func headerRow(_ header: Binding<HTTPHeader>) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Toggle("Send this header", isOn: header.isEnabled)
                 .toggleStyle(.checkbox)
                 .labelsHidden()
@@ -315,44 +308,44 @@ struct HTTPRequestView: View {
 
             TextField("Name", text: header.name)
                 .textFieldStyle(.plain)
-                .font(.system(size: 13, weight: .medium, design: .monospaced))
-                .frame(width: 200)
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
+                .frame(width: 180)
 
             TextField("Value", text: header.value)
                 .textFieldStyle(.plain)
-                .font(.system(size: 13, design: .monospaced))
+                .font(.system(size: 12, design: .monospaced))
                 .foregroundStyle(.secondary)
 
             Button {
                 model.removeHeader(id: header.wrappedValue.id)
             } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 9, weight: .semibold))
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
             .help("Remove header")
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
         .opacity(header.wrappedValue.isEnabled ? 1 : 0.55)
     }
 
     private var bodyEditor: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
             codeEditor(text: $model.draft.body, placeholder: "Request body")
 
             if !model.draft.body.isEmpty, !model.draft.hasHeader(named: "Content-Type") {
                 Text("No \(Text.code("Content-Type")) header — the server will have to guess")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.orange)
-                    .padding(.horizontal, 3)
+                    .padding(.horizontal, 4)
             }
         }
     }
 
     private var curlEditor: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 5) {
             codeEditor(
                 text: $model.curlText,
                 placeholder: "Paste a curl command — the request follows it as you type"
@@ -361,40 +354,40 @@ struct HTTPRequestView: View {
                 if !model.curlText.isEmpty {
                     Button("Clear") { model.clearCurl() }
                         .buttonStyle(.plain)
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                         .foregroundStyle(.secondary)
-                        .padding(10)
+                        .padding(8)
                 }
             }
 
             if let error = model.parseError {
                 Text(error)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.red)
-                    .padding(.horizontal, 3)
+                    .padding(.horizontal, 4)
             }
             ForEach(Array(model.warnings.enumerated()), id: \.offset) { _, warning in
                 Text(warning)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.orange)
-                    .padding(.horizontal, 3)
+                    .padding(.horizontal, 4)
             }
         }
     }
 
     private func codeEditor(text: Binding<String>, placeholder: String) -> some View {
         TextEditor(text: text)
-            .font(.system(size: 13, design: .monospaced))
+            .font(.system(size: 12, design: .monospaced))
             .scrollContentBackground(.hidden)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 10)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 8)
             .overlay(alignment: .topLeading) {
                 if text.wrappedValue.isEmpty {
                     Text(placeholder)
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.system(size: 12, design: .monospaced))
                         .foregroundStyle(.tertiary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
                         .allowsHitTesting(false)
                 }
             }

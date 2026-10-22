@@ -21,7 +21,7 @@ struct MCPView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 14) {
                 section("Server", id: "server") {
                     serverCard
                     if let notice = model.desktopNotice {
@@ -42,7 +42,6 @@ struct MCPView: View {
                     } label: {
                         Label("Add Resource", systemImage: "plus")
                     }
-                    .controlSize(.large)
                     .buttonBorderShape(.capsule)
                 }
 
@@ -50,12 +49,12 @@ struct MCPView: View {
                     logCard
                 }
             }
-            .padding(.horizontal, 17)
+            .padding(.horizontal, 12)
             .padding(.top, 4)
-            .padding(.bottom, 17)
+            .padding(.bottom, 12)
         }
         .scrollBounceBehavior(.basedOnSize)
-        .frame(minWidth: 560, minHeight: 480)
+        .frame(minWidth: 500, minHeight: 420)
         .navigationTitle("MCP")
         .toolbar { toolbar }
         .sheet(item: $editor) { target in
@@ -93,13 +92,13 @@ struct MCPView: View {
 
     private var serverCard: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Circle()
                     .fill(statusColor)
-                    .frame(width: 8, height: 8)
+                    .frame(width: 7, height: 7)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(model.hub.statusTitle)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.system(size: 13, weight: .medium))
                     Text(serverDetail)
                         .font(.system(size: 11))
                         .foregroundStyle(.secondary)
@@ -117,30 +116,30 @@ struct MCPView: View {
                 .labelsHidden()
                 .help(model.hub.isEnabled ? "Turn MCP off: the socket closes and clients disconnect" : "Turn MCP on")
             }
-            .padding(.horizontal, 13)
-            .frame(minHeight: 52)
+            .padding(.horizontal, 10)
+            .frame(minHeight: 42)
 
             ForEach(model.hub.clients) { client in
                 Divider()
-                HStack(spacing: 10) {
+                HStack(spacing: 8) {
                     Image(systemName: "bubble.left.and.text.bubble.right")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
-                        .frame(width: 16)
+                        .frame(width: 14)
                     Text(client.title)
                         .font(.system(size: 13))
                         .lineLimit(1)
                     Spacer(minLength: 8)
                     Text("since \(AppFormatters.time.string(from: client.connectedAt))")
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
-                .padding(.horizontal, 13)
-                .frame(height: 36)
+                .padding(.horizontal, 10)
+                .frame(height: 32)
             }
 
             Divider()
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Claude Desktop")
                         .font(.system(size: 13))
@@ -152,11 +151,11 @@ struct MCPView: View {
                 Button(model.desktopButtonTitle, action: model.connectClaudeDesktop)
                     .disabled(model.desktopStatus == .connected || model.desktopStatus == .notInstalled || model.helperPath == nil)
             }
-            .padding(.horizontal, 13)
-            .frame(minHeight: 50)
+            .padding(.horizontal, 10)
+            .frame(minHeight: 42)
 
             Divider()
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Claude Code")
                         .font(.system(size: 13))
@@ -172,8 +171,8 @@ struct MCPView: View {
                 Button(model.isCommandCopied ? "Copied" : "Copy Command", action: model.copyClaudeCodeCommand)
                     .disabled(model.claudeCodeCommand == nil)
             }
-            .padding(.horizontal, 13)
-            .frame(minHeight: 50)
+            .padding(.horizontal, 10)
+            .frame(minHeight: 42)
         }
         .card()
     }
@@ -203,10 +202,10 @@ struct MCPView: View {
     private var resourcesCard: some View {
         if model.store.resources.isEmpty {
             Text("Nothing yet. Add a GitLab instance and Claude can read its pipelines, job logs and merge requests.")
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(13)
+                .padding(10)
                 .card()
         } else {
             VStack(spacing: 0) {
@@ -220,11 +219,11 @@ struct MCPView: View {
     }
 
     private func resourceRow(_ resource: MCPResource) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
             Image(systemName: "server.rack")
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(resource.isEnabled ? Color.primary : Color.secondary)
-                .frame(width: 28, height: 28)
+                .frame(width: 24, height: 24)
                 .background(Color.primary.opacity(0.07), in: Circle())
 
             VStack(alignment: .leading, spacing: 2) {
@@ -236,7 +235,7 @@ struct MCPView: View {
                         .foregroundStyle(.tertiary)
                 }
                 Text(accountLine(resource))
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -268,8 +267,8 @@ struct MCPView: View {
             .foregroundStyle(.secondary)
             .help("Edit \(resource.name)")
         }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
         .contextMenu {
             Button("Edit…") { editor = .edit(resource) }
             Button(resource.isEnabled ? "Turn Off" : "Turn On") {
@@ -317,10 +316,10 @@ struct MCPView: View {
     private var logCard: some View {
         if model.hub.log.isEmpty {
             Text("Tool calls from Claude show up here, the last \(MCPHub.logLimit) of them.")
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(13)
+                .padding(10)
                 .card()
         } else {
             VStack(alignment: .trailing, spacing: 8) {
@@ -339,9 +338,9 @@ struct MCPView: View {
     }
 
     private func logRow(_ entry: MCPCallLogEntry) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Image(systemName: entry.isError ? "xmark.circle.fill" : "checkmark.circle.fill")
-                .font(.system(size: 12))
+                .font(.system(size: 11))
                 .foregroundStyle(entry.isError ? Color.red : Color.green)
 
             VStack(alignment: .leading, spacing: 3) {
@@ -376,8 +375,8 @@ struct MCPView: View {
             }
             .monospacedDigit()
         }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
     }
 
     private static func size(_ characters: Int) -> String {
@@ -395,32 +394,10 @@ struct MCPView: View {
     ) -> some View {
         let isCollapsed = collapsedSections.contains(id)
 
-        return VStack(alignment: .leading, spacing: 8) {
-            Button {
+        return VStack(alignment: .leading, spacing: 6) {
+            FoldableSectionHeader(title: title, count: count, isCollapsed: isCollapsed) {
                 toggleSection(id)
-            } label: {
-                HStack(spacing: 6) {
-                    Text(title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                    if let count {
-                        Text(verbatim: "\(count)")
-                            .font(.system(size: 13))
-                            .foregroundStyle(.tertiary)
-                    }
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isCollapsed ? -90 : 0))
-                }
-                .padding(.leading, 4)
-                .padding(.trailing, 13)
-                .frame(height: 24)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .help(isCollapsed ? "Show \(title)" : "Hide \(title)")
 
             if !isCollapsed {
                 content()

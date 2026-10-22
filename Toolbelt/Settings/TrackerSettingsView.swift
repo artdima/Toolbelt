@@ -43,15 +43,7 @@ struct TrackerSettingsView: View {
                 SettingsRow(labelWidth: labelWidth) {
                     Text("Organization type")
                 } content: {
-                    Picker("Organization type", selection: $draft.orgKind) {
-                        ForEach(TrackerOrgKind.allCases) { kind in
-                            Text(kind.title).tag(kind)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .controlSize(.large)
-                    .fixedSize()
+                    PillPicker(selection: $draft.orgKind, options: TrackerOrgKind.allCases) { $0.title }
                 }
             } footer: {
                 Text("Request header: \(Text.code(draft.orgKind.headerName))")
@@ -59,7 +51,7 @@ struct TrackerSettingsView: View {
 
             if let errorMessage {
                 Text(errorMessage)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.red)
                     .padding(.horizontal, SettingsMetrics.labelInset)
             }

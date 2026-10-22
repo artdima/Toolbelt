@@ -9,8 +9,8 @@ import SwiftUI
 
 enum SettingsMetrics {
     /// Every section has the same size, so switching tabs never resizes the window.
-    static let paneSize = CGSize(width: 560, height: 460)
-    static let labelInset: CGFloat = 5
+    static let paneSize = CGSize(width: 520, height: 420)
+    static let labelInset: CGFloat = 4
 }
 
 struct SettingsPane<Content: View>: View {
@@ -22,12 +22,10 @@ struct SettingsPane<Content: View>: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 14) {
                 content
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 18)
-            .padding(.bottom, 24)
+            .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollBounceBehavior(.basedOnSize)
@@ -52,12 +50,9 @@ struct SettingsGroup<Content: View, Footer: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 6) {
             if let title {
-                Text(title)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, SettingsMetrics.labelInset)
+                SectionLabel(title: title)
             }
 
             VStack(spacing: 0) {
@@ -67,7 +62,7 @@ struct SettingsGroup<Content: View, Footer: View>: View {
 
             if Footer.self != EmptyView.self {
                 footer
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, SettingsMetrics.labelInset)
@@ -107,7 +102,7 @@ struct SettingsRow<RowLabel: View, Content: View>: View {
                 .font(.system(size: 13))
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 13)
-        .frame(minHeight: 41)
+        .padding(.horizontal, 10)
+        .frame(minHeight: 34)
     }
 }

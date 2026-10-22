@@ -17,17 +17,17 @@ struct GitProfilesSettingsView: View {
         ScrollViewReader { proxy in
             SettingsPane {
                 Text("These values go into \(Text.code("git config --global user.name")) and \(Text.code("user.email")).")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, SettingsMetrics.labelInset)
 
                 if draft.isEmpty {
                     SettingsGroup {
                         Text("No profiles yet")
-                            .font(.system(size: 13))
+                            .font(.system(size: 12))
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
+                            .padding(.vertical, 16)
                     }
                 }
 
@@ -41,7 +41,6 @@ struct GitProfilesSettingsView: View {
                 } label: {
                     Label("Add Profile", systemImage: "plus")
                 }
-                .controlSize(.large)
                 .buttonBorderShape(.capsule)
             }
         }
@@ -63,11 +62,11 @@ struct GitProfilesSettingsView: View {
     private func profileSection(_ profile: Binding<GitProfile>) -> some View {
         let value = profile.wrappedValue
 
-        return VStack(alignment: .leading, spacing: 9) {
-            HStack(spacing: 11) {
+        return VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 9) {
                 ProfileAvatar(initials: value.initials)
                 Text(value.title.isEmpty ? "New Profile" : value.title)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(value.title.isEmpty ? .secondary : .primary)
                     .lineLimit(1)
                 Spacer(minLength: 8)
@@ -81,7 +80,7 @@ struct GitProfilesSettingsView: View {
                 .help("Delete profile")
             }
             .padding(.leading, 4)
-            .padding(.trailing, 9)
+            .padding(.trailing, 10)
 
             SettingsGroup {
                 SettingsRow(labelWidth: labelWidth) {
@@ -160,13 +159,13 @@ private struct ProfileAvatar: View {
                 .fill(Color.primary.opacity(0.1))
             if initials.isEmpty {
                 Image(systemName: "person.fill")
-                    .font(.system(size: 10))
+                    .font(.system(size: 9))
             } else {
                 Text(initials)
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: 9, weight: .semibold))
             }
         }
         .foregroundStyle(.secondary)
-        .frame(width: 24, height: 24)
+        .frame(width: 22, height: 22)
     }
 }

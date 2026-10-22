@@ -13,10 +13,6 @@ struct WindowConfiguration {
     let size: NSSize
     var isResizable = true
     var toolbarStyle: NSWindow.ToolbarStyle?
-    /// Without a toolbar the title bar is the short one; a window with nothing to put in it
-    /// still gets the tall unified one its layout is designed around. SwiftUI is left out of
-    /// it on purpose, so it has no toolbar of its own to replace this one with.
-    var usesEmptyToolbar = false
     /// Lets a sidebar run the full height of the window, under the title bar.
     var usesFullSizeContent = false
 
@@ -71,10 +67,6 @@ enum WindowPresenter {
         window.isReleasedWhenClosed = false
         if let toolbarStyle = configuration.toolbarStyle {
             window.toolbarStyle = toolbarStyle
-        }
-        if configuration.usesEmptyToolbar {
-            window.toolbar = NSToolbar()
-            window.toolbarStyle = .unified
         }
         window.setContentSize(configuration.size)
 

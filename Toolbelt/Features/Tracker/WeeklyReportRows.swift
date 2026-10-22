@@ -36,32 +36,32 @@ struct BreakdownRow<Title: View, Details: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                    .frame(width: 12, height: 16)
+                    .frame(width: 10, height: 14)
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     title
                     ShareBar(fraction: share)
-                        .padding(.top, 7)
+                        .padding(.top, 5)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                VStack(alignment: .trailing, spacing: 3) {
+                VStack(alignment: .trailing, spacing: 2) {
                     Text(DurationFormatter.short(seconds))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 13, weight: .semibold))
                     Text(verbatim: "\(count) · \(Int((share * 100).rounded()))%")
-                        .font(.system(size: 13))
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
                 .monospacedDigit()
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 13)
+            .padding(.horizontal, 10)
+            .padding(.top, 10)
+            .padding(.bottom, 10)
             .contentShape(Rectangle())
             .onTapGesture {
                 withAnimation(.easeInOut(duration: 0.15)) { toggle() }
@@ -72,9 +72,9 @@ struct BreakdownRow<Title: View, Details: View>: View {
 
             if isExpanded {
                 details
-                    .padding(.leading, 38)
-                    .padding(.trailing, 16)
-                    .padding(.bottom, 14)
+                    .padding(.leading, 28)
+                    .padding(.trailing, 10)
+                    .padding(.bottom, 10)
             }
         }
     }
@@ -104,12 +104,12 @@ struct WorklogEntryRow: View {
     let showsDate: Bool
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(leadingTitle)
-                .font(.system(size: 12))
+                .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
-                .frame(width: showsDate ? 112 : 44, alignment: .leading)
+                .frame(width: showsDate ? 100 : 38, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 2) {
                 if !showsDate {
@@ -120,23 +120,23 @@ struct WorklogEntryRow: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(DurationFormatter.short(entry.seconds))
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
     }
 
     private var issue: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(entry.issueKey)
-                .font(.system(size: 12, design: .monospaced))
+                .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(Color.accentColor)
 
             if !entry.issueTitle.isEmpty {
                 Text(entry.issueTitle)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -149,12 +149,12 @@ struct WorklogEntryRow: View {
     private var comment: some View {
         if let comment = entry.comment, !comment.isEmpty {
             Text(comment)
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         } else {
             Text("No comment")
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(.tertiary)
         }
     }
@@ -174,11 +174,11 @@ struct WorklogEntryList: View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
                 if index > 0 {
-                    Divider().padding(.leading, 12)
+                    Divider().padding(.leading, 10)
                 }
                 WorklogEntryRow(entry: entry, showsDate: showsDate)
             }
         }
-        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
     }
 }

@@ -13,16 +13,8 @@ struct SimulatorsView: View {
     @AppStorage("simulators.collapsedGroups") private var collapsedGroupsStorage = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Picker("Show", selection: $model.filter) {
-                ForEach(SimulatorFilter.allCases) { filter in
-                    Text(filter.title).tag(filter)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.large)
-            .fixedSize()
+        VStack(alignment: .leading, spacing: 10) {
+            PillPicker(selection: $model.filter, options: SimulatorFilter.allCases) { $0.title }
 
             if let warning = model.warning {
                 NoticeBanner(systemImage: "exclamationmark.triangle", tint: .orange, message: {
@@ -33,13 +25,13 @@ struct SimulatorsView: View {
             content
 
             if let result = model.result, !result.isSuccess {
-                failureCard(result)
+                CommandFailureCard(title: "Could not start", command: result.command, output: result.output)
             }
         }
-        .padding(.horizontal, 17)
-        .padding(.top, 2)
-        .padding(.bottom, 17)
-        .frame(minWidth: 480, minHeight: 480)
+        .padding(.horizontal, 12)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
+        .frame(minWidth: 420, minHeight: 400)
         .navigationTitle("Simulators")
         .toolbar { refreshToolbar }
         .searchable(text: $model.search, placement: .toolbar, prompt: "Search")
@@ -82,7 +74,7 @@ struct SimulatorsView: View {
             EmptyState(systemImage: "iphone.slash", text: emptyText)
         } else {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 10) {
                     ForEach(model.groups) { group in
                         groupSection(group)
                     }
@@ -108,29 +100,9 @@ struct SimulatorsView: View {
         let isCollapsed = !isSearching && collapsedGroups.contains(group.id)
 
         return VStack(alignment: .leading, spacing: 6) {
-            Button {
+            FoldableSectionHeader(title: group.title, count: group.devices.count, isCollapsed: isCollapsed) {
                 toggleGroup(group.id)
-            } label: {
-                HStack(spacing: 6) {
-                    Text(group.title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                    Text(verbatim: "\(group.devices.count)")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.tertiary)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isCollapsed ? -90 : 0))
-                }
-                .padding(.leading, 4)
-                .padding(.trailing, 13)
-                .frame(height: 24)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            .help(isCollapsed ? "Show \(group.title)" : "Hide \(group.title)")
 
             if !isCollapsed {
                 VStack(spacing: 0) {
@@ -145,28 +117,28 @@ struct SimulatorsView: View {
     }
 
     private func row(_ device: SimulatorDevice) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             Circle()
                 .fill(stateColor(device.state))
-                .frame(width: 8, height: 8)
+                .frame(width: 7, height: 7)
                 .help(device.state.title)
 
             Image(systemName: icon(for: device))
-                .font(.system(size: 14))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-                .frame(width: 16)
+                .frame(width: 14)
 
             Text(device.name)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .lineLimit(1)
 
             Spacer(minLength: 8)
 
             actionButton(device)
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 10)
-        .frame(height: 40)
+        .padding(.leading, 10)
+        .padding(.trailing, 8)
+        .frame(height: 32)
         .contextMenu {
             if device.state == .shutdown {
                 Button("Launch") { Task { await model.boot(device) } }
@@ -187,7 +159,7 @@ struct SimulatorsView: View {
         if model.isBusy(device) {
             ProgressView()
                 .controlSize(.small)
-                .frame(width: 26, height: 26)
+                .frame(width: 22, height: 22)
         } else if device.state == .shutdown {
             circleButton("play.fill", tint: .accentColor, help: "Launch") {
                 Task { await model.boot(device) }
@@ -209,45 +181,13 @@ struct SimulatorsView: View {
     ) -> some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 9, weight: .bold))
                 .foregroundStyle(tint)
-                .frame(width: 26, height: 26)
+                .frame(width: 22, height: 22)
                 .background(Color.primary.opacity(0.07), in: Circle())
         }
         .buttonStyle(.plain)
         .help(help)
-    }
-
-    private func failureCard(_ result: SimulatorActionResult) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(Color.red)
-                Text("Could not start")
-                    .font(.system(size: 13, weight: .medium))
-                Spacer()
-                if !result.command.isEmpty {
-                    CopyButton(value: result.command, help: "Copy command")
-                }
-            }
-
-            if !result.command.isEmpty {
-                Text(result.command)
-                    .font(.system(size: 12, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if !result.output.isEmpty {
-                Text(result.output)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(12)
-        .card()
     }
 
     // MARK: Helpers

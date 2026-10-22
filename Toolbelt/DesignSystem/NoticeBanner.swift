@@ -26,7 +26,7 @@ struct NoticeBanner<Message: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
             Image(systemName: systemImage)
                 .foregroundStyle(tint)
 
@@ -44,10 +44,10 @@ struct NoticeBanner<Message: View>: View {
                 .help("Dismiss")
             }
         }
-        .font(.system(size: 13))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .font(.system(size: 12))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 

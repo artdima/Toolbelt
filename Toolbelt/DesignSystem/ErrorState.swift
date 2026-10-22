@@ -39,19 +39,19 @@ struct ErrorState<Actions: View>: View {
                     illustration
 
                     Text(title)
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .multilineTextAlignment(.center)
                         .accessibilityAddTraits(.isHeader)
-                        .padding(.top, 18)
+                        .padding(.top, 14)
 
                     Text(message)
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
-                        .padding(.top, 8)
+                        .padding(.top, 6)
 
                     HStack(spacing: 10) {
                         Button(action: retry) {
@@ -64,17 +64,16 @@ struct ErrorState<Actions: View>: View {
                     }
                     .buttonStyle(.bordered)
                     .menuStyle(.button)
-                    .controlSize(.large)
                     .fixedSize()
-                    .padding(.top, 22)
+                    .padding(.top, 16)
 
                     if !details.isEmpty {
                         TechnicalDetails(text: details)
-                            .padding(.top, 32)
+                            .padding(.top, 24)
                     }
                 }
-                .frame(maxWidth: 440)
-                .padding(24)
+                .frame(maxWidth: 400)
+                .padding(20)
                 .frame(maxWidth: .infinity, minHeight: proxy.size.height)
             }
             .scrollBounceBehavior(.basedOnSize)
@@ -87,7 +86,7 @@ struct ErrorState<Actions: View>: View {
         return Image(.errorIllustration)
             .resizable()
             .scaledToFit()
-            .frame(width: 220)
+            .frame(width: 170)
             .scaleEffect(isVisible ? 1 : 0.88)
             .opacity(isVisible ? 1 : 0)
             .onAppear {

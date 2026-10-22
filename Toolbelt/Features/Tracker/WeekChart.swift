@@ -10,14 +10,14 @@ import SwiftUI
 struct WeekChart: View {
     let days: [WeekReport.Day]
 
-    private let plotHeight: CGFloat = 107
-    private let labelHeadroom: CGFloat = 22
-    private let axisWidth: CGFloat = 30
-    private let barWidth: CGFloat = 24
+    private let plotHeight: CGFloat = 80
+    private let labelHeadroom: CGFloat = 18
+    private let axisWidth: CGFloat = 26
+    private let barWidth: CGFloat = 18
     private let gridHours = [4, 8]
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 6) {
             ZStack(alignment: .bottomLeading) {
                 ForEach(gridHours, id: \.self) { hours in
                     gridLine(hours)
@@ -49,11 +49,11 @@ struct WeekChart: View {
     }
 
     private func gridLine(_ hours: Int) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Text("\(hours)h")
-                .font(.system(size: 11))
+                .font(.system(size: 10))
                 .foregroundStyle(.secondary)
-                .frame(width: axisWidth - 8, alignment: .trailing)
+                .frame(width: axisWidth - 6, alignment: .trailing)
             Rectangle()
                 .fill(Color.primary.opacity(0.07))
                 .frame(height: 1)
@@ -65,14 +65,14 @@ struct WeekChart: View {
     }
 
     private func bar(_ day: WeekReport.Day) -> some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 3) {
             if day.seconds > 0 {
                 Text(DurationFormatter.short(day.seconds))
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .monospacedDigit()
                     .fixedSize()
             }
-            UnevenRoundedRectangle(topLeadingRadius: 4, topTrailingRadius: 4, style: .continuous)
+            UnevenRoundedRectangle(topLeadingRadius: 3, topTrailingRadius: 3, style: .continuous)
                 .fill(barColor(day.seconds))
                 .frame(width: barWidth, height: max(2, barHeight(day.seconds)))
         }
@@ -81,12 +81,12 @@ struct WeekChart: View {
     private func dayLabel(_ day: WeekReport.Day) -> some View {
         let isToday = AppFormatters.calendar.isDateInToday(day.date)
 
-        return VStack(spacing: 2) {
+        return VStack(spacing: 1) {
             Text(AppFormatters.weekday.string(from: day.date))
-                .font(.system(size: 12))
+                .font(.system(size: 10))
                 .foregroundStyle(.secondary)
             Text(AppFormatters.dayOfMonth.string(from: day.date))
-                .font(.system(size: 14, weight: isToday ? .bold : .regular))
+                .font(.system(size: 12, weight: isToday ? .bold : .regular))
             Circle()
                 .fill(isToday ? Color.accentColor : .clear)
                 .frame(width: 4, height: 4)

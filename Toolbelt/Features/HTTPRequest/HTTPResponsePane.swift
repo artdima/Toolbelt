@@ -11,7 +11,7 @@ struct HTTPResponsePane: View {
     @Bindable var model: HTTPRequestViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             if let error = model.sendError {
                 NoticeBanner(systemImage: "xmark.octagon", tint: .red, message: {
                     Text(error)
@@ -36,45 +36,39 @@ struct HTTPResponsePane: View {
             } else {
                 Group {
                     if model.isSending {
-                        VStack(spacing: 12) {
-                            ProgressView()
-                            Text("Sending…")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        LoadingState(text: "Sending…")
                     } else {
-                        PanePlaceholder(systemImage: "arrow.down", text: "Send a request to see the response here")
+                        EmptyState(systemImage: "arrow.down", text: "Send a request to see the response here")
                     }
                 }
                 .card()
             }
         }
-        .padding(.horizontal, 19)
-        .padding(.top, 14)
-        .padding(.bottom, 20)
+        .padding(.horizontal, 12)
+        .padding(.top, 12)
+        .padding(.bottom, 12)
     }
 
     private func statusLine(_ response: HTTPResponseSummary) -> some View {
         let tint = statusColor(response.statusClass)
 
-        return HStack(spacing: 14) {
+        return HStack(spacing: 10) {
             Text(String(response.statusCode))
-                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                .font(.system(size: 12, weight: .bold, design: .monospaced))
                 .foregroundStyle(tint)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
                 .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
 
             Text(response.statusText)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .lineLimit(1)
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 Label(DurationFormatter.milliseconds(response.duration), systemImage: "clock")
                 Label(ByteFormatter.short(response.body.count), systemImage: "doc")
             }
-            .font(.system(size: 14))
+            .font(.system(size: 12))
             .foregroundStyle(.secondary)
             .labelStyle(.titleAndIcon)
 
@@ -83,7 +77,7 @@ struct HTTPResponsePane: View {
             if model.responseTab == .body {
                 Toggle("Pretty", isOn: $model.isPrettyPrinted)
                     .toggleStyle(.checkbox)
-                    .font(.system(size: 14))
+                    .font(.system(size: 12))
                     .disabled(!model.canPrettyPrint)
 
                 Button {
@@ -91,7 +85,7 @@ struct HTTPResponsePane: View {
                     NSPasteboard.general.setString(model.displayedBody ?? "", forType: .string)
                 } label: {
                     Image(systemName: "doc.on.doc")
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
@@ -110,28 +104,28 @@ struct HTTPResponsePane: View {
     private var responseBody: some View {
         if let body = model.displayedBody {
             if body.isEmpty {
-                PanePlaceholder(systemImage: "doc", text: "Empty body")
+                EmptyState(systemImage: "doc", text: "Empty body")
             } else {
                 VStack(alignment: .leading, spacing: 0) {
                     TextEditor(text: .constant(body))
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(.system(size: 11, design: .monospaced))
                         .scrollContentBackground(.hidden)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 10)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 8)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                     if model.isBodyTruncated {
                         Divider()
                         Text("Showing the first \(ByteFormatter.short(HTTPRequestViewModel.bodyDisplayLimit)) of \(ByteFormatter.short(model.response?.body.count ?? 0))")
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                             .foregroundStyle(.secondary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
                     }
                 }
             }
         } else {
-            PanePlaceholder(
+            EmptyState(
                 systemImage: "doc.zipper",
                 text: "Binary body, \(ByteFormatter.short(model.response?.body.count ?? 0))"
             )
@@ -143,18 +137,18 @@ struct HTTPResponsePane: View {
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(Array(response.headers.enumerated()), id: \.element.id) { index, header in
                     if index > 0 { Divider() }
-                    HStack(alignment: .top, spacing: 10) {
+                    HStack(alignment: .top, spacing: 8) {
                         Text(header.name)
-                            .font(.system(size: 12, weight: .semibold, design: .monospaced))
-                            .frame(width: 200, alignment: .leading)
+                            .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                            .frame(width: 180, alignment: .leading)
                         Text(header.value)
-                            .font(.system(size: 12, design: .monospaced))
+                            .font(.system(size: 11, design: .monospaced))
                             .foregroundStyle(.secondary)
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.vertical, 7)
-                    .padding(.horizontal, 12)
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 10)
                 }
             }
         }
@@ -168,27 +162,5 @@ struct HTTPResponsePane: View {
         case .serverError: .red
         case .other: .gray
         }
-    }
-}
-
-/// An icon in a circle over a line of text, centered in an empty card.
-private struct PanePlaceholder: View {
-    let systemImage: String
-    let text: String
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.system(size: 17))
-                .foregroundStyle(.secondary)
-                .frame(width: 40, height: 40)
-                .background(Color.primary.opacity(0.08), in: Circle())
-            Text(text)
-                .font(.system(size: 14))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-        }
-        .padding(20)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

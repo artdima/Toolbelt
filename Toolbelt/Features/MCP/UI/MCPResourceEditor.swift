@@ -185,7 +185,7 @@ struct MCPResourceEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(model.isEditing ? "Edit \(model.original?.name ?? "")" : "Add Resource")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.system(size: 14, weight: .semibold))
 
             SettingsGroup {
                 if !model.isEditing {
@@ -229,7 +229,7 @@ struct MCPResourceEditor: View {
 
             if let problem = model.addressProblem ?? model.nameProblem {
                 Text(problem)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.red)
                     .padding(.horizontal, SettingsMetrics.labelInset)
             }
@@ -238,7 +238,7 @@ struct MCPResourceEditor: View {
 
             if let error = model.saveError {
                 Text(error)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.red)
                     .padding(.horizontal, SettingsMetrics.labelInset)
             }
@@ -263,8 +263,8 @@ struct MCPResourceEditor: View {
                 .disabled(!model.canSave)
             }
         }
-        .padding(20)
-        .frame(width: 500)
+        .padding(18)
+        .frame(width: 460)
         .onAppear {
             focusedField = model.isEditing ? .token : .address
         }
@@ -326,7 +326,7 @@ struct MCPResourceEditor: View {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
                 Text("Checking the token…")
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, SettingsMetrics.labelInset)

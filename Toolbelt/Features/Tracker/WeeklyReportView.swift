@@ -12,7 +12,7 @@ struct WeeklyReportView: View {
 
     var body: some View {
         content
-            .frame(minWidth: 500, minHeight: 540)
+            .frame(minWidth: 440, minHeight: 460)
             .navigationTitle("Weekly Report")
             .toolbar { weekToolbar }
             .onChange(of: model.credentials) { _, _ in
@@ -35,19 +35,18 @@ struct WeeklyReportView: View {
         } else {
             VStack(alignment: .leading, spacing: 0) {
                 summary
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 12)
 
                 if let failure = model.failure, !model.report.isEmpty {
                     ErrorBanner(text: failure.reason, details: failure.details)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .padding(.bottom, 12)
+                        .padding(.bottom, 10)
                 }
 
                 report
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 20)
+            .padding(.horizontal, 12)
+            .padding(.top, 4)
+            .padding(.bottom, 12)
         }
     }
 
@@ -61,9 +60,9 @@ struct WeeklyReportView: View {
             EmptyState(systemImage: "clock.badge.questionmark", text: "No entries this week")
         } else {
             chartCard
-                .padding(.bottom, 16)
+                .padding(.bottom, 12)
             breakdownControls
-                .padding(.bottom, 8)
+                .padding(.bottom, 6)
             breakdownList
         }
     }
@@ -122,12 +121,12 @@ struct WeeklyReportView: View {
     // MARK: Summary
 
     private var summary: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 16) {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.weekRangeTitle)
-                    .font(.system(size: 20, weight: .bold))
+                    .font(.system(size: 16, weight: .bold))
                 Text(model.relativeWeekTitle)
-                    .font(.system(size: 13))
+                    .font(.system(size: 11))
                     .foregroundStyle(.secondary)
             }
 
@@ -136,15 +135,15 @@ struct WeeklyReportView: View {
             if !model.report.isEmpty {
                 VStack(alignment: .trailing, spacing: 2) {
                     Text(DurationFormatter.short(model.report.totalSeconds))
-                        .font(.system(size: 26, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                     Text(verbatim: "\(entriesCount) · \(issuesCount)")
-                        .font(.system(size: 13))
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
                 .monospacedDigit()
             }
         }
-        .padding(.horizontal, 2)
+        .padding(.horizontal, 4)
     }
 
     private var entriesCount: String {
@@ -158,15 +157,15 @@ struct WeeklyReportView: View {
     // MARK: Chart
 
     private var chartCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("By day")
-                .font(.system(size: 12, weight: .semibold))
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(.secondary)
             WeekChart(days: model.report.days)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 10)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
         .card()
     }
 
@@ -174,15 +173,7 @@ struct WeeklyReportView: View {
 
     private var breakdownControls: some View {
         HStack(spacing: 8) {
-            Picker("Breakdown", selection: $model.breakdownMode) {
-                ForEach(BreakdownMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.large)
-            .fixedSize()
+            PillPicker(selection: $model.breakdownMode, options: BreakdownMode.allCases) { $0.title }
 
             Spacer()
 
@@ -193,9 +184,9 @@ struct WeeklyReportView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .font(.system(size: 13))
+                .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-                .padding(.trailing, 8)
+                .padding(.trailing, 10)
             }
         }
     }
@@ -235,10 +226,10 @@ struct WeeklyReportView: View {
             count: Plural.counted(issue.entries.count, "entry", "entries")
         ) {
             Text(issue.key)
-                .font(.system(size: 13, design: .monospaced))
+                .font(.system(size: 11, design: .monospaced))
                 .foregroundStyle(Color.accentColor)
             Text(issue.title)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .lineLimit(2)
                 .textSelection(.enabled)
         } details: {
@@ -255,9 +246,9 @@ struct WeeklyReportView: View {
             count: Plural.counted(group.entries.count, "entry", "entries")
         ) {
             Text(AppFormatters.weekdayAndDay.string(from: group.date))
-                .font(.system(size: 14, weight: isToday(group.date) ? .semibold : .regular))
+                .font(.system(size: 13, weight: isToday(group.date) ? .semibold : .regular))
             Text(Plural.counted(group.issueCount, "issue", "issues"))
-                .font(.system(size: 13))
+                .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         } details: {
             WorklogEntryList(entries: group.entries, showsDate: false)

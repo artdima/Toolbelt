@@ -26,15 +26,14 @@ struct EmptyState: View {
     let text: String
 
     var body: some View {
-        VStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.system(size: 26))
-                .foregroundStyle(.tertiary)
+        VStack(spacing: 10) {
+            StateIcon(systemImage: systemImage)
             Text(text)
                 .font(.system(size: 12))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
         }
+        .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -44,24 +43,21 @@ struct ErrorBanner: View {
     var details: String?
 
     var body: some View {
-        HStack(spacing: 8) {
-            message
-                .frame(maxWidth: .infinity, alignment: .leading)
+        NoticeBanner(systemImage: "exclamationmark.triangle", tint: .red, message: {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                message
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let details {
-                CopyButton(value: details, help: "Copy technical details")
+                if let details {
+                    CopyButton(value: details, help: "Copy technical details")
+                }
             }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Color.red.opacity(0.1))
+        })
     }
 
     @ViewBuilder
     private var message: some View {
-        let label = Text("⚠ \(text)")
-            .font(.system(size: 11))
-            .foregroundStyle(.red)
+        let label = Text(verbatim: text)
             .textSelection(.enabled)
 
         if let details {
@@ -78,18 +74,30 @@ struct SetupPrompt: View {
     let action: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "key")
-                .font(.system(size: 26))
-                .foregroundStyle(.tertiary)
+        VStack(spacing: 10) {
+            StateIcon(systemImage: "key")
             Text(text)
                 .font(.system(size: 12))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
             Button(actionTitle, action: action)
+                .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(24)
+    }
+}
+
+/// A symbol in a soft circle above the text of an empty or setup state.
+private struct StateIcon: View {
+    let systemImage: String
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: 15))
+            .foregroundStyle(.secondary)
+            .frame(width: 34, height: 34)
+            .background(Color.primary.opacity(0.08), in: Circle())
     }
 }
 

@@ -11,20 +11,20 @@ struct ReleaseNotesView: View {
     @State private var model = ReleaseNotesViewModel()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             controls
 
-            HStack(alignment: .top, spacing: 13) {
+            HStack(alignment: .top, spacing: 10) {
                 commitsPane
-                    .frame(width: 290)
+                    .frame(width: 260)
                 draftPane
             }
             .frame(maxHeight: .infinity)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 6)
-        .padding(.bottom, 20)
-        .frame(minWidth: 720, minHeight: 480)
+        .padding(.horizontal, 12)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
+        .frame(minWidth: 640, minHeight: 420)
         .navigationTitle("Release Notes")
         .navigationSubtitle(model.hasRepository ? model.repositoryPath : "No repository selected")
         .toolbar { repositoryToolbar }
@@ -40,11 +40,11 @@ struct ReleaseNotesView: View {
         ToolbarItem(placement: .primaryAction) {
             // A custom label: a Label in the toolbar gets its icon blown up to toolbar size.
             Button(action: chooseRepository) {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Image(systemName: "folder")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.system(size: 11, weight: .medium))
                     Text("Choose…")
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                 }
             }
             .disabled(model.isGenerating)
@@ -55,7 +55,7 @@ struct ReleaseNotesView: View {
     // MARK: Controls
 
     private var controls: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             rangeMenu("From", value: model.fromTag.isEmpty ? "Start of history" : model.fromTag, selection: $model.fromTag) {
                 Text("Start of history").tag("")
                 ForEach(model.tags, id: \.self) { tag in
@@ -64,7 +64,7 @@ struct ReleaseNotesView: View {
             }
 
             Image(systemName: "arrow.right")
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.secondary)
 
             rangeMenu("To", value: model.toRef, selection: $model.toRef) {
@@ -75,13 +75,13 @@ struct ReleaseNotesView: View {
             }
 
             Divider()
-                .frame(height: 22)
+                .frame(height: 18)
 
             languageMenu
 
             Toggle("Technical", isOn: $model.includeTechnical)
                 .toggleStyle(.checkbox)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .disabled(model.isGenerating)
                 .help("Include chore, refactor, docs, test, ci, build and style")
 
@@ -96,12 +96,11 @@ struct ReleaseNotesView: View {
                 Task { await model.build() }
             } label: {
                 Text("Build Draft")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
                     .padding(.horizontal, 4)
             }
             .buttonStyle(.borderedProminent)
             .buttonBorderShape(.capsule)
-            .controlSize(.large)
             .keyboardShortcut(.defaultAction)
             .disabled(!model.hasRepository || model.isBuilding || model.isGenerating)
         }
@@ -120,8 +119,8 @@ struct ReleaseNotesView: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            PickerCard(height: 30) {
-                HStack(spacing: 8) {
+            PickerCard(height: 28) {
+                HStack(spacing: 6) {
                     Text(title)
                         .foregroundStyle(.secondary)
                     Text(value)
@@ -145,8 +144,8 @@ struct ReleaseNotesView: View {
             .pickerStyle(.inline)
             .labelsHidden()
         } label: {
-            PickerCard(height: 30) {
-                HStack(spacing: 8) {
+            PickerCard(height: 28) {
+                HStack(spacing: 6) {
                     Image(systemName: "globe")
                         .foregroundStyle(.secondary)
                     Text(model.language.title)
@@ -165,15 +164,15 @@ struct ReleaseNotesView: View {
 
     private var commitsPane: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Text("Commits")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
                 if !model.commits.isEmpty {
                     Text(verbatim: "\(model.selectedCount) of \(model.commits.count)")
-                        .font(.system(size: 14))
+                        .font(.system(size: 11))
                         .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.tertiary)
                 }
                 Spacer(minLength: 8)
                 if !model.commits.isEmpty {
@@ -181,23 +180,18 @@ struct ReleaseNotesView: View {
                         model.setAllSelected(!model.areAllSelected)
                     }
                     .buttonStyle(.plain)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
                     .disabled(model.isGenerating)
                 }
             }
-            .padding(.horizontal, 14)
-            .frame(height: 40)
+            .padding(.horizontal, 10)
+            .frame(height: 32)
 
             Divider()
 
             if model.commits.isEmpty {
-                Text(commitsPlaceholder)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(20)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                commitsPlaceholder
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
@@ -213,10 +207,15 @@ struct ReleaseNotesView: View {
         .card()
     }
 
-    private var commitsPlaceholder: String {
-        if !model.hasRepository { return "Choose a repository to read its commits" }
-        if model.isBuilding { return "Reading commits…" }
-        return "Pick a range and press Build Draft"
+    @ViewBuilder
+    private var commitsPlaceholder: some View {
+        if !model.hasRepository {
+            EmptyState(systemImage: "folder", text: "Choose a repository to read its commits")
+        } else if model.isBuilding {
+            LoadingState(text: "Reading commits…")
+        } else {
+            EmptyState(systemImage: "list.bullet", text: "Pick a range and press Build Draft")
+        }
     }
 
     private func commitRow(_ item: ReleaseCommitItem) -> some View {
@@ -225,15 +224,14 @@ struct ReleaseNotesView: View {
             set: { _ in model.toggle(item) }
         )) {
             Text(item.commit.summary.capitalizedFirst)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .toggleStyle(.checkbox)
-        .controlSize(.large)
         .disabled(model.isGenerating)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
         .help(item.subject)
     }
 
@@ -245,9 +243,10 @@ struct ReleaseNotesView: View {
         let isOverLimit = count > limit
 
         return VStack(spacing: 0) {
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 Text("What's New")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.secondary)
                 Spacer(minLength: 8)
                 if model.isGenerating {
                     ProgressView()
@@ -272,33 +271,33 @@ struct ReleaseNotesView: View {
                     NSPasteboard.general.setString(model.draft, forType: .string)
                 } label: {
                     Image(systemName: "doc.on.doc")
-                        .font(.system(size: 13))
+                        .font(.system(size: 12))
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.secondary)
                 .disabled(model.draft.isEmpty)
                 .help("Copy text")
             }
-            .padding(.leading, 14)
-            .padding(.trailing, 10)
-            .frame(height: 40)
+            .padding(.leading, 10)
+            .padding(.trailing, 8)
+            .frame(height: 32)
 
             Divider()
 
             TextEditor(text: $model.draft)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .lineSpacing(5)
                 .scrollContentBackground(.hidden)
-                .padding(.horizontal, 9)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 8)
                 .disabled(model.isGenerating)
                 .overlay(alignment: .topLeading) {
                     if model.draft.isEmpty {
                         Text("The What's New text appears here")
-                            .font(.system(size: 14))
+                            .font(.system(size: 13))
                             .foregroundStyle(.tertiary)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
                             .allowsHitTesting(false)
                     }
                 }
@@ -306,25 +305,25 @@ struct ReleaseNotesView: View {
 
             Divider()
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 draftStatus
-                    .font(.system(size: 13))
+                    .font(.system(size: 11))
                     .lineLimit(2)
                 Spacer(minLength: 8)
                 ShareBar(fraction: Double(count) / Double(limit), tint: isOverLimit ? .red : .accentColor)
-                    .frame(width: 64)
+                    .frame(width: 56)
                 Text(verbatim: "\(count) / \(limit)")
-                    .font(.system(size: 14))
+                    .font(.system(size: 12))
                     .monospacedDigit()
                     .foregroundStyle(isOverLimit ? Color.red : Color.primary)
                     .help("Google Play caps What's New at \(limit) characters")
             }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 36)
+            .padding(.horizontal, 10)
+            .frame(minHeight: 30)
         }
         .card()
         .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(Color.red.opacity(isOverLimit ? 0.6 : 0), lineWidth: 1)
         }
     }

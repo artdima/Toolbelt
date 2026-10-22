@@ -34,20 +34,10 @@ struct ToolsSettingsView: View {
                 return ClaudeCLI.customPath
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Image(systemName: "info.circle")
+            NoticeBanner(systemImage: "info.circle", tint: .gray, message: {
                 Text("\(Text.code("xcrun")) for iOS simulators comes from \(Text.code("/usr/bin")) and needs no configuration. The Android emulator is taken from the same SDK as adb.")
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .font(.system(size: 13))
-            .foregroundStyle(.secondary)
-            .padding(13)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                Color.primary.opacity(0.04),
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-            )
+                    .foregroundStyle(.secondary)
+            })
         }
     }
 }
@@ -86,10 +76,10 @@ private struct PathSetting: View {
 
     var body: some View {
         SettingsGroup(title) {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 TextField(autodetected ?? placeholder, text: $text)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(.system(size: 12, design: .monospaced))
                     .focused($isFocused)
                     .onSubmit(commit)
 
@@ -99,7 +89,7 @@ private struct PathSetting: View {
                         commit()
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(.system(size: 10, weight: .medium))
                     }
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
@@ -107,12 +97,11 @@ private struct PathSetting: View {
                 }
 
                 Button("Choose…", action: choose)
-                    .controlSize(.large)
                     .buttonBorderShape(.capsule)
             }
-            .padding(.leading, 13)
+            .padding(.leading, 10)
             .padding(.trailing, 5)
-            .frame(minHeight: 41)
+            .frame(minHeight: 34)
         } footer: {
             footer
         }

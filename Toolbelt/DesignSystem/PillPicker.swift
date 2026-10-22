@@ -30,11 +30,11 @@ struct PillPicker<Value: Hashable>: View {
                     withAnimation(.snappy(duration: 0.2)) { selection = option }
                 } label: {
                     Text(title(option))
-                        .font(.system(size: 14, weight: isSelected ? .medium : .regular))
+                        .font(.system(size: 12, weight: isSelected ? .medium : .regular))
                         .foregroundStyle(isSelected ? Color.primary : Color.secondary)
                         .lineLimit(1)
-                        .padding(.horizontal, 14)
-                        .frame(height: 24)
+                        .padding(.horizontal, 12)
+                        .frame(height: 22)
                         .background {
                             if isSelected {
                                 Capsule()

@@ -12,7 +12,7 @@ struct DeepLinkView: View {
     @FocusState private var isLinkFocused: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
+        VStack(alignment: .leading, spacing: 14) {
             deviceSection
             linkSection
 
@@ -24,10 +24,12 @@ struct DeepLinkView: View {
 
             historySection
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 6)
-        .padding(.bottom, 20)
-        .frame(minWidth: 480, minHeight: 460)
+        .padding(.horizontal, 12)
+        .padding(.top, 4)
+        .padding(.bottom, 12)
+        .frame(minWidth: 420, minHeight: 400)
+        .navigationTitle("Deep Link")
+        .toolbar { refreshToolbar }
         .task {
             await model.reloadTargets()
             isLinkFocused = true
@@ -37,46 +39,46 @@ struct DeepLinkView: View {
         }
     }
 
+    // MARK: Toolbar
+
+    @ToolbarContentBuilder
+    private var refreshToolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            if model.isLoadingTargets {
+                ProgressView()
+                    .controlSize(.small)
+            } else {
+                Button {
+                    Task { await model.reloadTargets() }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .keyboardShortcut("r")
+                .help("Look for simulators and devices again")
+            }
+        }
+        .sharedBackgroundVisibility(.hidden)
+    }
+
     // MARK: Device
 
     private var deviceSection: some View {
         labeled("Device") {
-            HStack(spacing: 12) {
-                Menu {
-                    Picker("Device", selection: $model.selectedTargetID) {
-                        ForEach(model.targets) { target in
-                            Text(verbatim: target.title).tag(target.id)
-                        }
-                    }
-                    .pickerStyle(.inline)
-                    .labelsHidden()
-                } label: {
-                    PickerCard(height: 39) { deviceLabel }
-                }
-                .menuStyle(.button)
-                .buttonStyle(.plain)
-                .menuIndicator(.hidden)
-                .disabled(model.targets.isEmpty)
-
-                Group {
-                    if model.isLoadingTargets {
-                        ProgressView()
-                            .controlSize(.small)
-                    } else {
-                        Button {
-                            Task { await model.reloadTargets() }
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.system(size: 14, weight: .medium))
-                        }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                        .keyboardShortcut("r")
-                        .help("Look for simulators and devices again")
+            Menu {
+                Picker("Device", selection: $model.selectedTargetID) {
+                    ForEach(model.targets) { target in
+                        Text(verbatim: target.title).tag(target.id)
                     }
                 }
-                .frame(width: 28)
+                .pickerStyle(.inline)
+                .labelsHidden()
+            } label: {
+                PickerCard { deviceLabel }
             }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .menuIndicator(.hidden)
+            .disabled(model.targets.isEmpty)
         }
     }
 
@@ -98,15 +100,15 @@ struct DeepLinkView: View {
 
     private var linkSection: some View {
         labeled("Link") {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
                     Image(systemName: "link")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.secondary)
 
                     TextField("myapp://profile/123", text: $model.url)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 14, design: .monospaced))
+                        .font(.system(size: 12, design: .monospaced))
                         .focused($isLinkFocused)
                         .onSubmit { Task { await model.open() } }
 
@@ -114,21 +116,21 @@ struct DeepLinkView: View {
                         Task { await model.open() }
                     } label: {
                         Text("Open")
-                            .font(.system(size: 14, weight: .semibold))
-                            .padding(.horizontal, 8)
+                            .font(.system(size: 13, weight: .semibold))
+                            .padding(.horizontal, 4)
                     }
                     .buttonStyle(.borderedProminent)
                     .buttonBorderShape(.capsule)
-                    .controlSize(.large)
                     .disabled(!model.canOpen)
                 }
-                .padding(.leading, 14)
-                .padding(.trailing, 6)
-                .frame(height: 43)
+                .padding(.leading, 10)
+                .padding(.trailing, 4)
+                .frame(height: 32)
                 .card()
 
                 linkStatus
-                    .padding(.horizontal, 3)
+                    .font(.system(size: 11))
+                    .padding(.horizontal, 4)
             }
         }
     }
@@ -136,21 +138,18 @@ struct DeepLinkView: View {
     @ViewBuilder
     private var linkStatus: some View {
         if let result = model.result, !result.isSuccess {
-            failureCard(result)
+            CommandFailureCard(title: "Could not open", command: result.command, output: result.output)
         } else if let result = model.result {
             HStack(spacing: 8) {
                 Label(sentTitle, systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                 CopyButton(value: result.command, help: "Copy command")
             }
-            .font(.system(size: 13))
         } else if model.showsSchemeHint {
             Text("The link has no scheme — it usually looks like \(Text.code("myapp://path"))")
-                .font(.system(size: 13))
                 .foregroundStyle(.orange)
         } else if let target = model.selectedTarget {
             Text("Press Return to open on \(target.name)")
-                .font(.system(size: 13))
                 .foregroundStyle(.secondary)
         }
     }
@@ -159,59 +158,28 @@ struct DeepLinkView: View {
         model.selectedTarget.map { "Sent to \($0.name)" } ?? "Sent"
     }
 
-    private func failureCard(_ result: DeepLinkResult) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(Color.red)
-                Text("Could not open")
-                    .font(.system(size: 13, weight: .medium))
-                Spacer()
-                CopyButton(value: result.command, help: "Copy command")
-            }
-
-            Text(result.command)
-                .font(.system(size: 12, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if !result.output.isEmpty {
-                Text(result.output)
-                    .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(12)
-        .card()
-    }
-
     // MARK: History
 
     private var historySection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                sectionTitle("History")
+                SectionLabel(title: "History")
                 Spacer()
                 if model.history.hasUnpinned {
                     Button("Clear") {
                         model.history.clearUnpinned()
                     }
                     .buttonStyle(.plain)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
-                    .padding(.trailing, 8)
+                    .padding(.trailing, 6)
                     .help("Remove every link that is not pinned")
                 }
             }
 
             Group {
                 if model.history.entries.isEmpty {
-                    Text("Links you open will be kept here")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    EmptyState(systemImage: "clock.arrow.circlepath", text: "Links you open will be kept here")
                 } else {
                     ScrollView {
                         LazyVStack(spacing: 0) {
@@ -229,21 +197,21 @@ struct DeepLinkView: View {
     }
 
     private func historyRow(_ entry: DeepLinkEntry) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(entry.url)
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(.system(size: 12, design: .monospaced))
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .help(entry.url)
                 HStack(spacing: 5) {
                     if entry.isPinned {
                         Image(systemName: "pin.fill")
-                            .font(.system(size: 9))
+                            .font(.system(size: 8))
                             .foregroundStyle(.orange)
                     }
                     Text(subtitle(for: entry))
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -253,18 +221,18 @@ struct DeepLinkView: View {
                 Task { await model.reopen(entry) }
             } label: {
                 Image(systemName: "arrow.up.right")
-                    .font(.system(size: 11, weight: .bold))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Color.accentColor)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 24, height: 24)
                     .background(Color.primary.opacity(0.07), in: Circle())
             }
             .buttonStyle(.plain)
             .disabled(model.selectedTarget == nil || model.isOpening)
             .help(model.selectedTarget.map { "Open on \($0.name)" } ?? "Open")
         }
-        .padding(.leading, 14)
-        .padding(.trailing, 8)
-        .frame(minHeight: 52)
+        .padding(.leading, 10)
+        .padding(.trailing, 6)
+        .frame(minHeight: 42)
         .contentShape(Rectangle())
         .onTapGesture {
             model.url = entry.url
@@ -293,16 +261,9 @@ struct DeepLinkView: View {
 
     private func labeled<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            sectionTitle(title)
+            SectionLabel(title: title)
             content()
         }
-    }
-
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(.secondary)
-            .padding(.leading, 3)
     }
 }
 

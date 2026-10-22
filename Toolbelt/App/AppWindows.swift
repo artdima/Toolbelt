@@ -12,50 +12,50 @@ extension WindowConfiguration {
     static let weeklyReport = WindowConfiguration(
         id: "weekly-report",
         title: "Weekly Report",
-        size: NSSize(width: 560, height: 640),
+        size: NSSize(width: 480, height: 560),
         toolbarStyle: .unified
     )
     static let issuesBoard = WindowConfiguration(
         id: "issues-board",
         title: "My Issues",
-        size: NSSize(width: 960, height: 590),
+        size: NSSize(width: 860, height: 520),
         toolbarStyle: .unified
     )
     static let simulators = WindowConfiguration(
         id: "simulators",
         title: "Simulators",
-        size: NSSize(width: 560, height: 660),
+        size: NSSize(width: 480, height: 560),
         toolbarStyle: .unified
     )
     static let deepLink = WindowConfiguration(
         id: "deep-link",
         title: "Deep Link",
-        size: NSSize(width: 560, height: 550),
-        usesEmptyToolbar: true
+        size: NSSize(width: 480, height: 470),
+        toolbarStyle: .unified
     )
     static let userDefaults = WindowConfiguration(
         id: "user-defaults",
         title: "User Defaults",
-        size: NSSize(width: 720, height: 610),
+        size: NSSize(width: 640, height: 520),
         toolbarStyle: .unified
     )
     static let releaseNotes = WindowConfiguration(
         id: "release-notes",
         title: "Release Notes",
-        size: NSSize(width: 840, height: 550),
+        size: NSSize(width: 740, height: 480),
         toolbarStyle: .unified
     )
     static let httpRequest = WindowConfiguration(
         id: "http-request",
         title: "HTTP Request",
-        size: NSSize(width: 940, height: 590),
+        size: NSSize(width: 840, height: 520),
         toolbarStyle: .unified,
         usesFullSizeContent: true
     )
     static let mcp = WindowConfiguration(
         id: "mcp",
         title: "MCP",
-        size: NSSize(width: 640, height: 640),
+        size: NSSize(width: 560, height: 560),
         toolbarStyle: .unified
     )
     static let settings = WindowConfiguration(
