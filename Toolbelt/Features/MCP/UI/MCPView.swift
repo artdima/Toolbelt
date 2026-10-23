@@ -233,7 +233,7 @@ struct MCPView: View {
 
     private func resourceRow(_ resource: MCPResource) -> some View {
         HStack(alignment: .center, spacing: 10) {
-            Image(systemName: "server.rack")
+            Image(systemName: resource.kind.symbolName)
                 .font(.system(size: 12))
                 .foregroundStyle(resource.isEnabled ? Color.primary : Color.secondary)
                 .frame(width: 24, height: 24)

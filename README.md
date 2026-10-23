@@ -29,7 +29,7 @@
 | **HTTP Request** | Turns a pasted `curl` command into an editable request, sends it and shows the response — a pocket Postman |
 | **Release Notes** | Builds "What's New" from your commits, optionally rewritten by Claude CLI into one paragraph |
 | **Derived Data** | Wipes the folder with one button |
-| **MCP** | A local MCP server for Claude: it keeps your GitLab tokens in Keychain and lets Claude read pipelines, job logs and merge requests |
+| **MCP** | A local MCP server for Claude: it keeps your tokens in Keychain and lets Claude read GitLab pipelines, job logs and merge requests, and post to LinkedIn as you |
 
 ## Install
 
@@ -120,6 +120,28 @@ diff on request). Answers are compact text with web links, at most 20,000 charac
 Turning a resource off removes its tools and notifies the connected clients
 (`tools/list_changed`); the MCP window shows the clients and the last 200 calls.
 
+### LinkedIn
+
+LinkedIn goes through its official API with an app of your own:
+
+1. On [linkedin.com/developers](https://www.linkedin.com/developers/apps) create an app — it has
+   to be tied to a LinkedIn Page; a basic one you admin will do — and add the products
+   **Sign In with LinkedIn using OpenID Connect** and **Share on LinkedIn**.
+2. Copy **Client ID** and **Client Secret** from the app's Auth tab.
+3. In [OAuth Token Generator](https://www.linkedin.com/developers/tools/oauth/token-generator)
+   pick the app and the scopes `openid profile email w_member_social`.
+4. In Toolbelt → MCP → **Add Resource** choose **LinkedIn**, fill in the name, Client ID, Client
+   Secret and the access token, then **Check** and **Save**. Check shows the member, the scopes
+   and the expiry; the token lasts 60 days, then it is generated again the same way.
+
+Reading tools: `linkedin_accounts`, `linkedin_profile` and `linkedin_recent_posts` — the posts
+published through Toolbelt, since the API does not let a member's app read the member's own
+posts. With **Allow write** on the resource (off by default, turned on after a confirmation)
+Claude also gets `linkedin_create_post` (text posts, `PUBLIC` or `CONNECTIONS`, `dry_run` to
+see the text first) and `linkedin_delete_post` (by URN or a `feed/update` link). Toolbelt
+escapes LinkedIn's reserved characters itself, keeps `#hashtags`, and publishes at most 10
+posts a day per resource.
+
 ## Decisions worth explaining
 
 **Not sandboxed.** A developer tool runs `git`, `xcrun` and `adb` and reads
@@ -173,6 +195,20 @@ never touches Keychain — no ACL prompts, no second signature to keep in sync. 
 connection is a session with an MCP `Server` of its own, so Claude Desktop, Claude Code and a
 cloud session linked to this Mac can be connected at once.
 
+**LinkedIn only through its official API.** Open-source servers drive a logged-in
+browser session instead; that breaks LinkedIn's terms, risks a restricted account, and would
+mean keeping session cookies that open the whole account. The API gives less — the profile
+and the member's own posts, nothing to read — and that is what Toolbelt offers.
+
+**Every user brings their own LinkedIn app.** A client secret inside a distributed binary is
+no longer a secret, and LinkedIn's daily limit of 100,000 requests per app would be shared by
+everyone. Client ID stays with the resource, Client Secret goes to Keychain next to the token:
+together they let Check ask LinkedIn when the token expires and what scopes it has.
+
+**Writing has three locks.** Allow write on the resource, off by default; the same switch
+checked again on every call, because a client may hold a tool list from before it went off;
+and the `readOnlyHint`/`destructiveHint` annotations clients use to ask before a call.
+
 **The socket admits the user only.** It sits in a 0700 directory with mode 0600, and every
 connection's peer is checked with `getpeereid`. GitLab is called over https only (plain http
 just for `localhost`), redirects to another host are refused so the token never follows them,
@@ -195,8 +231,10 @@ pluralization, bash-style splitting of `curl` commands and their options, the ex
 `curl` command (including a parse → export → parse round trip), `URLRequest` building,
 JSON pretty-printing, `simctl listapps` and exported defaults domains with their plist types,
 GitLab link parsing, job log cleanup with `tail` and `grep`, the pipeline and merge request
-text Claude gets, response truncation, newline framing on the MCP socket, the socket's
-permissions, and merging `claude_desktop_config.json`.
+text Claude gets, LinkedIn's Little Text escaping, post links and URNs, token introspection,
+the post body, HTTP status mapping, the write switch and the journal of published posts,
+response truncation, newline framing on the MCP socket, the socket's permissions, and merging
+`claude_desktop_config.json`.
 
 ## Known limitations
 

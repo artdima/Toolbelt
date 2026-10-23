@@ -76,6 +76,7 @@ final class MCPResourceStore {
     func delete(_ id: MCPResource.ID) throws {
         try keychain.delete(account: Self.tokenAccount(id))
         try keychain.delete(account: Self.clientSecretAccount(id))
+        LinkedInPostJournal.erase(id, in: defaults)
         resources.removeAll { $0.id == id }
         persist()
     }

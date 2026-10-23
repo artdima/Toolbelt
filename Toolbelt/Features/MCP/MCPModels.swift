@@ -9,12 +9,21 @@ import Foundation
 
 nonisolated enum MCPResourceKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case gitlab
+    case linkedin
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .gitlab: "GitLab"
+        case .linkedin: "LinkedIn"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .gitlab: "server.rack"
+        case .linkedin: "person.crop.square"
         }
     }
 }

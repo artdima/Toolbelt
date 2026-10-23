@@ -87,11 +87,12 @@ nonisolated protocol MCPProvider: Sendable {
 }
 
 nonisolated enum MCPProviders {
-    static let all: [any MCPProvider] = [GitLabProvider()]
+    static let all: [any MCPProvider] = [GitLabProvider(), LinkedInProvider()]
 
     static func provider(for kind: MCPResourceKind) -> any MCPProvider {
         switch kind {
         case .gitlab: GitLabProvider()
+        case .linkedin: LinkedInProvider()
         }
     }
 }
@@ -127,6 +128,13 @@ nonisolated struct ToolArguments: Sendable {
         min(max(try int(key) ?? fallback, range.lowerBound), range.upperBound)
     }
 
+    func bool(_ key: String) throws -> Bool? {
+        guard let value = values[key], !value.isNull else { return nil }
+        if let flag = Bool(value, strict: false) { return flag }
+        if case let .string(text) = value, let flag = Bool(.string(text.lowercased()), strict: false) { return flag }
+        throw MCPToolError("“\(key)” has to be true or false")
+    }
+
     static func compactJSON(_ values: [String: Value]) -> String {
         guard !values.isEmpty else { return "" }
         let encoder = JSONEncoder()
@@ -150,6 +158,10 @@ nonisolated enum JSONSchema {
         var schema: [String: Value] = ["type": "string", "description": .string(description)]
         if let values { schema["enum"] = .array(values.map { .string($0) }) }
         return .object(schema)
+    }
+
+    static func boolean(_ description: String) -> Value {
+        .object(["type": "boolean", "description": .string(description)])
     }
 
     static func integer(_ description: String, minimum: Int? = nil, maximum: Int? = nil, default fallback: Int? = nil) -> Value {

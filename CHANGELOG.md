@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+- **MCP for Claude.** Toolbelt is a local MCP server for Claude Desktop and Claude
+  Code. Tokens stay in Keychain; turning a resource off removes its tools at once.
+- **GitLab.** Claude reads pipelines with every job and trigger, job logs with
+  `grep`, and merge requests with their changed files.
+- **LinkedIn.** Claude sees whose account it is and, once Allow write is on,
+  publishes and deletes text posts as you, through LinkedIn's official API and an
+  app of your own. Toolbelt escapes LinkedIn's markup characters, keeps hashtags,
+  and remembers the posts it published, since LinkedIn does not let the app read them.
+
 ## 0.2.0
 
 A new look for every window, in Light and Dark appearance alike.
