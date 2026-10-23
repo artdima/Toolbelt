@@ -106,6 +106,8 @@ not running, the helper starts it in the background and waits up to 10 seconds f
 1. Menu bar → **MCP** → **Add Resource**: a name, the GitLab address (`https://gitlab.com` by
    default) and a legacy personal access token with the `read_api` scope. **Check** shows the
    user, the scopes and when the token expires; **Save** stores it.
+   The **?** button in the editor opens the Setup Guide for the chosen type: every step with
+   its links, requests to try and what a failure means.
 2. **Connect to Claude Desktop** adds the server to `claude_desktop_config.json` next to the
    ones already there, with a backup of the old file. Restart Claude Desktop afterwards.
    For Claude Code, **Copy Command** gives

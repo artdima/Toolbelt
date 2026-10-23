@@ -35,4 +35,15 @@ struct GitLabLinkTests {
         #expect(prefixed?.projectPath == "team/app")
         #expect(prefixed?.target == .job(5))
     }
+
+    @Test("The token page is on the resource's own instance, with the scope filled in")
+    func tokenPage() {
+        let page = URL(string: "https://example.com/gitlab").flatMap(GitLabGuide.tokenPage(for:))
+        #expect(page?.absoluteString
+            == "https://example.com/gitlab/-/user_settings/personal_access_tokens?name=Toolbelt&scopes=read_api")
+
+        let guide = GitLabGuide.guide(for: URL(string: "https://git.local:8443"))
+        #expect(guide.steps.first?.link?.url.host() == "git.local")
+        #expect(guide.steps.first?.link?.title == "Open Access Tokens on git.local:8443")
+    }
 }

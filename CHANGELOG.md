@@ -10,6 +10,10 @@
   publishes and deletes text posts as you, through LinkedIn's official API and an
   app of your own. Toolbelt escapes LinkedIn's markup characters, keeps hashtags,
   and remembers the posts it published, since LinkedIn does not let the app read them.
+- **Setup Guide.** A window with step-by-step setup for each kind of resource: where
+  to get the token, what goes into each field, what to ask Claude and what to do
+  when something goes wrong. It opens from the ? button in the resource editor, from
+  Setup Guide next to Add Resource and from a resource's context menu.
 
 ## 0.2.0
 

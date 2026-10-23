@@ -33,13 +33,17 @@ nonisolated struct GitLabProvider: MCPProvider {
 
     func tokenHint(for baseURL: URL?) -> MCPTokenHint {
         let base = baseURL ?? URL(string: defaultBaseURL)
-        let page = base.flatMap { URL(string: $0.absoluteString + "/-/user_settings/personal_access_tokens?name=Toolbelt&scopes=read_api") }
+        let page = base.flatMap(GitLabGuide.tokenPage(for:))
         let host = base.flatMap(GitLabLinkParser.host(of:)) ?? "your GitLab"
         return MCPTokenHint(
             text: "Needs a legacy personal access token with the read_api scope. Create one on \(host) under User Settings → Access Tokens.",
             url: page,
             placeholder: "glpat-…"
         )
+    }
+
+    func guide(for baseURL: URL?) -> MCPGuide {
+        GitLabGuide.guide(for: baseURL ?? URL(string: defaultBaseURL))
     }
 
     func validate(_ setup: MCPSetup) async throws -> MCPValidation {

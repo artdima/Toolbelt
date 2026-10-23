@@ -319,6 +319,10 @@ struct MCPResourceEditor: View {
             }
 
             HStack(spacing: 8) {
+                HelpLink {
+                    AppWindows.mcpGuide(kind: model.kind, baseURL: model.baseURL)
+                }
+                .help("How to set up \(model.kind.title)")
                 if model.isEditing {
                     Button("Delete…", role: .destructive) {
                         isConfirmingDeletion = true

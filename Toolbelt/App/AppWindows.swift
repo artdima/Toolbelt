@@ -58,6 +58,12 @@ extension WindowConfiguration {
         size: NSSize(width: 560, height: 560),
         toolbarStyle: .unified
     )
+    static let mcpGuide = WindowConfiguration(
+        id: "mcp-guide",
+        title: "Setup Guide",
+        size: NSSize(width: 480, height: 620),
+        toolbarStyle: .unified
+    )
     static let settings = WindowConfiguration(
         id: "settings",
         title: "Settings",
@@ -103,6 +109,12 @@ enum AppWindows {
 
     static func mcp() {
         WindowPresenter.show(.mcp) { MCPView() }
+    }
+
+    /// Without a kind the window keeps the guide it showed last.
+    static func mcpGuide(kind: MCPResourceKind? = nil, baseURL: URL? = nil) {
+        if let kind { MCPGuideNavigator.shared.open(kind, baseURL: baseURL) }
+        WindowPresenter.show(.mcpGuide) { MCPGuideView(navigator: .shared) }
     }
 
     static func settings(tab: SettingsTab = .profiles) {

@@ -38,10 +38,18 @@ struct MCPView: View {
 
                 section("Resources", id: "resources", count: model.store.resources.count) {
                     resourcesCard
-                    Button {
-                        editor = .add
-                    } label: {
-                        Label("Add Resource", systemImage: "plus")
+                    HStack(spacing: 8) {
+                        Button {
+                            editor = .add
+                        } label: {
+                            Label("Add Resource", systemImage: "plus")
+                        }
+                        Button {
+                            AppWindows.mcpGuide()
+                        } label: {
+                            Label("Setup Guide", systemImage: "questionmark.circle")
+                        }
+                        .help("How to add each kind of resource, step by step")
                     }
                     .buttonBorderShape(.capsule)
                 }
@@ -284,6 +292,10 @@ struct MCPView: View {
             Button("Edit…") { editor = .edit(resource) }
             Button(resource.isEnabled ? "Turn Off" : "Turn On") {
                 model.store.setEnabled(!resource.isEnabled, for: resource.id)
+            }
+            Divider()
+            Button("Setup Guide…") {
+                AppWindows.mcpGuide(kind: resource.kind, baseURL: resource.baseURL)
             }
         }
     }

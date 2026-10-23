@@ -43,10 +43,14 @@ nonisolated struct LinkedInProvider: MCPProvider {
             OAuth Token Generator (Docs and tools → OAuth Token Tools) for that app with the scopes openid profile \
             email w_member_social. The token lasts 60 days.
             """,
-            url: URL(string: "https://www.linkedin.com/developers/apps"),
+            url: LinkedInGuide.developerApps,
             linkTitle: "Open LinkedIn Developers",
             placeholder: "From OAuth Token Generator"
         )
+    }
+
+    func guide(for baseURL: URL?) -> MCPGuide {
+        LinkedInGuide.guide(dailyPostLimit: Self.dailyPostLimit)
     }
 
     func validate(_ setup: MCPSetup) async throws -> MCPValidation {

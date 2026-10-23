@@ -74,6 +74,7 @@ nonisolated protocol MCPProvider: Sendable {
     var asksForClientCredentials: Bool { get }
 
     func tokenHint(for baseURL: URL?) -> MCPTokenHint
+    func guide(for baseURL: URL?) -> MCPGuide
     func validate(_ setup: MCPSetup) async throws -> MCPValidation
     /// The second line of the resource in the MCP window.
     func accountLine(_ resource: MCPResource) -> String
