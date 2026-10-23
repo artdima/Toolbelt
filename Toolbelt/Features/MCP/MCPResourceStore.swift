@@ -2,7 +2,7 @@
 //  MCPResourceStore.swift
 //  Toolbelt
 //
-//  MCP resources live in UserDefaults; their tokens only in Keychain.
+//  MCP resources live in UserDefaults; their tokens and client secrets only in Keychain.
 //
 
 import Foundation
@@ -38,33 +38,44 @@ final class MCPResourceStore {
     }
 
     func token(for id: MCPResource.ID) -> String? {
-        do {
-            return try keychain.read(account: id.uuidString)
-        } catch {
-            Log.mcp.error("Could not read a resource token: \(error.localizedDescription, privacy: .public)")
-            return nil
-        }
+        read(account: Self.tokenAccount(id), what: "token")
     }
 
-    /// Keychain goes first: a resource must not be listed with a token that was never stored.
-    func add(_ resource: MCPResource, token: String) throws {
-        try keychain.write(token, account: resource.id.uuidString)
+    func clientSecret(for id: MCPResource.ID) -> String? {
+        read(account: Self.clientSecretAccount(id), what: "client secret")
+    }
+
+    /// Keychain goes first: a resource must not be listed with a secret that was never stored.
+    func add(_ resource: MCPResource, token: String, clientSecret: String? = nil) throws {
+        try keychain.write(token, account: Self.tokenAccount(resource.id))
+        if let clientSecret = Self.nonEmpty(clientSecret) {
+            do {
+                try keychain.write(clientSecret, account: Self.clientSecretAccount(resource.id))
+            } catch {
+                try? keychain.delete(account: Self.tokenAccount(resource.id))
+                throw error
+            }
+        }
         resources.append(resource)
         persist()
     }
 
-    /// A nil token keeps the stored one.
-    func update(_ resource: MCPResource, token: String?) throws {
+    /// A nil or empty secret keeps the stored one.
+    func update(_ resource: MCPResource, token: String?, clientSecret: String? = nil) throws {
         guard let index = resources.firstIndex(where: { $0.id == resource.id }) else { return }
-        if let token, !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            try keychain.write(token, account: resource.id.uuidString)
+        if let token = Self.nonEmpty(token) {
+            try keychain.write(token, account: Self.tokenAccount(resource.id))
+        }
+        if let clientSecret = Self.nonEmpty(clientSecret) {
+            try keychain.write(clientSecret, account: Self.clientSecretAccount(resource.id))
         }
         resources[index] = resource
         persist()
     }
 
     func delete(_ id: MCPResource.ID) throws {
-        try keychain.delete(account: id.uuidString)
+        try keychain.delete(account: Self.tokenAccount(id))
+        try keychain.delete(account: Self.clientSecretAccount(id))
         resources.removeAll { $0.id == id }
         persist()
     }
@@ -84,6 +95,28 @@ final class MCPResourceStore {
     func isNameTaken(_ name: String, except id: MCPResource.ID?) -> Bool {
         let wanted = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return resources.contains { $0.id != id && $0.name.lowercased() == wanted }
+    }
+
+    private func read(account: String, what: String) -> String? {
+        do {
+            return try keychain.read(account: account)
+        } catch {
+            Log.mcp.error("Could not read a resource \(what, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    private static func tokenAccount(_ id: MCPResource.ID) -> String {
+        id.uuidString
+    }
+
+    private static func clientSecretAccount(_ id: MCPResource.ID) -> String {
+        "\(id.uuidString).client-secret"
+    }
+
+    private static func nonEmpty(_ value: String?) -> String? {
+        guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return value
     }
 
     private func modify(_ id: MCPResource.ID, _ change: (inout MCPResource) -> Void) {

@@ -10,6 +10,7 @@ import SwiftUI
 struct MCPView: View {
     @State private var model = MCPViewModel()
     @State private var editor: MCPResourceEditorTarget?
+    @State private var pendingWriteAccess: MCPResource?
     @AppStorage("mcp.collapsedSections") private var collapsedSectionsStorage = ""
 
     private static let logTime: DateFormatter = {
@@ -59,6 +60,18 @@ struct MCPView: View {
         .toolbar { toolbar }
         .sheet(item: $editor) { target in
             MCPResourceEditor(target: target)
+        }
+        .confirmationDialog(
+            "Allow Claude to write?",
+            isPresented: isConfirmingWriteAccess,
+            presenting: pendingWriteAccess
+        ) { resource in
+            Button("Allow Write") {
+                model.store.setAllowWrite(true, for: resource.id)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { resource in
+            Text(MCPProviders.provider(for: resource.kind).writeAccessWarning(for: resource))
         }
         .task {
             model.refreshDesktopStatus()
@@ -250,9 +263,7 @@ struct MCPView: View {
                     get: { resource.isEnabled },
                     set: { model.store.setEnabled($0, for: resource.id) }
                 ))
-                Toggle("Allow write", isOn: .constant(resource.allowWrite))
-                    .disabled(true)
-                    .help("Toolbelt has no write tools yet")
+                allowWriteToggle(resource)
             }
             .toggleStyle(.switch)
             .controlSize(.mini)
@@ -278,11 +289,36 @@ struct MCPView: View {
     }
 
     private func accountLine(_ resource: MCPResource) -> String {
-        var parts = [resource.host]
-        if let account = resource.account {
-            parts.append("@\(account.username)")
+        MCPProviders.provider(for: resource.kind).accountLine(resource)
+    }
+
+    @ViewBuilder
+    private func allowWriteToggle(_ resource: MCPResource) -> some View {
+        if MCPProviders.provider(for: resource.kind).supportsWrite {
+            Toggle("Allow write", isOn: Binding(
+                get: { resource.allowWrite },
+                set: { allow in
+                    if allow {
+                        pendingWriteAccess = resource
+                    } else {
+                        model.store.setAllowWrite(false, for: resource.id)
+                    }
+                }
+            ))
+            .help("Lets Claude publish and change data through this resource")
+        } else {
+            Toggle("Allow write", isOn: .constant(resource.allowWrite))
+                .disabled(true)
+                .help("Toolbelt has no write tools for \(resource.kind.title) yet")
         }
-        return parts.joined(separator: " · ")
+    }
+
+    /// Cancelling leaves the switch off: it only turns on after Allow Write.
+    private var isConfirmingWriteAccess: Binding<Bool> {
+        Binding(
+            get: { pendingWriteAccess != nil },
+            set: { if !$0 { pendingWriteAccess = nil } }
+        )
     }
 
     @ViewBuilder

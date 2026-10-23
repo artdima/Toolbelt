@@ -2,7 +2,7 @@
 //  MCPResourceEditor.swift
 //  Toolbelt
 //
-//  Adding a resource, checking its token, replacing the token, deleting the resource.
+//  Adding a resource, checking its token, replacing its secrets, deleting the resource.
 //
 
 import Observation
@@ -36,6 +36,8 @@ final class MCPResourceEditorModel {
     var kind: MCPResourceKind
     var name: String
     var address: String
+    var clientID: String
+    var clientSecret = ""
     var token = ""
     private(set) var check = CheckState.idle
     private(set) var saveError: String?
@@ -52,29 +54,40 @@ final class MCPResourceEditorModel {
             kind = .gitlab
             name = ""
             address = MCPProviders.provider(for: .gitlab).defaultBaseURL
+            clientID = ""
         case let .edit(resource):
             original = resource
             kind = resource.kind
             name = resource.name
             address = resource.baseURL.absoluteString
+            clientID = resource.clientID ?? ""
         }
     }
 
     var isEditing: Bool { original != nil }
     var provider: any MCPProvider { MCPProviders.provider(for: kind) }
-    var baseURL: URL? { MCPResource.validatedBaseURL(address) }
     var hint: MCPTokenHint { provider.tokenHint(for: baseURL) }
 
+    /// A service with one address gets it from the provider; the editor does not show the field.
+    var baseURL: URL? {
+        provider.asksForAddress
+            ? MCPResource.validatedBaseURL(address)
+            : MCPResource.validatedBaseURL(provider.defaultBaseURL)
+    }
+
     var trimmedToken: String { token.trimmingCharacters(in: .whitespacesAndNewlines) }
+    var trimmedClientID: String { clientID.trimmingCharacters(in: .whitespacesAndNewlines) }
+    var trimmedClientSecret: String { clientSecret.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var resolvedName: String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty { return trimmed }
+        guard provider.asksForAddress else { return kind.title }
         return baseURL.flatMap(GitLabLinkParser.host(of:)) ?? ""
     }
 
     var addressProblem: String? {
-        guard !address.trimmingCharacters(in: .whitespaces).isEmpty, baseURL == nil else { return nil }
+        guard provider.asksForAddress, !address.trimmingCharacters(in: .whitespaces).isEmpty, baseURL == nil else { return nil }
         return "Use an https:// address; plain http only works for a server on this Mac."
     }
 
@@ -83,9 +96,14 @@ final class MCPResourceEditorModel {
         return "Another resource is already called “\(resolvedName)”."
     }
 
-    /// What the last check vouches for: a new address or token needs a new check.
+    /// What the last check vouches for: a new address, token or client credential needs a new check.
     private var checkKey: String {
-        "\(baseURL?.absoluteString ?? "")\n\(trimmedToken)"
+        [kind.rawValue, baseURL?.absoluteString ?? "", trimmedToken, storedClientID ?? "", trimmedClientSecret]
+            .joined(separator: "\n")
+    }
+
+    private var storedClientID: String? {
+        provider.asksForClientCredentials && !trimmedClientID.isEmpty ? trimmedClientID : nil
     }
 
     var passedValidation: MCPValidation? {
@@ -95,17 +113,25 @@ final class MCPResourceEditorModel {
 
     private var keepsStoredSetup: Bool {
         guard let original else { return false }
-        return trimmedToken.isEmpty && baseURL == original.baseURL
+        return trimmedToken.isEmpty
+            && trimmedClientSecret.isEmpty
+            && baseURL == original.baseURL
+            && storedClientID == original.clientID
+    }
+
+    private var hasClientCredentials: Bool {
+        guard provider.asksForClientCredentials else { return true }
+        return !trimmedClientID.isEmpty && (!trimmedClientSecret.isEmpty || isEditing)
     }
 
     var canCheck: Bool {
-        guard baseURL != nil else { return false }
+        guard baseURL != nil, hasClientCredentials else { return false }
         if case .checking = check { return false }
         return !trimmedToken.isEmpty || isEditing
     }
 
     var canSave: Bool {
-        guard baseURL != nil, !resolvedName.isEmpty, nameProblem == nil else { return false }
+        guard baseURL != nil, !resolvedName.isEmpty, nameProblem == nil, hasClientCredentials else { return false }
         return passedValidation != nil || keepsStoredSetup
     }
 
@@ -118,31 +144,47 @@ final class MCPResourceEditorModel {
             return
         }
 
+        var setup = MCPSetup(baseURL: baseURL, token: tokenToCheck)
+        if provider.asksForClientCredentials {
+            let secret = trimmedClientSecret.isEmpty ? original.flatMap { store.clientSecret(for: $0.id) } : trimmedClientSecret
+            guard let secret, !secret.isEmpty else {
+                check = .failed("There is no Client Secret to check with: paste it above.")
+                return
+            }
+            setup.clientID = storedClientID
+            setup.clientSecret = secret
+        }
+
         check = .checking
         do {
-            let validation = try await provider.validate(baseURL: baseURL, token: tokenToCheck)
+            let validation = try await provider.validate(setup)
             check = .passed(validation, key: key)
         } catch {
-            check = .failed(MCPText.redacting([tokenToCheck], in: error.localizedDescription))
+            let secrets = [tokenToCheck, setup.clientSecret].compactMap { $0 }
+            check = .failed(MCPText.redacting(secrets, in: error.localizedDescription))
         }
     }
 
     func save() -> Bool {
         guard canSave, let baseURL else { return false }
+        let newToken = trimmedToken.isEmpty ? nil : trimmedToken
+        let newClientSecret = provider.asksForClientCredentials && !trimmedClientSecret.isEmpty ? trimmedClientSecret : nil
         do {
             if var resource = original {
                 resource.name = resolvedName
                 resource.baseURL = baseURL
+                resource.clientID = storedClientID
                 if let validation = passedValidation { resource.account = validation.account }
-                try store.update(resource, token: trimmedToken.isEmpty ? nil : trimmedToken)
+                try store.update(resource, token: newToken, clientSecret: newClientSecret)
             } else {
                 let resource = MCPResource(
                     kind: kind,
                     name: resolvedName,
                     baseURL: baseURL,
+                    clientID: storedClientID,
                     account: passedValidation?.account
                 )
-                try store.add(resource, token: trimmedToken)
+                try store.add(resource, token: trimmedToken, clientSecret: newClientSecret)
             }
             return true
         } catch {
@@ -167,16 +209,19 @@ struct MCPResourceEditor: View {
     private enum Field {
         case name
         case address
+        case clientID
+        case clientSecret
         case token
     }
 
     @Environment(\.dismiss) private var dismiss
     @State private var model: MCPResourceEditorModel
     @State private var isTokenVisible = false
+    @State private var isClientSecretVisible = false
     @State private var isConfirmingDeletion = false
     @FocusState private var focusedField: Field?
 
-    private let labelWidth: CGFloat = 96
+    private let labelWidth: CGFloat = 104
 
     init(target: MCPResourceEditorTarget) {
         _model = State(initialValue: MCPResourceEditorModel(target: target))
@@ -209,19 +254,49 @@ struct MCPResourceEditor: View {
                         .textFieldStyle(.plain)
                         .focused($focusedField, equals: .name)
                 }
-                Divider()
-                SettingsRow(labelWidth: labelWidth) {
-                    Text("Address")
-                } content: {
-                    TextField(model.provider.defaultBaseURL, text: $model.address)
-                        .textFieldStyle(.plain)
-                        .focused($focusedField, equals: .address)
+                if model.provider.asksForAddress {
+                    Divider()
+                    SettingsRow(labelWidth: labelWidth) {
+                        Text("Address")
+                    } content: {
+                        TextField(model.provider.defaultBaseURL, text: $model.address)
+                            .textFieldStyle(.plain)
+                            .focused($focusedField, equals: .address)
+                    }
+                }
+                if model.provider.asksForClientCredentials {
+                    Divider()
+                    SettingsRow(labelWidth: labelWidth) {
+                        Text("Client ID")
+                    } content: {
+                        TextField("From the app's Auth tab", text: $model.clientID)
+                            .textFieldStyle(.plain)
+                            .focused($focusedField, equals: .clientID)
+                    }
+                    Divider()
+                    SettingsRow(labelWidth: labelWidth) {
+                        Text("Client Secret")
+                    } content: {
+                        secretField(
+                            text: $model.clientSecret,
+                            placeholder: model.isEditing ? "Leave empty to keep the current secret" : "From the app's Auth tab",
+                            isVisible: $isClientSecretVisible,
+                            field: .clientSecret,
+                            help: "secret"
+                        )
+                    }
                 }
                 Divider()
                 SettingsRow(labelWidth: labelWidth) {
-                    Text("Token")
+                    Text(model.provider.asksForClientCredentials ? "Access Token" : "Token")
                 } content: {
-                    tokenField
+                    secretField(
+                        text: $model.token,
+                        placeholder: model.isEditing ? "Leave empty to keep the current token" : model.hint.placeholder,
+                        isVisible: $isTokenVisible,
+                        field: .token,
+                        help: "token"
+                    )
                 }
             } footer: {
                 hintText
@@ -266,7 +341,7 @@ struct MCPResourceEditor: View {
         .padding(18)
         .frame(width: 460)
         .onAppear {
-            focusedField = model.isEditing ? .token : .address
+            focusedField = model.isEditing ? .token : (model.provider.asksForAddress ? .address : .name)
         }
         .confirmationDialog(
             "Delete “\(model.original?.name ?? "")”?",
@@ -277,31 +352,36 @@ struct MCPResourceEditor: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Claude loses access to it, and its token is erased from Keychain.")
+            Text("Claude loses access to it, and its secrets are erased from Keychain.")
         }
     }
 
-    private var tokenField: some View {
+    private func secretField(
+        text: Binding<String>,
+        placeholder: String,
+        isVisible: Binding<Bool>,
+        field: Field,
+        help: String
+    ) -> some View {
         HStack(spacing: 8) {
-            let placeholder = model.isEditing ? "Leave empty to keep the current token" : "glpat-…"
             Group {
-                if isTokenVisible {
-                    TextField(placeholder, text: $model.token)
+                if isVisible.wrappedValue {
+                    TextField(placeholder, text: text)
                 } else {
-                    SecureField(placeholder, text: $model.token)
+                    SecureField(placeholder, text: text)
                 }
             }
             .textFieldStyle(.plain)
-            .focused($focusedField, equals: .token)
+            .focused($focusedField, equals: field)
 
             Button {
-                isTokenVisible.toggle()
+                isVisible.wrappedValue.toggle()
             } label: {
-                Image(systemName: isTokenVisible ? "eye.slash" : "eye")
+                Image(systemName: isVisible.wrappedValue ? "eye.slash" : "eye")
             }
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
-            .help(isTokenVisible ? "Hide token" : "Show token")
+            .help(isVisible.wrappedValue ? "Hide \(help)" : "Show \(help)")
         }
     }
 
@@ -309,7 +389,7 @@ struct MCPResourceEditor: View {
         let hint = model.hint
         var text = AttributedString(hint.text + " ")
         if let url = hint.url {
-            var link = AttributedString("Open the token page")
+            var link = AttributedString(hint.linkTitle)
             link.link = url
             text += link + AttributedString(". ")
         }
@@ -340,7 +420,7 @@ struct MCPResourceEditor: View {
                 tint: validation.warnings.isEmpty ? .green : .orange
             ) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(accountSummary(validation.account))
+                    Text(model.provider.accountSummary(validation.account))
                         .fontWeight(.medium)
                     Text(tokenSummary(validation.account))
                         .foregroundStyle(.secondary)
@@ -348,19 +428,12 @@ struct MCPResourceEditor: View {
                         Text(warning)
                     }
                     if model.passedValidation == nil {
-                        Text("The address or token changed after the check. Check again to save.")
+                        Text("The setup changed after the check. Check again to save.")
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         }
-    }
-
-    private func accountSummary(_ account: MCPAccount) -> String {
-        if let name = account.displayName, !name.isEmpty {
-            return "@\(account.username) · \(name)"
-        }
-        return "@\(account.username)"
     }
 
     private func tokenSummary(_ account: MCPAccount) -> String {

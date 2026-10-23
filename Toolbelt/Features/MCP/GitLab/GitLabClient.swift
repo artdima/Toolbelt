@@ -218,24 +218,3 @@ nonisolated struct GitLabClient: Sendable {
         return max(0, Int(date.timeIntervalSince(now).rounded(.up)))
     }
 }
-
-/// URLSession would carry PRIVATE-TOKEN along to wherever a redirect points.
-nonisolated private final class SameHostRedirects: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
-    private let host: String
-
-    init(host: String) {
-        self.host = host
-    }
-
-    func urlSession(
-        _ session: URLSession,
-        task: URLSessionTask,
-        willPerformHTTPRedirection response: HTTPURLResponse,
-        newRequest request: URLRequest,
-        completionHandler: @escaping @Sendable (URLRequest?) -> Void
-    ) {
-        let target = request.url.flatMap(GitLabLinkParser.host(of:))
-        let isSafe = target == host && request.url?.scheme?.lowercased() == task.originalRequest?.url?.scheme?.lowercased()
-        completionHandler(isSafe ? request : nil)
-    }
-}

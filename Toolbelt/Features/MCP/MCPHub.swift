@@ -189,8 +189,8 @@ final class MCPHub {
         if params.name == Self.pingToolName {
             output = .success(pingText())
         } else if let provider = MCPProviders.all.first(where: { $0.owns(toolName: params.name) }) {
-            let credentials = credentials(for: provider.kind)
-            secrets = credentials.compactMap(\.token)
+            let credentials = credentials(for: provider)
+            secrets = credentials.flatMap(\.secrets)
             if credentials.allSatisfy({ $0.token == nil }) {
                 output = .failure("No \(provider.kind.title) resource is turned on in Toolbelt, so \(params.name) is unavailable.")
             } else {
@@ -215,13 +215,18 @@ final class MCPHub {
         return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)], isError: output.isError)
     }
 
-    /// Tokens of turned-off resources are not read: such a resource only tells the
+    /// Secrets of turned-off resources are not read: such a resource only tells the
     /// provider that it exists.
-    private func credentials(for kind: MCPResourceKind) -> [MCPCredential] {
+    private func credentials(for provider: any MCPProvider) -> [MCPCredential] {
         store.resources
-            .filter { $0.kind == kind }
-            .map { resource in
-                MCPCredential(resource: resource, token: resource.isEnabled ? store.token(for: resource.id) : nil)
+            .filter { $0.kind == provider.kind }
+            .map { resource -> MCPCredential in
+                guard resource.isEnabled else { return MCPCredential(resource: resource, token: nil) }
+                return MCPCredential(
+                    resource: resource,
+                    token: store.token(for: resource.id),
+                    clientSecret: provider.asksForClientCredentials ? store.clientSecret(for: resource.id) : nil
+                )
             }
     }
 

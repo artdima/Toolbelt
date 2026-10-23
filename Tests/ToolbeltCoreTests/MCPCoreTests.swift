@@ -76,6 +76,21 @@ struct MCPResourceTests {
         #expect(account(daysFromNow: -1).expiresSoon(now: now) == false)
         #expect(MCPAccount(username: "u", expiry: .never, checkedAt: now).daysLeft(now: now) == nil)
     }
+
+    @Test("Resources saved before client credentials existed still load")
+    func legacyResource() throws {
+        let json = #"""
+        [{"id":"6F9619FF-8B86-D011-B42D-00C04FC964FF","kind":"gitlab","name":"work",
+          "baseURL":"https://gitlab.com","isEnabled":true,"allowWrite":false,
+          "account":{"username":"dima","displayName":"Dima","scopes":["read_api"],"expiry":{"never":{}},"checkedAt":0}}]
+        """#
+        let resources = try JSONDecoder().decode([MCPResource].self, from: Data(json.utf8))
+        let resource = try #require(resources.first)
+        #expect(resource.clientID == nil)
+        #expect(resource.account?.subjectID == nil)
+        #expect(resource.account?.username == "dima")
+        #expect(resource.account?.expiry == .never)
+    }
 }
 
 @Suite("Claude Desktop config")

@@ -11,6 +11,9 @@ import MCP
 nonisolated struct GitLabProvider: MCPProvider {
     let kind = MCPResourceKind.gitlab
     let defaultBaseURL = "https://gitlab.com"
+    let supportsWrite = false
+    let asksForAddress = true
+    let asksForClientCredentials = false
 
     static let pipelineStatuses = [
         "created", "waiting_for_resource", "preparing", "pending", "running",
@@ -34,12 +37,13 @@ nonisolated struct GitLabProvider: MCPProvider {
         let host = base.flatMap(GitLabLinkParser.host(of:)) ?? "your GitLab"
         return MCPTokenHint(
             text: "Needs a legacy personal access token with the read_api scope. Create one on \(host) under User Settings → Access Tokens.",
-            url: page
+            url: page,
+            placeholder: "glpat-…"
         )
     }
 
-    func validate(baseURL: URL, token: String) async throws -> MCPValidation {
-        let client = makeClient(baseURL: baseURL, token: token)
+    func validate(_ setup: MCPSetup) async throws -> MCPValidation {
+        let client = makeClient(baseURL: setup.baseURL, token: setup.token)
         let user: GitLabUser = try await client.get("user")
 
         var tokenInfo: GitLabTokenInfo?
@@ -79,6 +83,25 @@ nonisolated struct GitLabProvider: MCPProvider {
             warnings.append("The token expires in \(days) \(days == 1 ? "day" : "days").")
         }
         return MCPValidation(account: account, warnings: warnings)
+    }
+
+    func accountLine(_ resource: MCPResource) -> String {
+        var parts = [resource.host]
+        if let account = resource.account {
+            parts.append("@\(account.username)")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    func accountSummary(_ account: MCPAccount) -> String {
+        if let name = account.displayName, !name.isEmpty {
+            return "@\(account.username) · \(name)"
+        }
+        return "@\(account.username)"
+    }
+
+    func writeAccessWarning(for resource: MCPResource) -> String {
+        "Toolbelt has no GitLab tools that change data yet."
     }
 
     /// GitLab stores the date only; the token stops working at the start of that day, UTC.

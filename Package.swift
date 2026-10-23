@@ -43,6 +43,7 @@ let package = Package(
                 "Features/MCP/MCPModels.swift",
                 "Features/MCP/MCPSocket.swift",
                 "Features/MCP/MCPText.swift",
+                "Features/MCP/SameHostRedirects.swift",
                 "Features/ReleaseNotes/ClaudeCLI.swift",
                 "Features/ReleaseNotes/ReleaseNotesBuilder.swift",
                 "Features/ReleaseNotes/ReleaseNotesGenerator.swift",

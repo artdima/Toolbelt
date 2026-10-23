@@ -8,10 +8,24 @@
 import Foundation
 import MCP
 
+/// What a resource is checked with: the editor's fields, or what is stored for it.
+nonisolated struct MCPSetup: Sendable {
+    let baseURL: URL
+    let token: String
+    var clientID: String?
+    var clientSecret: String?
+}
+
 nonisolated struct MCPCredential: Sendable {
     let resource: MCPResource
-    /// nil while the resource is turned off: its token is not even read.
+    /// nil while the resource is turned off: its secrets are not even read.
     let token: String?
+    var clientSecret: String?
+
+    /// Everything to scrub from tool answers and the call log.
+    var secrets: [String] {
+        [token, clientSecret].compactMap { $0 }
+    }
 }
 
 nonisolated struct MCPToolOutput: Sendable {
@@ -45,14 +59,28 @@ nonisolated struct MCPValidation: Sendable {
 nonisolated struct MCPTokenHint: Sendable {
     let text: String
     let url: URL?
+    var linkTitle = "Open the token page"
+    var placeholder = "Paste the token"
 }
 
 nonisolated protocol MCPProvider: Sendable {
     var kind: MCPResourceKind { get }
     var defaultBaseURL: String { get }
+    /// The provider has tools that change data, so Allow write means something.
+    var supportsWrite: Bool { get }
+    /// false for a service with a single address: the editor does not ask for one.
+    var asksForAddress: Bool { get }
+    /// The service needs the OAuth app's Client ID and Client Secret besides the token.
+    var asksForClientCredentials: Bool { get }
 
     func tokenHint(for baseURL: URL?) -> MCPTokenHint
-    func validate(baseURL: URL, token: String) async throws -> MCPValidation
+    func validate(_ setup: MCPSetup) async throws -> MCPValidation
+    /// The second line of the resource in the MCP window.
+    func accountLine(_ resource: MCPResource) -> String
+    /// Who the token belongs to, after a check in the editor.
+    func accountSummary(_ account: MCPAccount) -> String
+    /// Shown before Allow write is turned on.
+    func writeAccessWarning(for resource: MCPResource) -> String
     func owns(toolName: String) -> Bool
     func tools(for resources: [MCPResource]) -> [Tool]
     func call(_ name: String, arguments: [String: Value], credentials: [MCPCredential]) async -> MCPToolOutput

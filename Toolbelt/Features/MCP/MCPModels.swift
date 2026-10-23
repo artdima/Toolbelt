@@ -25,10 +25,12 @@ nonisolated enum MCPTokenExpiry: Codable, Equatable, Sendable {
     case on(Date)
 }
 
-/// The user and the token as GitLab reported them on the last check.
+/// The user and the token as the service reported them on the last check.
 nonisolated struct MCPAccount: Codable, Equatable, Sendable {
     var username: String
     var displayName: String?
+    /// The service's own id of the user, where tools need it: LinkedIn builds the post author from it.
+    var subjectID: String?
     var tokenName: String?
     var scopes: [String]?
     var expiry: MCPTokenExpiry
@@ -58,6 +60,8 @@ nonisolated struct MCPResource: Identifiable, Codable, Equatable, Sendable {
     var kind: MCPResourceKind
     var name: String
     var baseURL: URL
+    /// The OAuth app the token was issued for, where the service has one; its secret is in Keychain.
+    var clientID: String?
     var isEnabled = true
     var allowWrite = false
     var account: MCPAccount?

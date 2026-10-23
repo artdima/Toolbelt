@@ -112,12 +112,15 @@ final class MCPViewModel {
                 continue
             }
             let provider = MCPProviders.provider(for: resource.kind)
+            let clientSecret = provider.asksForClientCredentials ? store.clientSecret(for: resource.id) : nil
+            let setup = MCPSetup(baseURL: resource.baseURL, token: token, clientID: resource.clientID, clientSecret: clientSecret)
             do {
-                let validation = try await provider.validate(baseURL: resource.baseURL, token: token)
+                let validation = try await provider.validate(setup)
                 store.setAccount(validation.account, for: resource.id)
                 accountErrors[resource.id] = nil
             } catch {
-                accountErrors[resource.id] = MCPText.redacting([token], in: error.localizedDescription)
+                let secrets = [token, clientSecret].compactMap { $0 }
+                accountErrors[resource.id] = MCPText.redacting(secrets, in: error.localizedDescription)
             }
         }
     }
