@@ -130,8 +130,6 @@ nonisolated struct GitLabMergeRequest: Decodable, Sendable {
 }
 
 nonisolated struct GitLabDiffRefs: Decodable, Sendable {
-    let baseSha: String?
-    let startSha: String?
     let headSha: String?
 }
 
@@ -166,7 +164,6 @@ nonisolated struct GitLabChanges: Decodable, Sendable {
 
 nonisolated struct GitLabDiscussion: Decodable, Sendable {
     let id: String
-    let individualNote: Bool?
     let notes: [GitLabNote]
 
     var isSystem: Bool { notes.allSatisfy { $0.system == true } }
@@ -202,6 +199,7 @@ nonisolated struct GitLabNotePosition: Decodable, Sendable {
     let newLine: Int?
     let lineRange: GitLabLineRange?
 
+    var file: String? { newPath ?? oldPath }
     var paths: [String] { [newPath, oldPath].compactMap { $0 } }
 }
 

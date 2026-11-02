@@ -130,11 +130,37 @@ struct GitLabFormatterTests {
         #expect(!unresolved.contains("LGTM"))
 
         let onFile = formatter.discussions(discussions, request: request, status: .all, file: "a.kt", isComplete: true)
-        #expect(onFile.contains("\nThreads and comments on a.kt — 1:\n"))
+        #expect(onFile.contains("\nThreads and comments on app/a.kt — 1:\n"))
         #expect(onFile.contains("✓ resolved by @bob · app/a.kt:12–15"))
 
         let none = formatter.discussions(discussions, request: request, status: .resolved, file: "app/Login.kt", isComplete: false)
         #expect(none.contains("\nNo resolved threads on app/Login.kt.\n[Only the first pages of discussions were loaded.]"))
+    }
+
+    @Test("Unresolved threads keep their order; a short path that fits two files is not guessed")
+    func discussionOrderAndPaths() throws {
+        let (request, discussions) = try reviewFixture()
+        let extra: [GitLabDiscussion] = try decode("""
+        [{"id": "d5", "notes": [
+           {"id": 107, "body": "Same crash here", "author": {"username": "carol"},
+            "created_at": "2026-10-17T12:00:00Z", "system": false, "resolvable": true, "resolved": false,
+            "position": {"position_type": "text", "head_sha": "ccc", "old_path": "core/Login.kt",
+              "new_path": "core/Login.kt", "old_line": 7, "new_line": 7}}]}]
+        """)
+        let all = discussions + extra
+
+        let text = formatter.discussions(all, request: request, status: .all, file: nil, isComplete: true)
+        let first = try #require(text.range(of: "● unresolved · app/Login.kt:40"))
+        let second = try #require(text.range(of: "● unresolved · core/Login.kt:7"))
+        let resolved = try #require(text.range(of: "✓ resolved by @bob"))
+        #expect(first.lowerBound < second.lowerBound)
+        #expect(second.lowerBound < resolved.lowerBound)
+
+        let ambiguous = formatter.discussions(all, request: request, status: .all, file: "Login.kt", isComplete: true)
+        #expect(ambiguous.hasSuffix("\n“Login.kt” fits several files with threads; pass the full path:\napp/Login.kt\ncore/Login.kt"))
+
+        let missing = formatter.discussions(all, request: request, status: .unresolved, file: "Missing.kt", isComplete: true)
+        #expect(missing.hasSuffix("\nNo thread is on “Missing.kt”. Files with threads:\napp/a.kt\napp/Login.kt\ncore/Login.kt"))
     }
 
     @Test("A note on a whole file or an image has no line")

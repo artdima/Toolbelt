@@ -243,7 +243,7 @@ nonisolated struct GitLabProvider: MCPProvider {
                         "Which threads to return; all by default.",
                         values: GitLabThreadStatus.allCases.map(\.rawValue)
                     ),
-                    "file": JSONSchema.string("Only threads on this file path.")
+                    "file": JSONSchema.string("Only threads on this file; the end of its path is enough when it fits one file.")
                 ], required: ["project", "iid"]),
                 annotations: readOnly
             )

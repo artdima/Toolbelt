@@ -260,34 +260,52 @@ nonisolated struct GitLabFormatter: Sendable {
         lines.append(counts.joined(separator: " · "))
         if let url = request.webUrl { lines.append(url) }
 
-        var shown = threads.filter(status.includes)
-        if let file { shown = Self.threads(shown, on: file) }
-        let ordered = shown.enumerated()
-            .sorted { lhs, rhs in
-                lhs.element.isUnresolved != rhs.element.isUnresolved ? lhs.element.isUnresolved : lhs.offset < rhs.offset
-            }
-            .map(\.element)
-
-        let (title, none) = Self.titles(status)
-        let scope = file.map { " on \($0)" } ?? ""
-
         lines.append("")
-        if ordered.isEmpty {
-            lines.append("\(none)\(scope).")
-        } else {
-            let mixed = ordered.contains(where: \.isUnresolved) && ordered.contains { !$0.isUnresolved }
-            lines.append("\(title)\(scope) — \(ordered.count)\(mixed ? ", unresolved first" : ""):")
-            for discussion in ordered {
-                lines.append("")
-                lines += threadLines(discussion, request: request)
-            }
-        }
+        lines += threadSection(threads, request: request, status: status, file: file)
         if !isComplete { lines.append("[Only the first pages of discussions were loaded.]") }
-        if file == nil, ordered.contains(where: { $0.position != nil }) {
+        if file == nil, threads.contains(where: { status.includes($0) && $0.position != nil }) {
             lines.append("")
             lines.append("Call gitlab_merge_request with file: \"<path>\" to see a file's diff.")
         }
         return lines.joined(separator: "\n")
+    }
+
+    private func threadSection(
+        _ threads: [GitLabDiscussion],
+        request: GitLabMergeRequest,
+        status: GitLabThreadStatus,
+        file: String?
+    ) -> [String] {
+        var onFile = threads
+        var scope = ""
+        if let file {
+            switch ThreadFile.find(file, among: threads) {
+            case let .found(path):
+                onFile = threads.filter { $0.position?.file == path }
+                scope = " on \(path)"
+            case let .missing(files):
+                if files.isEmpty { return ["No thread is on “\(file)”, nor on any other file."] }
+                return ["No thread is on “\(file)”. Files with threads:"] + Array(files.prefix(30))
+            case let .ambiguous(files):
+                return ["“\(file)” fits several files with threads; pass the full path:"] + Array(files.prefix(30))
+            }
+        }
+
+        let ordered = onFile.filter(status.includes).enumerated()
+            .sorted { lhs, rhs in
+                lhs.element.isUnresolved != rhs.element.isUnresolved ? lhs.element.isUnresolved : lhs.offset < rhs.offset
+            }
+            .map(\.element)
+        let (title, empty) = Self.titles(status)
+        guard !ordered.isEmpty else { return ["\(empty)\(scope)."] }
+
+        let mixed = ordered.contains(where: \.isUnresolved) && ordered.contains { !$0.isUnresolved }
+        var lines = ["\(title)\(scope) — \(ordered.count)\(mixed ? ", unresolved first" : ""):"]
+        for discussion in ordered {
+            lines.append("")
+            lines += threadLines(discussion, request: request)
+        }
+        return lines
     }
 
     private func threadLines(_ discussion: GitLabDiscussion, request: GitLabMergeRequest) -> [String] {
@@ -332,11 +350,8 @@ nonisolated struct GitLabFormatter: Sendable {
         guard let path = (removed ? position.oldPath : position.newPath) ?? position.newPath ?? position.oldPath else {
             return nil
         }
-        switch position.positionType {
-        case "file": return "\(path) (whole file)"
-        case "image": return "\(path) (image)"
-        default: break
-        }
+        if position.positionType == "file" { return "\(path) (whole file)" }
+        if position.positionType == "image" { return "\(path) (image)" }
 
         var text = path
         if let start = position.lineRange?.start?.line, let end = position.lineRange?.end?.line, start != end {
@@ -348,22 +363,12 @@ nonisolated struct GitLabFormatter: Sendable {
         return text
     }
 
-    private static func threads(_ threads: [GitLabDiscussion], on file: String) -> [GitLabDiscussion] {
-        var path = file.trimmingCharacters(in: .whitespacesAndNewlines)
-        while path.hasPrefix("/") { path.removeFirst() }
-        let exact = threads.filter { $0.position?.paths.contains(path) == true }
-        if !exact.isEmpty { return exact }
-        return threads.filter { thread in
-            thread.position?.paths.contains { $0.hasSuffix("/" + path) } == true
-        }
-    }
-
     /// System notes link to diff versions through long URLs; the link text says enough.
     private static func plainLinks(_ text: String) -> String {
         text.replacingOccurrences(of: #"\[([^\]]+)\]\([^)]*\)"#, with: "$1", options: .regularExpression)
     }
 
-    private static func titles(_ status: GitLabThreadStatus) -> (title: String, none: String) {
+    private static func titles(_ status: GitLabThreadStatus) -> (title: String, empty: String) {
         switch status {
         case .all: ("Threads and comments", "No threads or comments")
         case .unresolved: ("Unresolved threads", "No unresolved threads")
@@ -480,6 +485,36 @@ nonisolated struct GitLabFormatter: Sendable {
         if diff.deletedFile == true { return "D" }
         if diff.renamedFile == true { return "R" }
         return "M"
+    }
+}
+
+nonisolated private enum ThreadFile {
+    case found(String)
+    case missing([String])
+    case ambiguous([String])
+
+    /// Matched like the file argument of gitlab_merge_request: the exact path, or the end of only one path.
+    static func find(_ name: String, among threads: [GitLabDiscussion]) -> ThreadFile {
+        var path = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        while path.hasPrefix("/") { path.removeFirst() }
+
+        let positions = threads.compactMap(\.position)
+        if let file = positions.first(where: { $0.paths.contains(path) })?.file {
+            return .found(file)
+        }
+        let suffixed = unique(positions.filter { position in
+            position.paths.contains { $0.hasSuffix("/" + path) }
+        }.compactMap(\.file))
+        switch suffixed.count {
+        case 0: return .missing(unique(positions.compactMap(\.file)))
+        case 1: return .found(suffixed[0])
+        default: return .ambiguous(suffixed)
+        }
+    }
+
+    private static func unique(_ values: [String]) -> [String] {
+        var seen = Set<String>()
+        return values.filter { seen.insert($0).inserted }
     }
 }
 
