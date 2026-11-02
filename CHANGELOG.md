@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
+
+Toolbelt becomes a local MCP server for Claude, with GitLab and LinkedIn as its
+first resources.
 
 - **MCP for Claude.** Toolbelt is a local MCP server for Claude Desktop and Claude
   Code. Tokens stay in Keychain; turning a resource off removes its tools at once.
@@ -14,6 +17,8 @@
   to get the token, what goes into each field, what to ask Claude and what to do
   when something goes wrong. It opens from the ? button in the resource editor, from
   Setup Guide next to Add Resource and from a resource's context menu.
+- **Windows.** Every window opens a size smaller, and they share one look for
+  section titles, empty states and errors.
 
 ## 0.2.0
 
