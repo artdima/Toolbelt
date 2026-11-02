@@ -2,7 +2,7 @@
 //  GitLabProvider.swift
 //  Toolbelt
 //
-//  Read-only GitLab tools: pipelines, jobs and their logs, merge requests.
+//  Read-only GitLab tools: pipelines, jobs and their logs, merge requests and their review threads.
 //
 
 import Foundation
@@ -226,6 +226,26 @@ nonisolated struct GitLabProvider: MCPProvider {
                     "file": JSONSchema.string("Path of one changed file to show its diff.")
                 ], required: ["project", "iid"]),
                 annotations: readOnly
+            ),
+            Tool(
+                name: "gitlab_merge_request_discussions",
+                description: """
+                Review threads and comments of one merge request, unresolved threads first: each thread with its \
+                file and line, whether it is resolved and by whom, then every note with its author, time and text. \
+                System notes such as "added 1 commit" are left out. Line numbers belong to the diff version the \
+                comment was left on; a thread on an older version is marked.
+                """,
+                inputSchema: JSONSchema.object([
+                    "instance": instance,
+                    "project": project,
+                    "iid": JSONSchema.identifier("Merge request number within the project, as in /-/merge_requests/<iid>."),
+                    "status": JSONSchema.string(
+                        "Which threads to return; all by default.",
+                        values: GitLabThreadStatus.allCases.map(\.rawValue)
+                    ),
+                    "file": JSONSchema.string("Only threads on this file path.")
+                ], required: ["project", "iid"]),
+                annotations: readOnly
             )
         ]
     }
@@ -281,6 +301,15 @@ nonisolated struct GitLabProvider: MCPProvider {
                     iid: arguments.requiredInt("iid"),
                     file: arguments.string("file")
                 )
+            case "gitlab_merge_request_discussions":
+                let client = try makeClient(for: arguments, credentials)
+                return .success(try await mergeRequestDiscussions(
+                    client,
+                    project: arguments.requiredString("project"),
+                    iid: arguments.requiredInt("iid"),
+                    status: arguments.string("status") ?? GitLabThreadStatus.all.rawValue,
+                    file: arguments.string("file")
+                ))
             default:
                 return .failure("Toolbelt has no tool named \(name).")
             }
@@ -611,6 +640,30 @@ nonisolated struct GitLabProvider: MCPProvider {
             let changes: GitLabChanges = try await client.get("projects/\(segment)/merge_requests/\(iid)/changes")
             return (changes.changes, true)
         }
+    }
+
+    private func mergeRequestDiscussions(
+        _ client: GitLabClient,
+        project: String,
+        iid: Int,
+        status: String,
+        file: String?
+    ) async throws -> String {
+        guard let filter = GitLabThreadStatus(rawValue: status) else {
+            let values = GitLabThreadStatus.allCases.map(\.rawValue).joined(separator: ", ")
+            throw MCPToolError("Unknown status “\(status)”. Use one of: \(values).")
+        }
+        let segment = GitLabClient.projectSegment(project)
+        async let request: GitLabMergeRequest = client.get("projects/\(segment)/merge_requests/\(iid)")
+        async let discussions = client.all(
+            "projects/\(segment)/merge_requests/\(iid)/discussions", maxPages: 10, of: GitLabDiscussion.self
+        )
+
+        let mergeRequest = try await request
+        let list = try await discussions
+        return formatter.discussions(
+            list.items, request: mergeRequest, status: filter, file: file, isComplete: list.isComplete
+        )
     }
 
     private static func diff(for file: String, in diffs: [GitLabDiff]) -> GitLabDiff? {

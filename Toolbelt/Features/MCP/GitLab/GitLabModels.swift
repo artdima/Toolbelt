@@ -125,6 +125,14 @@ nonisolated struct GitLabMergeRequest: Decodable, Sendable {
     let labels: [String]?
     let changesCount: String?
     let headPipeline: GitLabPipelineRef?
+    let diffRefs: GitLabDiffRefs?
+    let userNotesCount: Int?
+}
+
+nonisolated struct GitLabDiffRefs: Decodable, Sendable {
+    let baseSha: String?
+    let startSha: String?
+    let headSha: String?
 }
 
 nonisolated struct GitLabDiff: Decodable, Sendable {
@@ -154,6 +162,73 @@ nonisolated struct GitLabDiff: Decodable, Sendable {
 
 nonisolated struct GitLabChanges: Decodable, Sendable {
     let changes: [GitLabDiff]
+}
+
+nonisolated struct GitLabDiscussion: Decodable, Sendable {
+    let id: String
+    let individualNote: Bool?
+    let notes: [GitLabNote]
+
+    var isSystem: Bool { notes.allSatisfy { $0.system == true } }
+    var isResolvable: Bool { notes.contains { $0.resolvable == true } }
+    /// GitLab keeps the resolved flag on every resolvable note of a thread, not on the thread.
+    var isResolved: Bool {
+        let resolvable = notes.filter { $0.resolvable == true }
+        return !resolvable.isEmpty && resolvable.allSatisfy { $0.resolved == true }
+    }
+    var isUnresolved: Bool { isResolvable && !isResolved }
+    var resolvedBy: GitLabUserRef? { notes.first { $0.resolvedBy != nil }?.resolvedBy }
+    var position: GitLabNotePosition? { notes.first { $0.position != nil }?.position }
+}
+
+nonisolated struct GitLabNote: Decodable, Sendable {
+    let id: Int
+    let body: String?
+    let author: GitLabUserRef?
+    let createdAt: String?
+    let system: Bool?
+    let resolvable: Bool?
+    let resolved: Bool?
+    let resolvedBy: GitLabUserRef?
+    let position: GitLabNotePosition?
+}
+
+nonisolated struct GitLabNotePosition: Decodable, Sendable {
+    let positionType: String?
+    let headSha: String?
+    let oldPath: String?
+    let newPath: String?
+    let oldLine: Int?
+    let newLine: Int?
+    let lineRange: GitLabLineRange?
+
+    var paths: [String] { [newPath, oldPath].compactMap { $0 } }
+}
+
+nonisolated struct GitLabLineRange: Decodable, Sendable {
+    let start: GitLabLinePoint?
+    let end: GitLabLinePoint?
+}
+
+nonisolated struct GitLabLinePoint: Decodable, Sendable {
+    let oldLine: Int?
+    let newLine: Int?
+
+    var line: Int? { newLine ?? oldLine }
+}
+
+nonisolated enum GitLabThreadStatus: String, CaseIterable, Sendable {
+    case all
+    case unresolved
+    case resolved
+
+    func includes(_ discussion: GitLabDiscussion) -> Bool {
+        switch self {
+        case .all: true
+        case .unresolved: discussion.isUnresolved
+        case .resolved: discussion.isResolved
+        }
+    }
 }
 
 nonisolated struct GitLabErrorBody: Decodable, Sendable {

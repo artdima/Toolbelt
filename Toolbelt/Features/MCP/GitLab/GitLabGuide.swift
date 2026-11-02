@@ -22,8 +22,9 @@ nonisolated enum GitLabGuide {
 
         return MCPGuide(
             summary: """
-            Claude reads pipelines with all their jobs, job logs and merge requests with their changes, on \
-            gitlab.com or your company's own GitLab. It is read-only: Claude cannot retry a job, comment or merge.
+            Claude reads pipelines with all their jobs, job logs and merge requests with their changes and \
+            review threads, on gitlab.com or your company's own GitLab. It is read-only: Claude cannot retry \
+            a job, comment or merge.
             """,
             steps: [
                 MCPGuide.Step(
@@ -58,6 +59,7 @@ nonisolated enum GitLabGuide {
                 "Why did the last pipeline on main in mobile/app fail?",
                 "What broke here? \(pipelineLink)",
                 "Show my open merge requests in mobile/app and their pipelines.",
+                "What is still unresolved in the review of !42 in mobile/app?",
                 "Find “error:” in the log of the failed job."
             ],
             notes: [

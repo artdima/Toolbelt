@@ -202,6 +202,9 @@ nonisolated struct GitLabFormatter: Sendable {
         } else {
             lines.append("Latest pipeline: none")
         }
+        if let count = request.userNotesCount, count > 0 {
+            lines.append("Comments: \(count) — gitlab_merge_request_discussions shows the review threads.")
+        }
         if let url = request.webUrl { lines.append(url) }
 
         let description = request.description?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -234,6 +237,142 @@ nonisolated struct GitLabFormatter: Sendable {
             return (header, "GitLab returned no diff for this file\(diff.tooLarge == true ? ": it is too large" : "").")
         }
         return (header, text)
+    }
+
+    // MARK: Discussions
+
+    func discussions(
+        _ discussions: [GitLabDiscussion],
+        request: GitLabMergeRequest,
+        status: GitLabThreadStatus,
+        file: String?,
+        isComplete: Bool
+    ) -> String {
+        let threads = discussions.filter { !$0.isSystem }
+        let systemNotes = discussions.filter(\.isSystem).reduce(0) { $0 + $1.notes.count }
+        let unresolved = threads.filter(\.isUnresolved).count
+        let resolved = threads.filter(\.isResolved).count
+        let comments = threads.count - unresolved - resolved
+
+        var lines = ["Discussions on !\(request.iid) \(request.title)"]
+        var counts = ["\(unresolved) unresolved", "\(resolved) resolved", Self.counted(comments, "comment")]
+        if systemNotes > 0 { counts.append(Self.counted(systemNotes, "system note") + " left out") }
+        lines.append(counts.joined(separator: " · "))
+        if let url = request.webUrl { lines.append(url) }
+
+        var shown = threads.filter(status.includes)
+        if let file { shown = Self.threads(shown, on: file) }
+        let ordered = shown.enumerated()
+            .sorted { lhs, rhs in
+                lhs.element.isUnresolved != rhs.element.isUnresolved ? lhs.element.isUnresolved : lhs.offset < rhs.offset
+            }
+            .map(\.element)
+
+        let (title, none) = Self.titles(status)
+        let scope = file.map { " on \($0)" } ?? ""
+
+        lines.append("")
+        if ordered.isEmpty {
+            lines.append("\(none)\(scope).")
+        } else {
+            let mixed = ordered.contains(where: \.isUnresolved) && ordered.contains { !$0.isUnresolved }
+            lines.append("\(title)\(scope) — \(ordered.count)\(mixed ? ", unresolved first" : ""):")
+            for discussion in ordered {
+                lines.append("")
+                lines += threadLines(discussion, request: request)
+            }
+        }
+        if !isComplete { lines.append("[Only the first pages of discussions were loaded.]") }
+        if file == nil, ordered.contains(where: { $0.position != nil }) {
+            lines.append("")
+            lines.append("Call gitlab_merge_request with file: \"<path>\" to see a file's diff.")
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private func threadLines(_ discussion: GitLabDiscussion, request: GitLabMergeRequest) -> [String] {
+        var header: [String]
+        if discussion.isResolved {
+            header = ["✓ resolved" + (discussion.resolvedBy.map { " by \($0.label)" } ?? "")]
+        } else if discussion.isResolvable {
+            header = ["● unresolved"]
+        } else {
+            header = ["○ comment"]
+        }
+        if let position = discussion.position, let location = Self.location(position) {
+            header.append(location)
+            if let head = position.headSha, let current = request.diffRefs?.headSha, head != current {
+                header.append("on an older version of the diff")
+            }
+        }
+
+        var lines = [header.joined(separator: " · ")]
+        if let url = request.webUrl, let first = discussion.notes.first {
+            lines.append("  \(url)#note_\(first.id)")
+        }
+        for note in discussion.notes {
+            let author = note.author?.label ?? "unknown"
+            let when = time(note.createdAt).map { " · \($0)" } ?? ""
+            let body = note.body?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if note.system == true {
+                lines.append("  · \(author) \(Self.plainLinks(Self.firstLine(body) ?? ""))\(when)")
+                continue
+            }
+            lines.append("  \(author)\(when):")
+            let text = body.isEmpty ? "(empty)" : MCPText.truncated(body, to: 3_000)
+            lines += text.split(separator: "\n", omittingEmptySubsequences: false)
+                .map { $0.isEmpty ? "" : "    \($0)" }
+        }
+        return lines
+    }
+
+    /// A removed line has no new number, so it is shown with its number in the old file.
+    static func location(_ position: GitLabNotePosition) -> String? {
+        let removed = position.newLine == nil && position.oldLine != nil
+        guard let path = (removed ? position.oldPath : position.newPath) ?? position.newPath ?? position.oldPath else {
+            return nil
+        }
+        switch position.positionType {
+        case "file": return "\(path) (whole file)"
+        case "image": return "\(path) (image)"
+        default: break
+        }
+
+        var text = path
+        if let start = position.lineRange?.start?.line, let end = position.lineRange?.end?.line, start != end {
+            text += ":\(min(start, end))–\(max(start, end))"
+        } else if let line = position.newLine ?? position.oldLine {
+            text += ":\(line)"
+        }
+        if removed { text += " (removed line)" }
+        return text
+    }
+
+    private static func threads(_ threads: [GitLabDiscussion], on file: String) -> [GitLabDiscussion] {
+        var path = file.trimmingCharacters(in: .whitespacesAndNewlines)
+        while path.hasPrefix("/") { path.removeFirst() }
+        let exact = threads.filter { $0.position?.paths.contains(path) == true }
+        if !exact.isEmpty { return exact }
+        return threads.filter { thread in
+            thread.position?.paths.contains { $0.hasSuffix("/" + path) } == true
+        }
+    }
+
+    /// System notes link to diff versions through long URLs; the link text says enough.
+    private static func plainLinks(_ text: String) -> String {
+        text.replacingOccurrences(of: #"\[([^\]]+)\]\([^)]*\)"#, with: "$1", options: .regularExpression)
+    }
+
+    private static func titles(_ status: GitLabThreadStatus) -> (title: String, none: String) {
+        switch status {
+        case .all: ("Threads and comments", "No threads or comments")
+        case .unresolved: ("Unresolved threads", "No unresolved threads")
+        case .resolved: ("Resolved threads", "No resolved threads")
+        }
+    }
+
+    private static func counted(_ count: Int, _ noun: String) -> String {
+        "\(count) \(noun)\(count == 1 ? "" : "s")"
     }
 
     // MARK: Commits

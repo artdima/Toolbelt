@@ -117,8 +117,10 @@ The tools are read-only: `gitlab_instances`, `gitlab_resolve_url` (any pasted pi
 merge request or commit link), `gitlab_pipelines`, `gitlab_pipeline` (every job and trigger,
 failed first, with the downstream pipeline or a note that none was created), `gitlab_job_log`
 (ANSI and section markers stripped, the last lines or `grep` with context),
-`gitlab_merge_requests` and `gitlab_merge_request` (changed files with line counts; one file's
-diff on request). Answers are compact text with web links, at most 20,000 characters.
+`gitlab_merge_requests`, `gitlab_merge_request` (changed files with line counts; one file's
+diff on request) and `gitlab_merge_request_discussions` (review threads with their file and
+line, resolved or not and by whom, every reply; unresolved first, system notes left out).
+Answers are compact text with web links, at most 20,000 characters.
 Turning a resource off removes its tools and notifies the connected clients
 (`tools/list_changed`); the MCP window shows the clients and the last 200 calls.
 

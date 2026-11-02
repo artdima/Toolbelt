@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **GitLab review threads.** Claude reads the discussions of a merge request: every
+  thread with its file and line, whether it is resolved and by whom, and all the
+  replies, unresolved threads first. A thread left on an older version of the diff
+  is marked, and the merge request itself shows how many comments it has.
+
 ## 0.3.0
 
 Toolbelt becomes a local MCP server for Claude, with GitLab and LinkedIn as its

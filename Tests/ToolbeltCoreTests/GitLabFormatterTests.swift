@@ -70,7 +70,8 @@ struct GitLabFormatterTests {
     func mergeRequest() throws {
         let request: GitLabMergeRequest = try decode("""
         {"id": 1, "iid": 12, "title": "Login fixes", "state": "opened", "has_conflicts": true,
-         "source_branch": "fix/login", "target_branch": "develop", "description": "Fixes the crash."}
+         "source_branch": "fix/login", "target_branch": "develop", "description": "Fixes the crash.",
+         "user_notes_count": 3}
         """)
         let diffs: [GitLabDiff] = try decode("""
         [{"old_path": "a.kt", "new_path": "a.kt", "diff": "@@ -1 +1,2 @@\\n-old\\n+new\\n+more\\n"},
@@ -83,5 +84,102 @@ struct GitLabFormatterTests {
         #expect(text.contains("Latest pipeline: none"))
         #expect(text.contains("Changed files — 2 (+2 −1):\nM a.kt  +2 −1\nR b.kt → c.kt  +0 −0"))
         #expect(!text.contains("+new"))
+        #expect(text.contains("Comments: 3 — gitlab_merge_request_discussions shows the review threads."))
+    }
+
+    @Test("Review threads: unresolved first, each with its file and line; system notes left out")
+    func discussions() throws {
+        let (request, discussions) = try reviewFixture()
+        let text = formatter.discussions(discussions, request: request, status: .all, file: nil, isComplete: true)
+
+        #expect(text.hasPrefix("""
+        Discussions on !12 Login fixes
+        1 unresolved · 1 resolved · 1 comment · 1 system note left out
+        https://g.example/mobile/app/-/merge_requests/12
+
+        Threads and comments — 3, unresolved first:
+
+        ● unresolved · app/Login.kt:40 (removed line) · on an older version of the diff
+          https://g.example/mobile/app/-/merge_requests/12#note_103
+          @alice · 2026-10-17 13:00+03:00:
+            Why force unwrap?
+
+            ```kotlin
+            val x = y!!
+            ```
+          · @bob changed this line in version 2 of the diff · 2026-10-17 13:20+03:00
+          @bob · 2026-10-17 13:21+03:00:
+            Done
+
+        ✓ resolved by @bob · app/a.kt:12–15
+          https://g.example/mobile/app/-/merge_requests/12#note_101
+        """))
+        #expect(text.contains("○ comment\n  https://g.example/mobile/app/-/merge_requests/12#note_106\n  @carol"))
+        #expect(!text.contains("added 1 commit"))
+        #expect(text.hasSuffix("Call gitlab_merge_request with file: \"<path>\" to see a file's diff."))
+    }
+
+    @Test("Threads narrowed to unresolved ones, or to one file by the end of its path")
+    func discussionFilters() throws {
+        let (request, discussions) = try reviewFixture()
+
+        let unresolved = formatter.discussions(discussions, request: request, status: .unresolved, file: nil, isComplete: true)
+        #expect(unresolved.contains("\nUnresolved threads — 1:\n"))
+        #expect(unresolved.contains("app/Login.kt:40"))
+        #expect(!unresolved.contains("app/a.kt:12"))
+        #expect(!unresolved.contains("LGTM"))
+
+        let onFile = formatter.discussions(discussions, request: request, status: .all, file: "a.kt", isComplete: true)
+        #expect(onFile.contains("\nThreads and comments on a.kt — 1:\n"))
+        #expect(onFile.contains("✓ resolved by @bob · app/a.kt:12–15"))
+
+        let none = formatter.discussions(discussions, request: request, status: .resolved, file: "app/Login.kt", isComplete: false)
+        #expect(none.contains("\nNo resolved threads on app/Login.kt.\n[Only the first pages of discussions were loaded.]"))
+    }
+
+    @Test("A note on a whole file or an image has no line")
+    func noteLocations() throws {
+        let file: GitLabNotePosition = try decode(#"{"position_type": "file", "old_path": "README.md", "new_path": "README.md"}"#)
+        let image: GitLabNotePosition = try decode("""
+        {"position_type": "image", "old_path": "logo.png", "new_path": "logo.png", "width": 64, "height": 64, "x": 3, "y": 5}
+        """)
+        #expect(GitLabFormatter.location(file) == "README.md (whole file)")
+        #expect(GitLabFormatter.location(image) == "logo.png (image)")
+    }
+
+    private func reviewFixture() throws -> (GitLabMergeRequest, [GitLabDiscussion]) {
+        let request: GitLabMergeRequest = try decode("""
+        {"id": 1, "iid": 12, "title": "Login fixes", "state": "opened",
+         "web_url": "https://g.example/mobile/app/-/merge_requests/12",
+         "diff_refs": {"base_sha": "aaa", "start_sha": "aaa", "head_sha": "ccc"}}
+        """)
+        let discussions: [GitLabDiscussion] = try decode("""
+        [{"id": "d1", "individual_note": false, "notes": [
+           {"id": 101, "type": "DiffNote", "body": "Rename this?", "author": {"username": "alice"},
+            "created_at": "2026-10-17T09:00:00Z", "system": false, "resolvable": true, "resolved": true,
+            "resolved_by": {"username": "bob"},
+            "position": {"position_type": "text", "head_sha": "ccc", "old_path": "app/a.kt", "new_path": "app/a.kt",
+              "old_line": null, "new_line": 15,
+              "line_range": {"start": {"line_code": "x_12", "type": "new", "old_line": null, "new_line": 12},
+                             "end": {"line_code": "x_15", "type": "new", "old_line": null, "new_line": 15}}}}]},
+         {"id": "d2", "individual_note": true, "notes": [
+           {"id": 102, "type": null, "body": "added 1 commit\\n\\n* 8b3c5f0e - Fix", "author": {"username": "bob"},
+            "created_at": "2026-10-17T09:30:00Z", "system": true, "resolvable": false}]},
+         {"id": "d3", "individual_note": false, "notes": [
+           {"id": 103, "type": "DiffNote", "body": "Why force unwrap?\\n\\n```kotlin\\nval x = y!!\\n```",
+            "author": {"username": "alice"}, "created_at": "2026-10-17T10:00:00Z", "system": false,
+            "resolvable": true, "resolved": false, "resolved_by": null,
+            "position": {"position_type": "text", "head_sha": "bbb", "old_path": "app/Login.kt", "new_path": "app/Login.kt",
+              "old_line": 40, "new_line": null, "line_range": null}},
+           {"id": 104, "type": null, "author": {"username": "bob"}, "created_at": "2026-10-17T10:20:00Z",
+            "body": "changed this line in [version 2 of the diff](/mobile/app/-/merge_requests/12/diffs?diff_id=5#c1)",
+            "system": true, "resolvable": false},
+           {"id": 105, "type": "DiffNote", "body": "Done", "author": {"username": "bob"},
+            "created_at": "2026-10-17T10:21:00Z", "system": false, "resolvable": true, "resolved": false}]},
+         {"id": "d4", "individual_note": true, "notes": [
+           {"id": 106, "type": null, "body": "LGTM after the fix", "author": {"username": "carol"},
+            "created_at": "2026-10-17T11:00:00Z", "system": false, "resolvable": false}]}]
+        """)
+        return (request, discussions)
     }
 }
