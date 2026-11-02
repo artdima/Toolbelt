@@ -28,7 +28,7 @@ struct ToolbeltApp: App {
         MenuBarExtra {
             MenuBarView()
         } label: {
-            Image(systemName: "arrow.triangle.branch")
+            Image(.menuBarIcon)
         }
         .menuBarExtraStyle(.window)
     }
