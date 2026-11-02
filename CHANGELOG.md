@@ -1,11 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.3.1
 
 - **GitLab review threads.** Claude reads the discussions of a merge request: every
   thread with its file and line, whether it is resolved and by whom, and all the
   replies, unresolved threads first. A thread left on an older version of the diff
   is marked, and the merge request itself shows how many comments it has.
+- **Menu bar icon.** A crossed hammer and screwdriver instead of the branch arrow,
+  drawn as a template so it follows Light and Dark appearance.
 
 ## 0.3.0
 
