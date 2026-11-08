@@ -31,9 +31,15 @@ struct JiraCredentials: Hashable {
     var siteURL: URL? { JiraSite.url(from: site) }
     var needsEmail: Bool { deployment == .cloud }
 
-    var isConfigured: Bool {
-        siteURL != nil && !token.isEmpty && (!needsEmail || !email.isEmpty)
+    var problem: JiraError? {
+        if site.isEmpty { return .missingSite }
+        if siteURL == nil { return .invalidSite }
+        if needsEmail && email.isEmpty { return .missingEmail }
+        if token.isEmpty { return .missingToken }
+        return nil
     }
+
+    var isConfigured: Bool { problem == nil }
 
     var authorization: String {
         switch deployment {
@@ -55,16 +61,20 @@ struct JiraCredentials: Hashable {
 enum JiraSite {
     private static let pageSegments: Set<String> = ["browse", "secure", "projects", "issues", "plugins", "rest"]
 
+    private static let localHosts: Set<String> = ["localhost", "127.0.0.1", "::1"]
+
     /// A pasted issue or board link still means the site. On Atlassian Cloud the API is at the root;
     /// elsewhere the path up to the first page is the context path, such as `/jira`.
+    /// The token travels in a header, so plain http is allowed for a local Jira only.
     static func url(from string: String) -> URL? {
         let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !trimmed.contains(where: \.isWhitespace) else { return nil }
 
         let withScheme = trimmed.contains("://") ? trimmed : "https://\(trimmed)"
         guard var components = URLComponents(string: withScheme),
-              let scheme = components.scheme?.lowercased(), scheme == "https" || scheme == "http",
-              let host = components.host, !host.isEmpty
+              let scheme = components.scheme?.lowercased(),
+              let host = components.host?.lowercased(), !host.isEmpty,
+              scheme == "https" || (scheme == "http" && localHosts.contains(host))
         else { return nil }
 
         components.user = nil
@@ -72,7 +82,7 @@ enum JiraSite {
         components.query = nil
         components.fragment = nil
 
-        if host.lowercased().hasSuffix(".atlassian.net") {
+        if host.hasSuffix(".atlassian.net") {
             components.path = ""
         } else {
             let contextPath = components.path

@@ -20,13 +20,23 @@ final class JiraClient: WorklogService {
         static let day: TimeInterval = 24 * 3600
     }
 
+    /// Without cookies a session Jira opened for an old token cannot answer for a new one.
+    private static let defaultSession: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: configuration)
+    }()
+
     private let session: URLSession
     private let credentialsProvider: JiraCredentialsProviding
 
     private var cachedUser: (credentials: JiraCredentials, user: JiraUser)?
 
     convenience init() {
-        self.init(session: .shared, credentialsProvider: JiraCredentialsStore.shared)
+        self.init(session: Self.defaultSession, credentialsProvider: JiraCredentialsStore.shared)
     }
 
     init(session: URLSession, credentialsProvider: JiraCredentialsProviding) {
@@ -71,10 +81,7 @@ final class JiraClient: WorklogService {
 
     private func validCredentials() throws -> JiraCredentials {
         let credentials = credentialsProvider.credentials
-        guard !credentials.site.isEmpty else { throw JiraError.missingSite }
-        guard credentials.siteURL != nil else { throw JiraError.invalidURL }
-        guard !credentials.needsEmail || !credentials.email.isEmpty else { throw JiraError.missingEmail }
-        guard !credentials.token.isEmpty else { throw JiraError.missingToken }
+        if let problem = credentials.problem { throw problem }
         return credentials
     }
 
@@ -138,16 +145,22 @@ final class JiraClient: WorklogService {
 
         var entries: [JiraWorklogPage.Entry] = []
         while true {
-            let page: JiraWorklogPage = try await send(
-                "/issue/\(issue.key)/worklog",
-                query: [
-                    URLQueryItem(name: "startAt", value: String(entries.count)),
-                    URLQueryItem(name: "maxResults", value: String(Limits.worklogPageSize)),
-                    URLQueryItem(name: "startedAfter", value: String(after)),
-                    URLQueryItem(name: "startedBefore", value: String(before))
-                ],
-                credentials: credentials
-            )
+            let page: JiraWorklogPage
+            do {
+                page = try await send(
+                    "/issue/\(issue.key)/worklog",
+                    query: [
+                        URLQueryItem(name: "startAt", value: String(entries.count)),
+                        URLQueryItem(name: "maxResults", value: String(Limits.worklogPageSize)),
+                        URLQueryItem(name: "startedAfter", value: String(after)),
+                        URLQueryItem(name: "startedBefore", value: String(before))
+                    ],
+                    credentials: credentials
+                )
+            } catch JiraError.notFound {
+                Log.jira.warning("An issue disappeared while its worklog was being read")
+                break
+            }
             entries += page.worklogs
             guard !page.worklogs.isEmpty, entries.count < (page.total ?? 0) else { break }
         }
@@ -164,14 +177,26 @@ final class JiraClient: WorklogService {
         credentials: JiraCredentials
     ) async throws -> T {
         let request = try makeRequest(path: path, query: query, payload: payload, credentials: credentials)
-        let (data, response) = try await session.data(for: request)
+        guard let url = request.url, let host = SameHostRedirects.host(of: url) else {
+            throw JiraError.invalidURL
+        }
+        let (data, response) = try await session.data(for: request, delegate: SameHostRedirects(host: host))
 
         guard let http = response as? HTTPURLResponse else {
             throw JiraError.unexpectedResponse
         }
-        guard (200..<300).contains(http.statusCode) else {
+        switch http.statusCode {
+        case 200..<300:
+            break
+        case 300..<400:
+            Log.jira.error("Redirect refused on \(path, privacy: .public)")
+            throw JiraError.redirected(location: http.value(forHTTPHeaderField: "Location") ?? "another address")
+        default:
             Log.jira.error("HTTP \(http.statusCode, privacy: .public) on \(path, privacy: .public)")
             throw JiraError.from(status: http.statusCode, body: String(decoding: data, as: UTF8.self))
+        }
+        guard !JiraError.isWebPage(contentType: http.value(forHTTPHeaderField: "Content-Type")) else {
+            throw JiraError.webPage
         }
 
         do {

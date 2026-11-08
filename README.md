@@ -108,7 +108,8 @@ Jira worklogs. Settings → **Jira** takes one of two sign-ins:
 
 The report finds the issues you logged time on that week (`worklogAuthor = currentUser()`),
 reads each one's worklog and keeps your entries. A pasted issue or board link works as the
-site address.
+site address. As with GitLab, requests go over https only (plain http just for `localhost`),
+without cookies, and a redirect to another address is refused so the token does not follow it.
 
 ## MCP for Claude
 
@@ -265,8 +266,7 @@ entries by author and week, and Jira's error messages.
 - The UI is English only; there is no localization layer.
 - HTTP Request understands the common `curl` options; `-F` multipart forms, `@file` bodies
   and `-k` are reported as warnings rather than supported. Plain `http://` hosts other than
-  `localhost` need an App Transport Security exception in the target's Info — Jira Data
-  Center on `http://` included.
+  `localhost` need an App Transport Security exception in the target's Info.
 
 ## License
 

@@ -84,7 +84,7 @@ struct JiraSettingsView: View {
         } else if draft.site.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             Text("The address Jira opens at in the browser")
         } else {
-            Text("This is not a web address")
+            Text("Not an https address. Plain http works only for localhost.")
                 .foregroundStyle(.red)
         }
     }

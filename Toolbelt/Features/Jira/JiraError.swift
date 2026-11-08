@@ -7,10 +7,13 @@ import Foundation
 
 enum JiraError: LocalizedError, Equatable {
     case missingSite
+    case invalidSite
     case missingEmail
     case missingToken
     case invalidURL
     case unexpectedResponse
+    case redirected(location: String)
+    case webPage
     case unauthorized
     case forbidden
     case notFound
@@ -25,6 +28,12 @@ enum JiraError: LocalizedError, Equatable {
         case 404: return .notFound
         default: return .http(status: status, message: message(from: body))
         }
+    }
+
+    /// A sign-in page or a proxy's error page comes back as HTML with status 200.
+    static func isWebPage(contentType: String?) -> Bool {
+        guard let contentType = contentType?.lowercased() else { return false }
+        return !contentType.contains("json")
     }
 
     /// Jira explains a rejected request in `errorMessages` and `errors`; any other body is kept as is.
@@ -50,6 +59,8 @@ enum JiraError: LocalizedError, Equatable {
         switch self {
         case .missingSite:
             return "No Jira site address set. Open Settings."
+        case .invalidSite:
+            return "The Jira site address is not an https address. Open Settings."
         case .missingEmail:
             return "No account email set. Open Settings."
         case .missingToken:
@@ -58,6 +69,10 @@ enum JiraError: LocalizedError, Equatable {
             return "Malformed request URL"
         case .unexpectedResponse:
             return "Unexpected response from the server"
+        case let .redirected(location):
+            return "3xx: redirected to \(location)"
+        case .webPage:
+            return "The site answered with a web page instead of JSON"
         case .unauthorized:
             return "401: the credentials are wrong or the token has expired"
         case .forbidden:

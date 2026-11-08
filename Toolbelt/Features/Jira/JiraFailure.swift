@@ -30,9 +30,30 @@ extension TrackerFailure {
                 details: details,
                 needsSettings: true
             )
+        case .invalidSite:
+            return TrackerFailure(
+                reason: "The Jira site address is not valid.",
+                suggestion: "Use an https address in Settings; plain http works only for localhost.",
+                details: details,
+                needsSettings: true
+            )
         case .invalidURL:
             return TrackerFailure(
                 reason: "Could not build the request URL.",
+                suggestion: "Check the site address in Settings.",
+                details: details,
+                needsSettings: true
+            )
+        case .redirected:
+            return TrackerFailure(
+                reason: "Jira sent the request on to another address.",
+                suggestion: "Check the site address in Settings. A sign-in page there means SSO stands in the way of the token.",
+                details: details,
+                needsSettings: true
+            )
+        case .webPage:
+            return TrackerFailure(
+                reason: "The address answered with a web page, not with the Jira API.",
                 suggestion: "Check the site address in Settings.",
                 details: details,
                 needsSettings: true
@@ -74,12 +95,7 @@ extension TrackerFailure {
         case .unexpectedResponse:
             return TrackerFailure(reason: "Jira sent an unexpected response.", suggestion: retryLater, details: details)
         case .decoding:
-            return TrackerFailure(
-                reason: "Jira sent a response the app could not read.",
-                suggestion: "Check that the site address points to Jira.",
-                details: details,
-                needsSettings: true
-            )
+            return TrackerFailure(reason: "Jira sent a response the app could not read.", details: details)
         }
     }
 }

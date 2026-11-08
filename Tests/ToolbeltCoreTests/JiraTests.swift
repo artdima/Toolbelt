@@ -25,11 +25,17 @@ struct JiraSiteTests {
         #expect(site("https://jira.company.com/jira/browse/APP-12") == "https://jira.company.com/jira")
         #expect(site("https://jira.company.com/jira/") == "https://jira.company.com/jira")
         #expect(site("https://jira.company.com/secure/Dashboard.jspa") == "https://jira.company.com")
-        #expect(site("http://localhost:8080/Dashboard.jspa") == "http://localhost:8080")
     }
 
-    @Test("Not a web address", arguments: ["", "   ", "ftp://jira.company.com", "https://", "jira company com"])
-    func notAWebAddress(value: String) {
+    @Test("Plain http is allowed for a local Jira only")
+    func plainHTTPOnlyLocally() {
+        #expect(site("http://localhost:8080/Dashboard.jspa") == "http://localhost:8080")
+        #expect(site("http://127.0.0.1:2990/jira") == "http://127.0.0.1:2990/jira")
+        #expect(site("http://jira.company.com") == nil)
+    }
+
+    @Test("Not a usable address", arguments: ["", "   ", "ftp://jira.company.com", "https://", "jira company com"])
+    func notAUsableAddress(value: String) {
         #expect(JiraSite.url(from: value) == nil)
     }
 
@@ -57,11 +63,13 @@ struct JiraCredentialsTests {
         #expect(credentials.isConfigured)
     }
 
-    @Test("An address that is not a URL leaves Jira unconfigured")
-    func invalidSiteIsNotConfigured() {
-        let credentials = JiraCredentials(site: "jira company com", token: "secret", deployment: .dataCenter)
-
-        #expect(!credentials.isConfigured)
+    @Test("The first missing piece is named")
+    func problemNamesFirstMissingPiece() {
+        #expect(JiraCredentials().problem == .missingSite)
+        #expect(JiraCredentials(site: "http://jira.company.com", token: "secret").problem == .invalidSite)
+        #expect(JiraCredentials(site: "company.atlassian.net", token: "secret").problem == .missingEmail)
+        #expect(JiraCredentials(site: "company.atlassian.net", email: "dima@company.com").problem == .missingToken)
+        #expect(JiraCredentials(site: "jira.company.com", token: "secret", deployment: .dataCenter).problem == nil)
     }
 
     @Test("Cloud signs in with Basic, Data Center with Bearer")
@@ -215,11 +223,30 @@ struct JiraFailureTests {
     }
 
     @Test("Credential and address problems point to Settings", arguments: [
-        JiraError.unauthorized, .forbidden, .notFound, .missingSite, .missingEmail, .missingToken,
-        .invalidURL, .unknownUser, .decoding("")
+        JiraError.unauthorized, .forbidden, .notFound, .missingSite, .invalidSite, .missingEmail, .missingToken,
+        .invalidURL, .unknownUser, .webPage, .redirected(location: "https://sso.company.com/login")
     ])
     func credentialProblemsNeedSettings(error: JiraError) {
         #expect(TrackerFailure(jira: error).needsSettings)
+    }
+
+    @Test("An unreadable JSON answer is not a settings problem")
+    func decodingDoesNotNeedSettings() {
+        #expect(!TrackerFailure(jira: JiraError.decoding("keyNotFound")).needsSettings)
+    }
+
+    @Test("A web page is told apart from the API's JSON")
+    func webPageIsToldApart() {
+        #expect(JiraError.isWebPage(contentType: "text/html;charset=UTF-8"))
+        #expect(!JiraError.isWebPage(contentType: "application/json;charset=UTF-8"))
+        #expect(!JiraError.isWebPage(contentType: nil))
+    }
+
+    @Test("The redirect target is kept for the technical details")
+    func redirectKeepsLocation() {
+        let failure = TrackerFailure(jira: JiraError.redirected(location: "https://sso.company.com/login"))
+
+        #expect(failure.details.contains("https://sso.company.com/login"))
     }
 
     @Test("A server failure does not send the user to Settings")
