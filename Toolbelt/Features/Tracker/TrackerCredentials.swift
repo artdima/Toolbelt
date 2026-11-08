@@ -7,7 +7,7 @@ import Observation
 import OSLog
 import SwiftUI
 
-struct TrackerCredentials: Equatable {
+struct TrackerCredentials: Hashable {
     var token = ""
     var orgId = ""
     var orgKind: TrackerOrgKind = .yandex360

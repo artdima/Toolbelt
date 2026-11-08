@@ -2,20 +2,25 @@
 //  WeeklyReportView.swift
 //  Toolbelt
 //
-//  A week of logged time from Yandex Tracker.
+//  A week of logged time from Yandex Tracker or Jira.
 //
 
 import SwiftUI
 
 struct WeeklyReportView: View {
-    @State private var model = WeeklyReportViewModel()
+    @State private var model: WeeklyReportViewModel
+
+    init(source: WorklogSource) {
+        _model = State(initialValue: WeeklyReportViewModel(source: source))
+    }
 
     var body: some View {
         content
             .frame(minWidth: 440, minHeight: 460)
             .navigationTitle("Weekly Report")
+            .navigationSubtitle(model.source.title)
             .toolbar { weekToolbar }
-            .onChange(of: model.credentials) { _, _ in
+            .onChange(of: model.settingsRevision) { _, _ in
                 Task { await model.reload() }
             }
             .task(id: model.weekOffset) {
@@ -26,11 +31,8 @@ struct WeeklyReportView: View {
     @ViewBuilder
     private var content: some View {
         if !model.isConfigured {
-            SetupPrompt(
-                text: "Set an OAuth token and an organization ID\nto pull the report from Yandex Tracker",
-                actionTitle: "Open Settings"
-            ) {
-                AppWindows.settings(tab: .tracker)
+            SetupPrompt(text: model.source.setupText, actionTitle: "Open Settings") {
+                AppWindows.settings(tab: model.source.settingsTab)
             }
         } else {
             VStack(alignment: .leading, spacing: 0) {
@@ -55,7 +57,7 @@ struct WeeklyReportView: View {
         if let failure = model.failure, model.report.isEmpty {
             failureState(failure)
         } else if model.isLoading && model.report.isEmpty {
-            LoadingState(text: "Loading entries from Tracker…")
+            LoadingState(text: model.source.loadingText)
         } else if model.report.isEmpty {
             EmptyState(systemImage: "clock.badge.questionmark", text: "No entries this week")
         } else {
@@ -75,7 +77,7 @@ struct WeeklyReportView: View {
             retry: { Task { await model.reload() } }
         ) {
             if failure.needsSettings {
-                Button("Open Settings") { AppWindows.settings(tab: .tracker) }
+                Button("Open Settings") { AppWindows.settings(tab: model.source.settingsTab) }
             } else if model.weekOffset != 0 {
                 Button("This week") { model.changeWeek(by: -model.weekOffset) }
             }
@@ -261,5 +263,5 @@ struct WeeklyReportView: View {
 }
 
 #Preview {
-    WeeklyReportView()
+    WeeklyReportView(source: .tracker)
 }

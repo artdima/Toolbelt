@@ -8,8 +8,7 @@
 import Foundation
 import OSLog
 
-protocol TrackerService {
-    func worklog(from: Date, to: Date) async throws -> [Worklog]
+protocol TrackerService: WorklogService {
     func myIssues(includeResolved: Bool) async throws -> [Issue]
 }
 
@@ -77,6 +76,9 @@ final class TrackerClient: TrackerService {
     }
 
     // MARK: Public API
+
+    var isConfigured: Bool { credentialsProvider.credentials.isConfigured }
+    var settingsRevision: AnyHashable { AnyHashable(credentialsProvider.credentials) }
 
     func worklog(from: Date, to: Date) async throws -> [Worklog] {
         let login = try await currentLogin()

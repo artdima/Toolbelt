@@ -15,6 +15,12 @@ extension WindowConfiguration {
         size: NSSize(width: 480, height: 560),
         toolbarStyle: .unified
     )
+    static let jiraWeeklyReport = WindowConfiguration(
+        id: "jira-weekly-report",
+        title: "Weekly Report",
+        size: NSSize(width: 480, height: 560),
+        toolbarStyle: .unified
+    )
     static let issuesBoard = WindowConfiguration(
         id: "issues-board",
         title: "My Issues",
@@ -79,8 +85,13 @@ enum AppWindows {
     /// has to switch the tab of a window that is already open.
     private static weak var settingsController: SettingsTabViewController?
 
-    static func weeklyReport() {
-        WindowPresenter.show(.weeklyReport) { WeeklyReportView() }
+    static func weeklyReport(_ source: WorklogSource) {
+        let configuration: WindowConfiguration
+        switch source {
+        case .tracker: configuration = .weeklyReport
+        case .jira: configuration = .jiraWeeklyReport
+        }
+        WindowPresenter.show(configuration) { WeeklyReportView(source: source) }
     }
 
     static func issuesBoard() {

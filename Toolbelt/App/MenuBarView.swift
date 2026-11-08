@@ -113,10 +113,15 @@ struct MenuBarView: View {
     private var tools: some View {
         PanelSection("Yandex Tracker", id: "tracker") {
             PanelRow(title: "Weekly Report", systemImage: "doc.plaintext") {
-                AppWindows.weeklyReport()
+                AppWindows.weeklyReport(.tracker)
             }
             PanelRow(title: "My Issues", systemImage: "square.grid.2x2") {
                 AppWindows.issuesBoard()
+            }
+        }
+        PanelSection("Jira", id: "jira") {
+            PanelRow(title: "Weekly Report", systemImage: "doc.plaintext") {
+                AppWindows.weeklyReport(.jira)
             }
         }
         PanelSection("Xcode", id: "xcode") {

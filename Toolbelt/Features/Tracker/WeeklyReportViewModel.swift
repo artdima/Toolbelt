@@ -23,8 +23,8 @@ enum BreakdownMode: String, CaseIterable, Identifiable {
 @Observable
 @MainActor
 final class WeeklyReportViewModel {
-    private let tracker: TrackerService
-    private let credentialsStore: TrackerCredentialsStore
+    let source: WorklogSource
+    private let service: WorklogService
 
     private(set) var report = WeekReport.empty
     private(set) var failure: TrackerFailure?
@@ -39,20 +39,20 @@ final class WeeklyReportViewModel {
     private(set) var expandedIssues: Set<String> = []
     private(set) var expandedDays: Set<Date> = []
 
-    convenience init() {
-        self.init(tracker: TrackerClient(), credentialsStore: .shared)
+    convenience init(source: WorklogSource) {
+        self.init(source: source, service: source.makeService())
     }
 
-    init(tracker: TrackerService, credentialsStore: TrackerCredentialsStore) {
-        self.tracker = tracker
-        self.credentialsStore = credentialsStore
+    init(source: WorklogSource, service: WorklogService) {
+        self.source = source
+        self.service = service
     }
 
     // MARK: State
 
     var isLoading: Bool { inFlightCount > 0 }
-    var credentials: TrackerCredentials { credentialsStore.credentials }
-    var isConfigured: Bool { credentials.isConfigured }
+    var isConfigured: Bool { service.isConfigured }
+    var settingsRevision: AnyHashable { service.settingsRevision }
     var canShowNextWeek: Bool { weekOffset < 0 }
 
     var weekStart: Date { WeekMath.weekStart(offset: weekOffset) }
@@ -132,7 +132,7 @@ final class WeeklyReportViewModel {
         defer { inFlightCount -= 1 }
 
         do {
-            let entries = try await tracker.worklog(from: start, to: end)
+            let entries = try await service.worklog(from: start, to: end)
             try Task.checkCancellation()
             // The user may have switched weeks while the request was in flight.
             guard requestedOffset == weekOffset else { return }
@@ -147,7 +147,7 @@ final class WeeklyReportViewModel {
             if report.weekStart != start {
                 report = .empty
             }
-            failure = TrackerFailure(error)
+            failure = source.failure(for: error)
         }
     }
 

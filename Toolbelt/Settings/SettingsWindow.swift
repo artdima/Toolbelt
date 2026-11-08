@@ -11,6 +11,7 @@ import SwiftUI
 enum SettingsTab: String, Hashable {
     case profiles
     case tracker
+    case jira
     case tools
 }
 
@@ -24,6 +25,9 @@ final class SettingsTabViewController: NSTabViewController {
         }
         addPane(.tracker, title: "Yandex Tracker", systemImage: "checklist") {
             TrackerSettingsView()
+        }
+        addPane(.jira, title: "Jira", systemImage: "ticket") {
+            JiraSettingsView()
         }
         addPane(.tools, title: "Tools", systemImage: "screwdriver") {
             ToolsSettingsView()

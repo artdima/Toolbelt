@@ -30,13 +30,17 @@ struct TrackerFailure: Equatable {
         case let error as TrackerError:
             self = Self.tracker(error)
         case let error as URLError:
-            self = Self.network(error)
+            self = Self.network(error, service: "Tracker")
         default:
-            self = TrackerFailure(reason: error.localizedDescription, details: String(describing: error))
+            self = Self.unknown(error)
         }
     }
 
-    private static let retryLater = "Please try again in a few moments."
+    static let retryLater = "Please try again in a few moments."
+
+    static func unknown(_ error: Error) -> TrackerFailure {
+        TrackerFailure(reason: error.localizedDescription, details: String(describing: error))
+    }
 
     private static func tracker(_ error: TrackerError) -> TrackerFailure {
         let details = error.localizedDescription
@@ -75,7 +79,11 @@ struct TrackerFailure: Equatable {
         case .notFound:
             return TrackerFailure(reason: statusReason(404), details: details)
         case let .http(status, _):
-            return TrackerFailure(reason: statusReason(status), suggestion: suggestion(status), details: details)
+            return TrackerFailure(
+                reason: statusReason(status),
+                suggestion: suggestion(status, service: "Tracker"),
+                details: details
+            )
         case .unexpectedResponse:
             return TrackerFailure(
                 reason: "Tracker sent an unexpected response.",
@@ -87,7 +95,7 @@ struct TrackerFailure: Equatable {
         }
     }
 
-    private static func network(_ error: URLError) -> TrackerFailure {
+    static func network(_ error: URLError, service: String) -> TrackerFailure {
         var details = "URLError \(error.code.rawValue): \(error.localizedDescription)"
         if let url = error.failingURL {
             details += "\n\(url.absoluteString)"
@@ -101,17 +109,17 @@ struct TrackerFailure: Equatable {
                 details: details
             )
         case .timedOut:
-            return TrackerFailure(reason: "Tracker took too long to respond.", suggestion: retryLater, details: details)
+            return TrackerFailure(reason: "\(service) took too long to respond.", suggestion: retryLater, details: details)
         case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
             return TrackerFailure(
-                reason: "Could not reach Tracker.",
+                reason: "Could not reach \(service).",
                 suggestion: "Check your connection or VPN and try again.",
                 details: details
             )
         case .secureConnectionFailed, .serverCertificateUntrusted, .serverCertificateHasBadDate,
              .serverCertificateNotYetValid, .serverCertificateHasUnknownRoot:
             return TrackerFailure(
-                reason: "Could not establish a secure connection to Tracker.",
+                reason: "Could not establish a secure connection to \(service).",
                 suggestion: "Check your proxy or VPN settings.",
                 details: details
             )
@@ -133,16 +141,16 @@ struct TrackerFailure: Equatable {
         504: "Gateway Timeout"
     ]
 
-    private static func statusReason(_ status: Int) -> String {
+    static func statusReason(_ status: Int) -> String {
         guard let phrase = statusPhrases[status] else {
             return "The server returned HTTP \(status)."
         }
         return "The server returned \(status) \(phrase)."
     }
 
-    private static func suggestion(_ status: Int) -> String? {
+    static func suggestion(_ status: Int, service: String) -> String? {
         switch status {
-        case 429: return "Tracker is limiting requests. Wait a minute and try again."
+        case 429: return "\(service) is limiting requests. Wait a minute and try again."
         case 500...599: return retryLater
         default: return nil
         }

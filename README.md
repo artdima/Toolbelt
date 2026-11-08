@@ -21,7 +21,7 @@
 | Tool | What it does |
 |---|---|
 | **Git profiles** | Switches `user.name` and `user.email` in one click |
-| **Weekly report** | Pulls worklog from Yandex Tracker, totals by day and by issue |
+| **Weekly report** | Pulls worklog from Yandex Tracker or Jira, totals by day and by issue |
 | **My issues** | A kanban of your Tracker issues, columns are statuses |
 | **Simulators** | Launches an iOS simulator or an Android emulator, and stops it |
 | **Deep Link** | Opens a link on a booted iOS simulator or a connected Android device |
@@ -84,7 +84,7 @@ Tests/              pure-logic tests
 ```
 
 The rule that shapes everything: **a view never knows about transport**. It talks to an
-`@Observable` view model, the view model talks to a protocol — `TrackerService`,
+`@Observable` view model, the view model talks to a protocol — `WorklogService`, `TrackerService`,
 `GitConfigService`, `GitRepositoryReading`, `ReleaseNotesGenerating`, `DeepLinkOpening`,
 `SimulatorControlling`, `UserDefaultsControlling`, `DerivedDataCleaning`, `HTTPRequestSending` —
 and the concrete implementation arrives through the initializer. That is also where
@@ -95,6 +95,20 @@ aggregation), `IssuesBoard` (status columns), `ReleaseNotesBuilder` (commit pars
 `TrackerDuration` (ISO 8601), `CurlParser` and `CurlBuilder` (curl commands in and out),
 `JSONPretty` (response formatting), `UserDefaultsParsing` (`listapps` and exported domains). They are computed once after a load rather than on
 every redraw, and they are what the tests cover.
+
+## Jira
+
+Menu bar → **Jira** → **Weekly Report** is the same report as for Tracker, built from your
+Jira worklogs. Settings → **Jira** takes one of two sign-ins:
+
+- **Cloud** — the site (`company.atlassian.net`), your Atlassian email and an
+  [API token](https://id.atlassian.com/manage-profile/security/api-tokens) created without scopes;
+- **Data Center** — the address Jira opens at, with its context path if it has one, and a
+  personal access token from your Jira profile.
+
+The report finds the issues you logged time on that week (`worklogAuthor = currentUser()`),
+reads each one's worklog and keeps your entries. A pasted issue or board link works as the
+site address.
 
 ## MCP for Claude
 
@@ -184,8 +198,9 @@ and its environment is cached.
 config of whatever repository it opens, and both of those hooks can launch external
 commands — for a repository you did not write, that is code execution.
 
-**One source of truth for credentials.** `TrackerCredentialsStore` is the only place that
-knows about Keychain and `UserDefaults`; the UI and the network client both read from it.
+**One source of truth for credentials.** `TrackerCredentialsStore` and `JiraCredentialsStore`
+are the only places that know about Keychain and `UserDefaults`; the UI and the network
+clients read from them.
 
 **HTTP requests go through an ephemeral session.** No cookie jar, no cache: the response
 on screen is the one the server sent for exactly the request in the form, and sending it
@@ -237,8 +252,9 @@ JSON pretty-printing, `simctl listapps` and exported defaults domains with their
 GitLab link parsing, job log cleanup with `tail` and `grep`, the pipeline and merge request
 text Claude gets, LinkedIn's Little Text escaping, post links and URNs, token introspection,
 the post body, HTTP status mapping, the write switch and the journal of published posts,
-response truncation, newline framing on the MCP socket, the socket's permissions, and merging
-`claude_desktop_config.json`.
+response truncation, newline framing on the MCP socket, the socket's permissions, merging
+`claude_desktop_config.json`, Jira site addresses, the worklog query and the filtering of
+entries by author and week, and Jira's error messages.
 
 ## Known limitations
 
@@ -249,7 +265,8 @@ response truncation, newline framing on the MCP socket, the socket's permissions
 - The UI is English only; there is no localization layer.
 - HTTP Request understands the common `curl` options; `-F` multipart forms, `@file` bodies
   and `-k` are reported as warnings rather than supported. Plain `http://` hosts other than
-  `localhost` need an App Transport Security exception in the target's Info.
+  `localhost` need an App Transport Security exception in the target's Info — Jira Data
+  Center on `http://` included.
 
 ## License
 
