@@ -1,11 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.3.2
 
 - **Jira weekly report.** A Jira section in the menu bar opens the same weekly report as
   for Yandex Tracker, built from your Jira worklogs. Jira Cloud signs in with an email and
   an API token, Data Center with a personal access token; both are set in the new Jira
-  section of Settings.
+  section of Settings. Requests go over https only, and a redirect to another address is
+  refused, so the token never leaves Jira.
 
 ## 0.3.1
 
