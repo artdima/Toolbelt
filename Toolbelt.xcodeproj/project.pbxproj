@@ -10,6 +10,7 @@
 		7A1C00012FB000010000000A /* toolbelt-mcp in Embed MCP Helper */ = {isa = PBXBuildFile; fileRef = 7A1C00012FB0000100000001 /* toolbelt-mcp */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		7A1C00012FB0000100000011 /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 7A1C00012FB000010000000F /* MCP */; };
 		7A1C00012FB0000100000012 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = 7A1C00012FB0000100000010 /* Logging */; };
+		7A1C00012FB0000100000015 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 7A1C00012FB0000100000014 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +62,7 @@
 			files = (
 				7A1C00012FB0000100000011 /* MCP in Frameworks */,
 				7A1C00012FB0000100000012 /* Logging in Frameworks */,
+				7A1C00012FB0000100000015 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,6 +118,7 @@
 			packageProductDependencies = (
 				7A1C00012FB000010000000F /* MCP */,
 				7A1C00012FB0000100000010 /* Logging */,
+				7A1C00012FB0000100000014 /* Sparkle */,
 			);
 			productName = Toolbelt;
 			productReference = 32D62D492FAE0164009FBCC6 /* Toolbelt.app */;
@@ -172,6 +175,7 @@
 			packageReferences = (
 				7A1C00012FB000010000000D /* XCRemoteSwiftPackageReference "swift-sdk" */,
 				7A1C00012FB000010000000E /* XCRemoteSwiftPackageReference "swift-log" */,
+				7A1C00012FB0000100000013 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 32D62D4A2FAE0164009FBCC6 /* Products */;
@@ -345,12 +349,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = "$(MARKETING_VERSION)";
 				DEVELOPMENT_TEAM = 8Q6S7RTHBY;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Toolbelt-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -378,12 +383,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = "$(MARKETING_VERSION)";
 				DEVELOPMENT_TEAM = 8Q6S7RTHBY;
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Toolbelt-Info.plist";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -479,6 +485,14 @@
 				minimumVersion = 1.5.0;
 			};
 		};
+		7A1C00012FB0000100000013 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.10.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -491,6 +505,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 7A1C00012FB000010000000E /* XCRemoteSwiftPackageReference "swift-log" */;
 			productName = Logging;
+		};
+		7A1C00012FB0000100000014 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7A1C00012FB0000100000013 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

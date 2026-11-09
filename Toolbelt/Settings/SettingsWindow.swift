@@ -13,6 +13,7 @@ enum SettingsTab: String, Hashable {
     case tracker
     case jira
     case tools
+    case updates
 }
 
 final class SettingsTabViewController: NSTabViewController {
@@ -31,6 +32,9 @@ final class SettingsTabViewController: NSTabViewController {
         }
         addPane(.tools, title: "Tools", systemImage: "screwdriver") {
             ToolsSettingsView()
+        }
+        addPane(.updates, title: "Updates", systemImage: "arrow.down.circle") {
+            UpdatesSettingsView()
         }
     }
 

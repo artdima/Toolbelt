@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SUAutomaticallyUpdate</key>
+	<true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/artdima/Toolbelt/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>xZeCf164WWtkDX3p7yjPvf8GyGvFq/TuWKo0VYg6DIk=</string>
+</dict>
+</plist>

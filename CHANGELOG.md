@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- **Updates.** Toolbelt checks for a new version once a day and downloads it in the
+  background. It is installed when you quit Toolbelt, or right away from Restart to Update
+  in the menu bar; Toolbelt never restarts by itself, so Claude is not cut off from MCP
+  mid-task. Settings → Updates checks on demand and turns both off. Earlier versions do
+  not update themselves: this one is installed by hand.
+
 ## 0.3.2
 
 - **Jira weekly report.** A Jira section in the menu bar opens the same weekly report as

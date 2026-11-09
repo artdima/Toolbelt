@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/macOS-26.3+-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS 26.3+">
   <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.0">
   <img src="https://img.shields.io/badge/UI-SwiftUI-1575F9?style=flat-square" alt="SwiftUI">
-  <img src="https://img.shields.io/badge/dependencies-MCP%20Swift%20SDK-2EA043?style=flat-square" alt="One dependency: the MCP Swift SDK">
+  <img src="https://img.shields.io/badge/dependencies-MCP%20Swift%20SDK%20%C2%B7%20Sparkle-2EA043?style=flat-square" alt="Two dependencies: the MCP Swift SDK and Sparkle">
   <img src="https://img.shields.io/badge/license-MIT-8A8A8A?style=flat-square" alt="MIT">
 </p>
 
@@ -38,6 +38,11 @@ Download `Toolbelt-<version>.dmg` from the
 Toolbelt to Applications. It needs macOS 26.3 or later, and it is signed with Developer ID
 and notarized by Apple.
 
+Toolbelt checks for a new version once a day and downloads it in the background. The update
+is installed when you quit Toolbelt, or right away from **Restart to Update** in the menu bar;
+Settings → **Updates** checks on demand and turns both off. Versions up to 0.3.2 do not update
+themselves, so the first version with updates is installed by hand.
+
 ## Build
 
 ```bash
@@ -48,39 +53,54 @@ swift test                   # pure-logic tests, no Xcode needed
 ## Release
 
 `scripts/release.sh` builds a release at `build/release`: the app signed with Developer ID
-and notarized, inside a signed and notarized `Toolbelt-<version>.dmg`. Once, on the Mac that
-builds:
+and notarized, inside a signed and notarized `Toolbelt-<version>.dmg`, and the `appcast.xml`
+that offers it to installed copies. Once, on the Mac that builds:
 
 - a *Developer ID Application* certificate: Xcode → Settings → Accounts → Manage
   Certificates → **+** → Developer ID Application;
 - a notarytool profile with an [app-specific password](https://account.apple.com):
   `xcrun notarytool store-credentials toolbelt --apple-id <Apple ID> --team-id <Team ID>`
-  (`NOTARY_PROFILE` names another profile).
+  (`NOTARY_PROFILE` names another profile);
+- a Sparkle signing key in the login Keychain, with its public half in `Toolbelt-Info.plist`
+  (commit the change):
+
+  ```bash
+  scripts/sparkle.sh generate_keys
+  plutil -replace SUPublicEDKey -string "$(scripts/sparkle.sh generate_keys -p)" Toolbelt-Info.plist
+  ```
+
+  Keep a backup made with `scripts/sparkle.sh generate_keys -x <file>` (restored with `-f`):
+  installed copies accept only updates signed with this key.
 
 Then, for every release:
 
 1. Add a `## X.Y.Z` section to `CHANGELOG.md`, set `MARKETING_VERSION` in the project to
-   `X.Y.Z`, commit.
-2. `scripts/release.sh` — the DMG and its SHA-256 are printed at the end.
-3. Tag the commit and publish the DMG with the changelog section as the notes:
+   `X.Y.Z` (the build number follows it), commit.
+2. `scripts/release.sh` — the DMG, its SHA-256 and the appcast are printed at the end.
+3. Tag the commit and publish the DMG and the appcast with the changelog section as the notes:
 
    ```bash
    git tag -a vX.Y.Z -m "Toolbelt X.Y.Z" && git push origin vX.Y.Z
-   gh release create vX.Y.Z build/release/Toolbelt-X.Y.Z.dmg --title "Toolbelt X.Y.Z" \
+   gh release create vX.Y.Z build/release/Toolbelt-X.Y.Z.dmg build/release/appcast.xml \
+     --title "Toolbelt X.Y.Z" \
      --notes-file <(awk '/^## /{ p = ($0 == "## X.Y.Z") } p && !/^## /' CHANGELOG.md)
    ```
+
+   Installed copies read `releases/latest/download/appcast.xml`, so they see the update as soon
+   as the release is published; a draft or a pre-release never reaches them.
 
 ## Architecture
 
 ```
 Toolbelt/
 ├── App/            entry point, menu bar panel, window registry
-├── Core/           infrastructure: processes, windows, Keychain, logging
+├── Core/           infrastructure: processes, windows, Keychain, logging, updates
 ├── DesignSystem/   reusable views and formatters
 ├── Features/       one folder per tool: model → service → view model → view
 └── Settings/       shared settings screen
 toolbelt-mcp/       the stdio relay Claude starts; copied into Toolbelt.app/Contents/MacOS
 Tests/              pure-logic tests
+Toolbelt-Info.plist the Sparkle keys; Xcode merges them into the generated Info.plist
 ```
 
 The rule that shapes everything: **a view never knows about transport**. It talks to an
@@ -237,6 +257,17 @@ and every tool answer and log entry is scrubbed of the tokens in use.
 **JSON is pretty-printed by hand.** `JSONSerialization` would reorder keys, and a response
 with its keys shuffled is harder to compare with the docs. The formatter walks the text
 character by character instead, and only after `JSONSerialization` has confirmed it is JSON.
+
+**An update never restarts Toolbelt by itself.** Sparkle downloads it in the background and
+installs it when Toolbelt quits, or right away from **Restart to Update** in the panel. Toolbelt
+is an MCP server, and a restart of its own accord would cut off Claude in the middle of a task.
+With background downloads off, a found update is a row in the panel too, not a window
+over other apps.
+
+**The appcast is an asset of the latest release.** `SUFeedURL` points at
+`releases/latest/download/appcast.xml`, so the feed and the DMG it describes go out in one
+`gh release create` and cannot disagree. The build number is `MARKETING_VERSION` itself:
+Sparkle compares `CFBundleVersion`, and a second number bumped by hand is one more to forget.
 
 ## Tests
 

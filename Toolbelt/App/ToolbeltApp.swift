@@ -13,6 +13,7 @@ struct ToolbeltApp: App {
         TrackerCredentialsStore.shared.migrateLegacyStorageIfNeeded()
 
         MCPHub.shared.startIfEnabled()
+        AppUpdater.shared.start()
         _ = NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil,

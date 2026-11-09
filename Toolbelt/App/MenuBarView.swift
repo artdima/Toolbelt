@@ -10,10 +10,12 @@ import SwiftUI
 struct MenuBarView: View {
     @State private var model = MenuBarViewModel()
     @State private var isConfirmingDerivedDataCleanup = false
+    private let updater = AppUpdater.shared
 
     var body: some View {
         VStack(spacing: 0) {
             header
+            update
             PanelDivider()
             gitProfiles
             tools
@@ -79,6 +81,26 @@ struct MenuBarView: View {
         .padding(.horizontal, 9)
         .padding(.top, 15)
         .padding(.bottom, 10)
+    }
+
+    @ViewBuilder
+    private var update: some View {
+        switch updater.pendingUpdate {
+        case let .available(version):
+            PanelRow(title: "Update Available", systemImage: "arrow.down", role: .prominent, detail: version) {
+                updater.checkForUpdates()
+            }
+            .help("Shows what's new in \(version) and installs it")
+            .padding(.bottom, 6)
+        case let .readyToInstall(version):
+            PanelRow(title: "Restart to Update", systemImage: "arrow.clockwise", role: .prominent, detail: version) {
+                updater.installNow()
+            }
+            .help("Installs \(version) and opens Toolbelt again; Claude has to reconnect to MCP. Otherwise the update installs on Quit.")
+            .padding(.bottom, 6)
+        case nil:
+            EmptyView()
+        }
     }
 
     private var gitProfiles: some View {
