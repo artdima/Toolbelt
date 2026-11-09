@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 - **Updates.** Toolbelt checks for a new version once a day and downloads it in the
   background. It is installed when you quit Toolbelt, or right away from Restart to Update
