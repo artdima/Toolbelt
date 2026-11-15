@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.1
+## 0.4.2
 
 - **Editing Tracker entries.** In the Yandex Tracker weekly report an entry's … menu, or
   its context menu, edits the comment or deletes the entry. Deleting asks first; the
