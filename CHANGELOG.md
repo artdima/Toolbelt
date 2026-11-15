@@ -1,10 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.4.1
 
 - **Editing Tracker entries.** In the Yandex Tracker weekly report an entry's … menu, or
   its context menu, edits the comment or deletes the entry. Deleting asks first; the
-  totals and the chart update at once, without reloading the week. Jira entries stay
+  totals and the chart update at once, without reloading the week. An entry already
+  deleted in Tracker is reported as such, and the week reloads. Jira entries stay
   read-only for now.
 
 ## 0.4.0
