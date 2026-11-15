@@ -47,10 +47,31 @@ private struct IssueDTO: Decodable {
     let deadline: String?
 }
 
+private extension Worklog {
+    init?(_ dto: WorklogDTO) {
+        guard let start = TrackerDate.parse(dto.start) else { return nil }
+        self.init(
+            id: dto.id,
+            issueKey: dto.issue.key,
+            issueTitle: dto.issue.display ?? dto.issue.key,
+            comment: dto.comment?.trimmingCharacters(in: .whitespacesAndNewlines),
+            start: start,
+            seconds: TrackerDuration.seconds(fromISO8601: dto.duration)
+        )
+    }
+}
+
 // MARK: - Client
 
 @MainActor
-final class TrackerClient: TrackerService {
+final class TrackerClient: TrackerService, WorklogEditing {
+    private enum Method: String {
+        case get = "GET"
+        case post = "POST"
+        case patch = "PATCH"
+        case delete = "DELETE"
+    }
+
     private enum Limits {
         static let worklogPageSize = 1000
         static let issuesPageSize = 200
@@ -96,6 +117,7 @@ final class TrackerClient: TrackerService {
         ]
 
         let data = try await send(
+            .post,
             path: "/worklog/_search",
             query: [URLQueryItem(name: "perPage", value: String(Limits.worklogPageSize))],
             payload: payload
@@ -108,22 +130,36 @@ final class TrackerClient: TrackerService {
 
         return raw
             .compactMap { dto -> Worklog? in
-                guard let start = TrackerDate.parse(dto.start) else {
+                guard let entry = Worklog(dto) else {
                     Log.tracker.warning("Entry skipped: could not parse its date")
                     return nil
                 }
-                guard start >= from, start < to else { return nil }
-
-                return Worklog(
-                    id: dto.id,
-                    issueKey: dto.issue.key,
-                    issueTitle: dto.issue.display ?? dto.issue.key,
-                    comment: dto.comment?.trimmingCharacters(in: .whitespacesAndNewlines),
-                    start: start,
-                    seconds: TrackerDuration.seconds(fromISO8601: dto.duration)
-                )
+                return entry.start >= from && entry.start < to ? entry : nil
             }
             .sorted { $0.start < $1.start }
+    }
+
+    func updateComment(of entry: Worklog, to comment: String) async throws -> Worklog {
+        let payload: [String: Any] = [
+            // Tracker rejects the edit without a duration, even when only the comment changes.
+            "duration": TrackerDuration.iso8601(seconds: entry.seconds),
+            "comment": comment
+        ]
+        let data = try await send(.patch, path: worklogPath(of: entry), payload: payload)
+        let dto: WorklogDTO = try decode(data)
+
+        guard let updated = Worklog(dto) else {
+            return entry.with(comment: comment)
+        }
+        return updated
+    }
+
+    func delete(_ entry: Worklog) async throws {
+        do {
+            _ = try await send(.delete, path: worklogPath(of: entry))
+        } catch TrackerError.notFound {
+            // Already deleted in Tracker itself — the outcome the user asked for.
+        }
     }
 
     func myIssues(includeResolved: Bool) async throws -> [Issue] {
@@ -134,6 +170,7 @@ final class TrackerClient: TrackerService {
         parts.append("\"Sort by\": Updated DESC")
 
         let data = try await send(
+            .post,
             path: "/issues/_search",
             query: [URLQueryItem(name: "perPage", value: String(Limits.issuesPageSize))],
             payload: ["query": parts.joined(separator: " ")]
@@ -163,7 +200,7 @@ final class TrackerClient: TrackerService {
             return cachedLogin.login
         }
 
-        let data = try await send(path: "/myself", query: [], payload: nil)
+        let data = try await send(.get, path: "/myself")
         let myself: TrackerMyselfDTO = try decode(data)
 
         guard let login = myself.login?.nonEmpty ?? myself.uid.map(String.init) else {
@@ -174,8 +211,17 @@ final class TrackerClient: TrackerService {
         return login
     }
 
-    private func send(path: String, query: [URLQueryItem], payload: [String: Any]?) async throws -> Data {
-        let request = try makeRequest(path: path, query: query, payload: payload)
+    private func worklogPath(of entry: Worklog) -> String {
+        "/issues/\(entry.issueKey)/worklog/\(entry.id)"
+    }
+
+    private func send(
+        _ method: Method,
+        path: String,
+        query: [URLQueryItem] = [],
+        payload: [String: Any]? = nil
+    ) async throws -> Data {
+        let request = try makeRequest(method: method, path: path, query: query, payload: payload)
         let (data, response) = try await session.data(for: request)
 
         guard let http = response as? HTTPURLResponse else {
@@ -183,13 +229,20 @@ final class TrackerClient: TrackerService {
         }
         guard (200..<300).contains(http.statusCode) else {
             let body = String(decoding: data, as: UTF8.self)
-            Log.tracker.error("HTTP \(http.statusCode, privacy: .public) on \(path, privacy: .public)")
+            Log.tracker.error(
+                "HTTP \(http.statusCode, privacy: .public) on \(method.rawValue, privacy: .public) \(path, privacy: .public)"
+            )
             throw TrackerError.from(status: http.statusCode, body: body)
         }
         return data
     }
 
-    private func makeRequest(path: String, query: [URLQueryItem], payload: [String: Any]?) throws -> URLRequest {
+    private func makeRequest(
+        method: Method,
+        path: String,
+        query: [URLQueryItem],
+        payload: [String: Any]?
+    ) throws -> URLRequest {
         let credentials = credentialsProvider.credentials
         guard !credentials.token.isEmpty else { throw TrackerError.missingToken }
         guard !credentials.orgId.isEmpty else { throw TrackerError.missingOrgId }
@@ -205,7 +258,7 @@ final class TrackerClient: TrackerService {
         guard let url = components.url else { throw TrackerError.invalidURL }
 
         var request = URLRequest(url: url)
-        request.httpMethod = payload == nil ? "GET" : "POST"
+        request.httpMethod = method.rawValue
         request.timeoutInterval = Limits.requestTimeout
         request.setValue("OAuth \(credentials.token)", forHTTPHeaderField: "Authorization")
         request.setValue(credentials.orgId, forHTTPHeaderField: credentials.orgKind.headerName)

@@ -98,12 +98,42 @@ struct ShareBar: View {
     }
 }
 
+struct WorklogEntryActions {
+    let isBusy: (Worklog) -> Bool
+    let editComment: (Worklog) -> Void
+    let delete: (Worklog) -> Void
+}
+
 struct WorklogEntryRow: View {
     let entry: Worklog
     /// Either a date with a time (issue breakdown) or just a time (day breakdown).
     let showsDate: Bool
+    var actions: WorklogEntryActions?
+
+    @State private var isHovered = false
 
     var body: some View {
+        if let actions {
+            let isBusy = actions.isBusy(entry)
+
+            row(actions: actions, isBusy: isBusy)
+                .opacity(isBusy ? 0.5 : 1)
+                .contentShape(Rectangle())
+                .onHover { isHovered = $0 }
+                .contextMenu { menuItems(actions) }
+                .accessibilityElement(children: .combine)
+                .accessibilityActions {
+                    if !isBusy {
+                        Button("Edit Comment") { actions.editComment(entry) }
+                        Button("Delete Entry") { actions.delete(entry) }
+                    }
+                }
+        } else {
+            row(actions: nil, isBusy: false)
+        }
+    }
+
+    private func row(actions: WorklogEntryActions?, isBusy: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(leadingTitle)
                 .font(.system(size: 11))
@@ -123,9 +153,55 @@ struct WorklogEntryRow: View {
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
+
+            if let actions {
+                actionsSlot(actions, isBusy: isBusy)
+            }
         }
         .padding(.vertical, 6)
-        .padding(.horizontal, 10)
+        .padding(.leading, 10)
+        .padding(.trailing, actions == nil ? 10 : 4)
+    }
+
+    /// Always takes its width, so the durations stay in one column whether the row is hovered or not.
+    private func actionsSlot(_ actions: WorklogEntryActions, isBusy: Bool) -> some View {
+        ZStack {
+            if isBusy {
+                ProgressView()
+                    .controlSize(.mini)
+            } else {
+                Menu {
+                    menuItems(actions)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .menuStyle(.button)
+                .buttonStyle(.borderless)
+                .menuIndicator(.hidden)
+                .fixedSize()
+                .foregroundStyle(.secondary)
+                .opacity(isHovered ? 1 : 0)
+                .help("Entry actions")
+            }
+        }
+        .frame(width: 18)
+        .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
+    }
+
+    @ViewBuilder
+    private func menuItems(_ actions: WorklogEntryActions) -> some View {
+        Button("Edit Comment…", systemImage: "square.and.pencil") {
+            actions.editComment(entry)
+        }
+        .disabled(actions.isBusy(entry))
+
+        Divider()
+
+        Button("Delete Entry…", systemImage: "trash", role: .destructive) {
+            actions.delete(entry)
+        }
+        .disabled(actions.isBusy(entry))
     }
 
     private var issue: some View {
@@ -169,6 +245,7 @@ struct WorklogEntryRow: View {
 struct WorklogEntryList: View {
     let entries: [Worklog]
     let showsDate: Bool
+    var actions: WorklogEntryActions?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -176,7 +253,7 @@ struct WorklogEntryList: View {
                 if index > 0 {
                     Divider().padding(.leading, 10)
                 }
-                WorklogEntryRow(entry: entry, showsDate: showsDate)
+                WorklogEntryRow(entry: entry, showsDate: showsDate, actions: actions)
             }
         }
         .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 7, style: .continuous))

@@ -58,6 +58,20 @@ enum TrackerDuration {
         }
         return seconds
     }
+
+    /// Hours at most: Tracker folds them into its working days and weeks on its own.
+    static func iso8601(seconds: TimeInterval) -> String {
+        let total = max(Int(seconds.rounded()), 0)
+        let hours = total / Int(secondsPerHour)
+        let minutes = total % Int(secondsPerHour) / 60
+        let rest = total % 60
+
+        var result = "PT"
+        if hours > 0 { result += "\(hours)H" }
+        if minutes > 0 { result += "\(minutes)M" }
+        if rest > 0 || total == 0 { result += "\(rest)S" }
+        return result
+    }
 }
 
 enum TrackerDate {

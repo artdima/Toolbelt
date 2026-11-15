@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Editing Tracker entries.** In the Yandex Tracker weekly report an entry's … menu, or
+  its context menu, edits the comment or deletes the entry. Deleting asks first; the
+  totals and the chart update at once, without reloading the week. Jira entries stay
+  read-only for now.
+
 ## 0.4.0
 
 - **Updates.** Toolbelt checks for a new version once a day and downloads it in the

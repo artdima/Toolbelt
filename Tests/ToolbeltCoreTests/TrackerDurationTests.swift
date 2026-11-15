@@ -92,6 +92,35 @@ struct DurationFormatterTests {
     }
 }
 
+@Suite("Tracker durations sent back")
+struct TrackerDurationEncodingTests {
+    @Test("Hours and minutes", arguments: [
+        (9000.0, "PT2H30M"), (3600.0, "PT1H"), (2700.0, "PT45M"), (45.0, "PT45S"), (3661.0, "PT1H1M1S")
+    ])
+    func hoursAndMinutes(seconds: TimeInterval, expected: String) {
+        #expect(TrackerDuration.iso8601(seconds: seconds) == expected)
+    }
+
+    /// Tracker turns them back into its working days and weeks itself.
+    @Test("Days and weeks stay in hours")
+    func daysStayInHours() {
+        #expect(TrackerDuration.iso8601(seconds: TrackerDuration.workdaySeconds) == "PT8H")
+        #expect(TrackerDuration.iso8601(seconds: 5 * TrackerDuration.workdaySeconds) == "PT40H")
+    }
+
+    @Test("Zero is still a valid duration")
+    func zero() {
+        #expect(TrackerDuration.iso8601(seconds: 0) == "PT0S")
+        #expect(TrackerDuration.iso8601(seconds: -5) == "PT0S")
+    }
+
+    @Test("Parsing what was sent gives the same duration", arguments: ["P1W2DT3H30M", "P1D", "PT7H30M", "PT45M"])
+    func roundTrip(original: String) {
+        let seconds = TrackerDuration.seconds(fromISO8601: original)
+        #expect(TrackerDuration.seconds(fromISO8601: TrackerDuration.iso8601(seconds: seconds)) == seconds)
+    }
+}
+
 @Suite("Pluralization")
 struct PluralTests {
     @Test("One takes the singular, everything else the plural", arguments: [

@@ -14,6 +14,12 @@ protocol WorklogService {
     func worklog(from: Date, to: Date) async throws -> [Worklog]
 }
 
+/// Changing an entry after it was logged. Only Tracker supports it so far.
+protocol WorklogEditing {
+    func updateComment(of entry: Worklog, to comment: String) async throws -> Worklog
+    func delete(_ entry: Worklog) async throws
+}
+
 enum WorklogSource: String {
     case tracker
     case jira

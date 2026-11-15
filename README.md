@@ -21,7 +21,7 @@
 | Tool | What it does |
 |---|---|
 | **Git profiles** | Switches `user.name` and `user.email` in one click |
-| **Weekly report** | Pulls worklog from Yandex Tracker or Jira, totals by day and by issue |
+| **Weekly report** | Pulls worklog from Yandex Tracker or Jira, totals by day and by issue; Tracker entries can be deleted or have their comment edited |
 | **My issues** | A kanban of your Tracker issues, columns are statuses |
 | **Simulators** | Launches an iOS simulator or an Android emulator, and stops it |
 | **Deep Link** | Opens a link on a booted iOS simulator or a connected Android device |
@@ -104,7 +104,7 @@ Toolbelt-Info.plist the Sparkle keys; Xcode merges them into the generated Info.
 ```
 
 The rule that shapes everything: **a view never knows about transport**. It talks to an
-`@Observable` view model, the view model talks to a protocol — `WorklogService`, `TrackerService`,
+`@Observable` view model, the view model talks to a protocol — `WorklogService`, `WorklogEditing`, `TrackerService`,
 `GitConfigService`, `GitRepositoryReading`, `ReleaseNotesGenerating`, `DeepLinkOpening`,
 `SimulatorControlling`, `UserDefaultsControlling`, `DerivedDataCleaning`, `HTTPRequestSending` —
 and the concrete implementation arrives through the initializer. That is also where
@@ -275,7 +275,7 @@ Sparkle compares `CFBundleVersion`, and a second number bumped by hand is one mo
 module and runs Swift Testing suites against it. The Xcode project is untouched — it
 builds the same folder as a whole through `PBXFileSystemSynchronizedRootGroup`.
 
-Covered: Conventional Commits parsing, ISO 8601 durations in Tracker's "working" days,
+Covered: Conventional Commits parsing, ISO 8601 durations in Tracker's "working" days and back,
 week boundaries, report aggregation, board column ordering, `simctl`, `emulator` and `adb`
 output parsing, argument quoting for `adb shell`, the Claude prompt, HTTP status mapping,
 pluralization, bash-style splitting of `curl` commands and their options, the exported
@@ -286,7 +286,7 @@ text Claude gets, LinkedIn's Little Text escaping, post links and URNs, token in
 the post body, HTTP status mapping, the write switch and the journal of published posts,
 response truncation, newline framing on the MCP socket, the socket's permissions, merging
 `claude_desktop_config.json`, Jira site addresses, the worklog query and the filtering of
-entries by author and week, and Jira's error messages.
+entries by author and week, Jira's error messages, and the errors of editing or deleting a Tracker entry.
 
 ## Known limitations
 

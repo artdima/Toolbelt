@@ -25,9 +25,16 @@ enum BreakdownMode: String, CaseIterable, Identifiable {
 final class WeeklyReportViewModel {
     let source: WorklogSource
     private let service: WorklogService
+    private let editor: WorklogEditing?
 
     private(set) var report = WeekReport.empty
     private(set) var failure: TrackerFailure?
+    private var entries: [Worklog] = []
+
+    var editingEntry: Worklog?
+    var entryPendingDeletion: Worklog?
+    var deletionFailure: TrackerFailure?
+    private(set) var deletingEntryIDs: Set<Int> = []
 
     /// A counter rather than a Bool: a manual refresh and a week change can overlap,
     /// and whichever finishes first must not switch off the other one's spinner.
@@ -46,12 +53,14 @@ final class WeeklyReportViewModel {
     init(source: WorklogSource, service: WorklogService) {
         self.source = source
         self.service = service
+        editor = service as? WorklogEditing
     }
 
     // MARK: State
 
     var isLoading: Bool { inFlightCount > 0 }
     var isConfigured: Bool { service.isConfigured }
+    var canEditEntries: Bool { editor != nil }
     var settingsRevision: AnyHashable { service.settingsRevision }
     var canShowNextWeek: Bool { weekOffset < 0 }
 
@@ -108,6 +117,50 @@ final class WeeklyReportViewModel {
         }
     }
 
+    // MARK: Editing entries
+
+    func saveComment(_ text: String, for entry: Worklog) async -> TrackerFailure? {
+        guard let editor else { return nil }
+        let comment = text.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        do {
+            let updated = try await editor.updateComment(of: entry, to: comment)
+            applyChange(entries.map { $0.id == updated.id ? updated : $0 })
+            return nil
+        } catch {
+            return TrackerFailure.worklogChange(error)
+        }
+    }
+
+    func delete(_ entry: Worklog) async {
+        guard let editor, !deletingEntryIDs.contains(entry.id) else { return }
+        deletingEntryIDs.insert(entry.id)
+        defer { deletingEntryIDs.remove(entry.id) }
+
+        do {
+            try await editor.delete(entry)
+            applyChange(entries.filter { $0.id != entry.id })
+        } catch {
+            deletionFailure = TrackerFailure.worklogChange(error)
+        }
+    }
+
+    private func applyChange(_ updated: [Worklog]) {
+        show(updated, weekStart: report.weekStart)
+        expandedIssues.formIntersection(report.issues.map(\.key))
+        expandedDays.formIntersection(report.dayGroups.map(\.date))
+
+        // A load already in flight may have read the entries before the change.
+        if isLoading {
+            Task { await reload() }
+        }
+    }
+
+    private func show(_ entries: [Worklog], weekStart: Date) {
+        self.entries = entries
+        report = WeekReport(entries: entries, weekStart: weekStart)
+    }
+
     // MARK: Loading
 
     func reload() async {
@@ -119,6 +172,7 @@ final class WeeklyReportViewModel {
 
     private func performLoad() async {
         guard isConfigured else {
+            entries = []
             report = .empty
             return
         }
@@ -136,7 +190,7 @@ final class WeeklyReportViewModel {
             try Task.checkCancellation()
             // The user may have switched weeks while the request was in flight.
             guard requestedOffset == weekOffset else { return }
-            report = WeekReport(entries: entries, weekStart: start)
+            show(entries, weekStart: start)
         } catch is CancellationError {
             // Superseded by a newer request — leave the state alone.
         } catch let error as URLError where error.code == .cancelled {
@@ -145,6 +199,7 @@ final class WeeklyReportViewModel {
             // This week's data stays on screen under a banner; another week's
             // would pass for this one, so it goes.
             if report.weekStart != start {
+                entries = []
                 report = .empty
             }
             failure = source.failure(for: error)

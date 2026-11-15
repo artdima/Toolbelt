@@ -36,6 +36,10 @@ struct Worklog: Identifiable, Hashable {
     let comment: String?
     let start: Date
     let seconds: TimeInterval
+
+    func with(comment: String?) -> Worklog {
+        Worklog(id: id, issueKey: issueKey, issueTitle: issueTitle, comment: comment, start: start, seconds: seconds)
+    }
 }
 
 /// An issue on the board.

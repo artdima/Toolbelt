@@ -26,6 +26,32 @@ struct WeeklyReportView: View {
             .task(id: model.weekOffset) {
                 await model.reload()
             }
+            .sheet(item: $model.editingEntry) { entry in
+                WorklogCommentEditor(entry: entry) { text in
+                    await model.saveComment(text, for: entry)
+                }
+            }
+            .confirmationDialog(
+                deletionTitle,
+                isPresented: isConfirmingDeletion,
+                titleVisibility: .visible,
+                presenting: model.entryPendingDeletion
+            ) { entry in
+                Button("Delete Entry", role: .destructive) {
+                    Task { await model.delete(entry) }
+                }
+            } message: { entry in
+                Text(deletionMessage(for: entry))
+            }
+            .alert(
+                "Unable to delete the entry",
+                isPresented: isShowingDeletionFailure,
+                presenting: model.deletionFailure
+            ) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { failure in
+                Text(failure.message)
+            }
     }
 
     @ViewBuilder
@@ -82,6 +108,42 @@ struct WeeklyReportView: View {
                 Button("This week") { model.changeWeek(by: -model.weekOffset) }
             }
         }
+    }
+
+    // MARK: Entry actions
+
+    private var entryActions: WorklogEntryActions? {
+        guard model.canEditEntries else { return nil }
+        return WorklogEntryActions(
+            isBusy: { model.deletingEntryIDs.contains($0.id) },
+            editComment: { model.editingEntry = $0 },
+            delete: { model.entryPendingDeletion = $0 }
+        )
+    }
+
+    private var isConfirmingDeletion: Binding<Bool> {
+        Binding(
+            get: { model.entryPendingDeletion != nil },
+            set: { if !$0 { model.entryPendingDeletion = nil } }
+        )
+    }
+
+    private var isShowingDeletionFailure: Binding<Bool> {
+        Binding(
+            get: { model.deletionFailure != nil },
+            set: { if !$0 { model.deletionFailure = nil } }
+        )
+    }
+
+    private var deletionTitle: String {
+        guard let entry = model.entryPendingDeletion else { return "Delete Entry?" }
+        return "Delete \(DurationFormatter.short(entry.seconds)) from \(entry.issueKey)?"
+    }
+
+    private func deletionMessage(for entry: Worklog) -> String {
+        let day = AppFormatters.weekdayAndDay.string(from: entry.start)
+        let time = AppFormatters.time.string(from: entry.start)
+        return "The entry from \(day) at \(time) will be removed from \(model.source.title). This can't be undone."
     }
 
     // MARK: Toolbar
@@ -235,7 +297,7 @@ struct WeeklyReportView: View {
                 .lineLimit(2)
                 .textSelection(.enabled)
         } details: {
-            WorklogEntryList(entries: issue.entries, showsDate: true)
+            WorklogEntryList(entries: issue.entries, showsDate: true, actions: entryActions)
         }
     }
 
@@ -253,7 +315,7 @@ struct WeeklyReportView: View {
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
         } details: {
-            WorklogEntryList(entries: group.entries, showsDate: false)
+            WorklogEntryList(entries: group.entries, showsDate: false, actions: entryActions)
         }
     }
 

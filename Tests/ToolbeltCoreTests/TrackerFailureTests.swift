@@ -82,3 +82,65 @@ struct TrackerFailureTests {
         #expect(!failure.details.isEmpty)
     }
 }
+
+@Suite("Failures changing an entry")
+struct WorklogChangeFailureTests {
+    /// The credentials did load the report, so a 403 here is about the entry.
+    @Test("Access denied to an entry does not send the user to Settings")
+    func forbiddenIsAboutEntry() {
+        let failure = TrackerFailure.worklogChange(TrackerError.forbidden)
+
+        #expect(failure.reason == "Tracker did not allow changing this entry.")
+        #expect(!failure.needsSettings)
+    }
+
+    @Test("A missing entry is told apart from a missing page")
+    func notFoundIsAboutEntry() {
+        let failure = TrackerFailure.worklogChange(TrackerError.notFound)
+
+        #expect(failure.reason == "This entry is no longer in Tracker.")
+        #expect(failure.suggestion != nil)
+    }
+
+    @Test("A rejected change keeps Tracker's explanation in the details", arguments: [400, 422])
+    func rejectedChange(status: Int) {
+        let failure = TrackerFailure.worklogChange(TrackerError.from(status: status, body: "duration is required"))
+
+        #expect(failure.reason == "Tracker rejected the change.")
+        #expect(failure.details.contains("duration is required"))
+    }
+
+    @Test("An expired token still points to Settings")
+    func unauthorizedNeedsSettings() {
+        #expect(TrackerFailure.worklogChange(TrackerError.unauthorized).needsSettings)
+    }
+
+    @Test("Network errors read the same as when loading")
+    func networkErrorFallsBack() {
+        let error = URLError(.notConnectedToInternet)
+
+        #expect(TrackerFailure.worklogChange(error) == TrackerFailure(error))
+    }
+}
+
+@Suite("Worklog")
+struct WorklogTests {
+    @Test("Changing the comment keeps everything else")
+    func withCommentKeepsTheRest() {
+        let entry = Worklog(
+            id: 7,
+            issueKey: "MOB-1",
+            issueTitle: "Cart",
+            comment: "Old",
+            start: Date(timeIntervalSince1970: 1_000),
+            seconds: 9000
+        )
+        let updated = entry.with(comment: "New")
+
+        #expect(updated.comment == "New")
+        #expect(updated == Worklog(
+            id: 7, issueKey: "MOB-1", issueTitle: "Cart", comment: "New",
+            start: Date(timeIntervalSince1970: 1_000), seconds: 9000
+        ))
+    }
+}

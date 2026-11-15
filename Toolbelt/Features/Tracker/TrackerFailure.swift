@@ -38,6 +38,31 @@ struct TrackerFailure: Equatable {
 
     static let retryLater = "Please try again in a few moments."
 
+    /// 403 and 404 on a single entry are about that entry, not about the credentials.
+    static func worklogChange(_ error: Error) -> TrackerFailure {
+        guard let error = error as? TrackerError else { return TrackerFailure(error) }
+        let details = error.localizedDescription
+
+        switch error {
+        case .forbidden:
+            return TrackerFailure(
+                reason: "Tracker did not allow changing this entry.",
+                suggestion: "Check that you can change it in Tracker itself.",
+                details: details
+            )
+        case .notFound:
+            return TrackerFailure(
+                reason: "This entry is no longer in Tracker.",
+                suggestion: "It may have been deleted there. Refresh the report.",
+                details: details
+            )
+        case let .http(status, _) where status == 400 || status == 422:
+            return TrackerFailure(reason: "Tracker rejected the change.", details: details)
+        default:
+            return TrackerFailure(error)
+        }
+    }
+
     static func unknown(_ error: Error) -> TrackerFailure {
         TrackerFailure(reason: error.localizedDescription, details: String(describing: error))
     }
