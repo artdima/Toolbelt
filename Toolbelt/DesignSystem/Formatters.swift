@@ -36,6 +36,8 @@ enum AppFormatters {
     static let monthAndDay = dateFormatter("MMMM d")
     /// "Sep 18"
     static let shortDay = dateFormatter("MMM d")
+    /// "18 September 2027"
+    static let fullDate = dateFormatter("d MMMM yyyy")
 
     private static func dateFormatter(_ format: String) -> DateFormatter {
         let formatter = DateFormatter()

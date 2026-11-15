@@ -116,6 +116,22 @@ aggregation), `IssuesBoard` (status columns), `ReleaseNotesBuilder` (commit pars
 `JSONPretty` (response formatting), `UserDefaultsParsing` (`listapps` and exported domains). They are computed once after a load rather than on
 every redraw, and they are what the tests cover.
 
+## Yandex Tracker
+
+Settings → **Yandex Tracker** needs an OAuth token and the organization ID from Tracker's
+settings, with its kind: Yandex 360 or Yandex Cloud. **Get Token…** gets the token for you:
+
+1. On [oauth.yandex.ru](https://oauth.yandex.ru/client/new/) create an app *for API access or
+   debugging* with **Read from tracker** and **Write to tracker** and the Redirect URI
+   `https://oauth.yandex.ru/verification_code`.
+2. Paste its **ClientID** — not the client secret — into the window, sign in to Yandex and
+   allow access.
+
+The token arrives in the fragment of the redirect, where Toolbelt picks it up and saves it to
+Keychain. The sign-in runs in a session of its own that ends with the window, so no Yandex
+cookies stay behind. Write access is what lets the weekly report delete entries and edit
+their comments.
+
 ## Jira
 
 Menu bar → **Jira** → **Weekly Report** is the same report as for Tracker, built from your
@@ -286,7 +302,8 @@ text Claude gets, LinkedIn's Little Text escaping, post links and URNs, token in
 the post body, HTTP status mapping, the write switch and the journal of published posts,
 response truncation, newline framing on the MCP socket, the socket's permissions, merging
 `claude_desktop_config.json`, Jira site addresses, the worklog query and the filtering of
-entries by author and week, Jira's error messages, and the errors of editing or deleting a Tracker entry.
+entries by author and week, Jira's error messages, the errors of editing or deleting a Tracker entry,
+and the Yandex OAuth sign-in link with the token or error in its redirect.
 
 ## Known limitations
 

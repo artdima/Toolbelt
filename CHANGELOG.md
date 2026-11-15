@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Tracker token in one step.** Settings → Yandex Tracker → Get Token… asks only for the
+  ClientID of your app on oauth.yandex.ru: you sign in to Yandex in Toolbelt's own window,
+  the token goes straight to Keychain, and the window tells how long it is valid. The client
+  secret is not needed, and Toolbelt keeps no Yandex session once the window is closed.
+
 ## 0.4.2
 
 - **Editing Tracker entries.** In the Yandex Tracker weekly report an entry's … menu, or

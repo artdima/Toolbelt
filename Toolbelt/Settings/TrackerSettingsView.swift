@@ -28,7 +28,7 @@ struct TrackerSettingsView: View {
                     tokenField
                 }
             } footer: {
-                Text("Stored in Keychain. Get one at [oauth.yandex.ru](https://oauth.yandex.ru)")
+                Text("Stored in Keychain. Get Token signs in to Yandex with the ClientID of your app on [oauth.yandex.ru](https://oauth.yandex.ru).")
             }
 
             SettingsGroup {
@@ -65,6 +65,10 @@ struct TrackerSettingsView: View {
         .onChange(of: draft.orgKind) { _, _ in
             commit()
         }
+        // A token from the sign-in window: an unsaved draft would otherwise write the old one back.
+        .onChange(of: store.credentials.token) { _, token in
+            draft.token = token
+        }
         .onDisappear(perform: commit)
     }
 
@@ -88,6 +92,12 @@ struct TrackerSettingsView: View {
             .buttonStyle(.borderless)
             .foregroundStyle(.secondary)
             .help(isTokenVisible ? "Hide token" : "Show token")
+
+            Button("Get Token…") {
+                AppWindows.trackerSignIn()
+            }
+            .controlSize(.small)
+            .help("Sign in to Yandex and save the token it issues")
         }
     }
 

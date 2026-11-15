@@ -70,6 +70,7 @@ let package = Package(
                 "Features/Tracker/TrackerFailure.swift",
                 "Features/Tracker/TrackerModels.swift",
                 "Features/Tracker/WeekReport.swift",
+                "Features/Tracker/YandexOAuth.swift",
                 "Features/UserDefaults/UserDefaultsModels.swift",
                 "Features/UserDefaults/UserDefaultsParsing.swift",
                 "Features/UserDefaults/UserDefaultsRunner.swift"

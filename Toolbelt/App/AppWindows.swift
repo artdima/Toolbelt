@@ -70,6 +70,11 @@ extension WindowConfiguration {
         size: NSSize(width: 480, height: 620),
         toolbarStyle: .unified
     )
+    static let trackerSignIn = WindowConfiguration(
+        id: "tracker-sign-in",
+        title: "Yandex Tracker Token",
+        size: NSSize(width: 480, height: 640)
+    )
     static let settings = WindowConfiguration(
         id: "settings",
         title: "Settings",
@@ -135,6 +140,14 @@ enum AppWindows {
             return controller
         })
         settingsController?.select(tab)
+    }
+
+    static func trackerSignIn() {
+        WindowPresenter.show(.trackerSignIn) { TrackerSignInView() }
+    }
+
+    static func closeTrackerSignIn() {
+        WindowPresenter.close(WindowConfiguration.trackerSignIn.id)
     }
 
     static func closeSettings() {
