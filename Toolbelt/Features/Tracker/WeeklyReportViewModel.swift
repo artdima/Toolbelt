@@ -128,6 +128,7 @@ final class WeeklyReportViewModel {
             applyChange(entries.map { $0.id == updated.id ? updated : $0 })
             return nil
         } catch {
+            reloadIfEntryIsGone(error)
             return TrackerFailure.worklogChange(error)
         }
     }
@@ -141,7 +142,14 @@ final class WeeklyReportViewModel {
             try await editor.delete(entry)
             applyChange(entries.filter { $0.id != entry.id })
         } catch {
+            reloadIfEntryIsGone(error)
             deletionFailure = TrackerFailure.worklogChange(error)
+        }
+    }
+
+    private func reloadIfEntryIsGone(_ error: Error) {
+        if (error as? TrackerError) == .notFound {
+            Task { await reload() }
         }
     }
 
@@ -186,11 +194,11 @@ final class WeeklyReportViewModel {
         defer { inFlightCount -= 1 }
 
         do {
-            let entries = try await service.worklog(from: start, to: end)
+            let loaded = try await service.worklog(from: start, to: end)
             try Task.checkCancellation()
             // The user may have switched weeks while the request was in flight.
             guard requestedOffset == weekOffset else { return }
-            show(entries, weekStart: start)
+            show(loaded, weekStart: start)
         } catch is CancellationError {
             // Superseded by a newer request — leave the state alone.
         } catch let error as URLError where error.code == .cancelled {

@@ -146,20 +146,15 @@ final class TrackerClient: TrackerService, WorklogEditing {
             "comment": comment
         ]
         let data = try await send(.patch, path: worklogPath(of: entry), payload: payload)
-        let dto: WorklogDTO = try decode(data)
 
-        guard let updated = Worklog(dto) else {
-            return entry.with(comment: comment)
-        }
-        return updated
+        // The change is saved by now: an unreadable reply must not report it as failed.
+        let reply = try? decode(data) as WorklogDTO
+        let saved = reply?.comment ?? comment
+        return entry.with(comment: saved.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     func delete(_ entry: Worklog) async throws {
-        do {
-            _ = try await send(.delete, path: worklogPath(of: entry))
-        } catch TrackerError.notFound {
-            // Already deleted in Tracker itself — the outcome the user asked for.
-        }
+        _ = try await send(.delete, path: worklogPath(of: entry))
     }
 
     func myIssues(includeResolved: Bool) async throws -> [Issue] {

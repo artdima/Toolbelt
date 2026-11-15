@@ -97,10 +97,6 @@ struct WorklogCommentEditor: View {
 
     private var buttons: some View {
         HStack(spacing: 8) {
-            Text("⌥↩ for a new line")
-                .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
-
             Spacer(minLength: 0)
 
             if isSaving {
@@ -134,6 +130,8 @@ struct WorklogCommentEditor: View {
             isSaving = false
             if failure == nil {
                 dismiss()
+            } else {
+                isFocused = true
             }
         }
     }

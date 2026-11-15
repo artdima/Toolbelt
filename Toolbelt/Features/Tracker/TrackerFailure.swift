@@ -53,7 +53,7 @@ struct TrackerFailure: Equatable {
         case .notFound:
             return TrackerFailure(
                 reason: "This entry is no longer in Tracker.",
-                suggestion: "It may have been deleted there. Refresh the report.",
+                suggestion: "It may have been deleted there.",
                 details: details
             )
         case let .http(status, _) where status == 400 || status == 422:
